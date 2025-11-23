@@ -130,14 +130,18 @@ async def main():
             res = await session.execute(select(RoutePair).where(RoutePair.is_active == True))
             all_routes = res.scalars().all()
             
-            today = now_utc.strftime("%Y-%m-%d")
-            tomorrow = (now_utc + timedelta(days=1)).strftime("%Y-%m-%d")
+            # Identify International Airports
+            intl_codes = {a['code'] for a in AIRPORTS_LIST if a.get('is_international')}
             
             for r in all_routes:
-                # Add if not already added by midnight logic
-                # (Simple de-dupe could be done here, but overlapping is fine/safer)
-                tasks_to_run.append({"origin": r.origin, "destination": r.destination, "date": today, "type": "full"})
-                tasks_to_run.append({"origin": r.origin, "destination": r.destination, "date": tomorrow, "type": "full"})
+                # Determine window size
+                window = 2
+                if r.origin in intl_codes or r.destination in intl_codes:
+                    window = 10
+                
+                for i in range(window):
+                    d_str = (now_utc + timedelta(days=i)).strftime("%Y-%m-%d")
+                    tasks_to_run.append({"origin": r.origin, "destination": r.destination, "date": d_str, "type": "full"})
 
         # If invoked manually (workflow_dispatch), force full scrape?
         # For now, let's assume manual invocation via GitHub Actions implies "Run Full Scrape" 
@@ -156,11 +160,19 @@ async def main():
              tasks_to_run = [] # Clear potential partials
              res = await session.execute(select(RoutePair).where(RoutePair.is_active == True))
              all_routes = res.scalars().all()
-             today = now_utc.strftime("%Y-%m-%d")
-             tomorrow = (now_utc + timedelta(days=1)).strftime("%Y-%m-%d")
+             
+             # Identify International Airports (Redundant but safe if scope changes)
+             intl_codes = {a['code'] for a in AIRPORTS_LIST if a.get('is_international')}
+
              for r in all_routes:
-                tasks_to_run.append({"origin": r.origin, "destination": r.destination, "date": today, "type": "full"})
-                tasks_to_run.append({"origin": r.origin, "destination": r.destination, "date": tomorrow, "type": "full"})
+                # Determine window size
+                window = 2
+                if r.origin in intl_codes or r.destination in intl_codes:
+                    window = 10
+                
+                for i in range(window):
+                    d_str = (now_utc + timedelta(days=i)).strftime("%Y-%m-%d")
+                    tasks_to_run.append({"origin": r.origin, "destination": r.destination, "date": d_str, "type": "full"})
 
         if not tasks_to_run:
             logger.info("No scrape tasks required at this time.")
