@@ -645,8 +645,16 @@
                     if (!isoStr) return '-';
                     const date = new Date(isoStr);
                     const now = new Date();
-                    const isToday = date.toDateString() === now.toDateString();
-                    return isToday ? date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : date.toLocaleDateString();
+
+                    // Compare dates in Central Time to determine if it's "today"
+                    const dateCSTStr = date.toLocaleDateString('en-US', { timeZone: 'America/Chicago' });
+                    const nowCSTStr = now.toLocaleDateString('en-US', { timeZone: 'America/Chicago' });
+                    const isToday = dateCSTStr === nowCSTStr;
+
+                    // Format in Central Time
+                    return isToday
+                        ? date.toLocaleTimeString('en-US', { timeZone: 'America/Chicago', hour: '2-digit', minute:'2-digit' })
+                        : date.toLocaleDateString('en-US', { timeZone: 'America/Chicago' });
                 },
                 formatCST(isoStr) {
                     if (!isoStr) return 'Never';
