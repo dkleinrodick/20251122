@@ -11,7 +11,16 @@
       "Bash(gh secret list:*)",
       "Bash(gh workflow run:*)",
       "Bash(gh run list:*)",
-      "Bash(gh run view:*)"
+      "Bash(gh run view:*)",
+      "Bash(vercel --version:*)",
+      "Bash(vercel --prod:*)",
+      "Bash(gh run watch:*)",
+      "Bash(TZ='America/Chicago' date:*)",
+      "Bash(TZ='America/New_York' date:*)",
+      "Bash(TZ='America/Los_Angeles' date:*)",
+      "Bash(python -m json.tool:*)",
+      "Bash(python:*)",
+      "Bash(curl:*)"
     ],
     "deny": [],
     "ask": []
