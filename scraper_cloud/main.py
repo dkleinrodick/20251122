@@ -2,6 +2,7 @@ import sys
 import os
 import asyncio
 import logging
+import ssl
 from datetime import datetime, timedelta
 import pytz
 
@@ -10,6 +11,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import NullPool
 from sqlalchemy import select
 
 from app.models import RoutePair, SystemSetting, Airport
@@ -29,10 +31,31 @@ if DATABASE_URL.startswith("postgres://"):
 elif DATABASE_URL.startswith("postgresql://"):
     DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://")
 
+# Remove sslmode parameter if present (asyncpg doesn't support it in URL)
+if "?sslmode=" in DATABASE_URL:
+    DATABASE_URL = DATABASE_URL.split("?")[0]
+
 # Strip whitespace just in case
 DATABASE_URL = DATABASE_URL.strip()
 
-engine = create_async_engine(DATABASE_URL, echo=False)
+# Configure SSL for Supabase
+ssl_context = ssl.create_default_context()
+ssl_context.check_hostname = False
+ssl_context.verify_mode = ssl.CERT_NONE
+connect_args = {
+    "ssl": ssl_context,
+    "server_settings": {
+        "jit": "off"
+    }
+}
+
+# Create engine with NullPool for transaction pooler compatibility
+engine = create_async_engine(
+    DATABASE_URL,
+    echo=False,
+    connect_args=connect_args,
+    poolclass=NullPool  # Use NullPool to avoid prepared statement issues with transaction pooler
+)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine, class_=AsyncSession)
 
 async def get_setting(session, key, default):
