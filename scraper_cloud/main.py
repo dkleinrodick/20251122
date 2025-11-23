@@ -23,7 +23,10 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("scraper_cloud")
 
 # Database Config (Session Mode)
-DATABASE_URL = os.environ.get("DATABASE_URL", "postgresql://postgres.vwtxmyboywwncglunrxv:egPI3VHuOf4QHSjv@aws-1-us-east-1.pooler.supabase.com:5432/postgres")
+DATABASE_URL = os.environ.get("DATABASE_URL")
+if not DATABASE_URL:
+    logger.error("DATABASE_URL environment variable not set")
+    sys.exit(1)
 
 # Force asyncpg for Postgres
 if DATABASE_URL.startswith("postgres://"):
@@ -40,8 +43,7 @@ DATABASE_URL = DATABASE_URL.strip()
 
 # Configure SSL for Supabase
 ssl_context = ssl.create_default_context()
-ssl_context.check_hostname = False
-ssl_context.verify_mode = ssl.CERT_NONE
+# SSL verification enabled by default
 connect_args = {
     "ssl": ssl_context,
     "server_settings": {

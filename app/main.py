@@ -88,7 +88,14 @@ async def verify_admin(x_admin_pass: str = Header(None), db: AsyncSession = Depe
     try:
         res = await db.execute(select(SystemSetting).where(SystemSetting.key == "admin_password"))
         setting = res.scalar_one_or_none()
-        stored_pass = setting.value if setting else "84798479Aa!"
+        
+        # Secure fallback: Use ENV var or fail closed (no access)
+        import os
+        stored_pass = setting.value if setting else os.environ.get("ADMIN_PASSWORD")
+        
+        if not stored_pass:
+            logger.warning("Admin password not configured!")
+            raise HTTPException(status_code=403, detail="Admin access not configured")
         
         if x_admin_pass != stored_pass:
             logger.warning(f"Verify Admin: Failed. Provided: '{x_admin_pass}' vs Stored: '{stored_pass}'")
@@ -176,8 +183,7 @@ async def debug_db():
                 p = urlparse(db_url)
                 
                 ssl_ctx = ssl.create_default_context()
-                ssl_ctx.check_hostname = False
-                ssl_ctx.verify_mode = ssl.CERT_NONE
+                # SSL verification enabled by default
                 
                 conn = await asyncpg.connect(
                     user=p.username,
@@ -735,7 +741,7 @@ async def force_cache(request: Request, background_tasks: BackgroundTasks):
 async def scrape_frontier_routes(db: AsyncSession):
     url = "https://flights.flyfrontier.com/en/sitemap/city-to-city-flights/page-1"
     try:
-        async with httpx.AsyncClient(verify=False, timeout=30.0) as client:
+        async with httpx.AsyncClient(verify=True, timeout=30.0) as client:
             resp = await client.get(url)
             content = resp.text
             start_marker = '<script id="__NEXT_DATA__" type="application/json">'

@@ -92,7 +92,7 @@ class FrontierClient:
         # If 'proxy' fails, it might be an old version. 
         # But safest is to pass it as 'proxies' if it's a string, or mount it.
         # Actually, let's just try 'proxies' which is more standard across versions.
-        self.client = httpx.AsyncClient(proxies=self.proxy, verify=False, timeout=self.timeout)
+        self.client = httpx.AsyncClient(proxies=self.proxy, verify=True, timeout=self.timeout)
 
     def _generate_uuid(self):
         # Custom UUID generation matching the JS version (modifying specific bytes)
@@ -646,7 +646,7 @@ async def verify_proxy(proxy_url: str, protocol: str) -> bool:
     try:
         # Use example.com as it is neutral and highly available. 
         # Verify=False to avoid SSL cert issues on some proxies.
-        async with httpx.AsyncClient(proxies=full_url, timeout=20.0, verify=False) as client:
+        async with httpx.AsyncClient(proxies=full_url, timeout=20.0, verify=True) as client:
             resp = await client.get("https://www.example.com", follow_redirects=True)
             if resp.status_code == 200:
                 return True
