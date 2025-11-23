@@ -515,6 +515,26 @@
                                         <i class="ph ph-airplane"></i> Nonstop
                                     </button>
                                 </div>
+                                <!-- Sort By -->
+                                <div class="flex flex-col gap-1" v-click-outside="() => showSortDropdown = false">
+                                    <label class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Sort By</label>
+                                    <div @click="showSortDropdown = !showSortDropdown" 
+                                         class="bg-slate-50 px-3 py-2 rounded-xl border border-slate-200 h-[42px] flex items-center justify-between cursor-pointer relative hover:border-brand-300 transition-all"
+                                         :class="showSortDropdown ? 'border-brand-500 ring-2 ring-brand-500/10' : ''">
+                                        <span class="text-xs font-bold text-slate-700 capitalize">{{ oneWay.sortBy }}</span>
+                                        <i class="ph ph-caret-down text-slate-400 transition-transform duration-300" :class="showSortDropdown ? 'rotate-180' : ''"></i>
+                                        
+                                        <!-- Menu -->
+                                        <div v-if="showSortDropdown" class="absolute top-full left-0 w-full bg-white border border-slate-100 rounded-xl shadow-xl mt-2 z-50 py-1 animate-fade-in overflow-hidden">
+                                            <div v-for="opt in ['price', 'duration', 'stops']" :key="opt" 
+                                                 @click.stop="oneWay.sortBy = opt; showSortDropdown = false"
+                                                 class="px-3 py-2 hover:bg-brand-50 cursor-pointer flex items-center justify-between group transition-colors">
+                                                <span class="text-xs font-bold text-slate-700 capitalize group-hover:text-brand-700">{{ opt }}</span>
+                                                <i v-if="oneWay.sortBy === opt" class="ph-bold ph-check text-brand-600 text-xs"></i>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                             
                             <!-- Day Trip Slider -->
@@ -1087,7 +1107,7 @@
                      class="flex flex-col gap-4 w-full max-w-6xl mx-auto">
                     
                     <!-- Flight Card -->
-                    <div v-for="(item, i) in (currentTab === 'builder' ? sortedBuilderResults : results)" :key="i" 
+                    <div v-for="(item, i) in (currentTab === 'builder' ? sortedBuilderResults : (currentTab === 'oneway' ? sortedOneWayResults : results))" :key="i" 
                         @click="selectedFlight = item"
                         class="w-full bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition duration-300 overflow-hidden flex flex-col cursor-pointer group">
                         
@@ -1494,6 +1514,7 @@
                 const dayTrip = ref({ minHours: 6 });
                 const dayTripMode = ref('anywhere');
                 const builder = ref({ min: 1, max: 6, maxDuration: 24, maxStops: 3, sortBy: 'price' });
+                const oneWay = ref({ sortBy: 'price' });
                 
                 // Results
                 const results = ref([]);
@@ -1615,6 +1636,33 @@
                     if (!selectedExploreCode.value) return null;
                     return row.find(group => group.code === selectedExploreCode.value);
                 };
+
+                const sortedOneWayResults = computed(() => {
+                    if (currentTab.value !== 'oneway') return results.value;
+                    const list = [...results.value];
+                    
+                    list.sort((a, b) => {
+                        if (oneWay.value.sortBy === 'price') {
+                            return (a.price || 0) - (b.price || 0);
+                        } else if (oneWay.value.sortBy === 'duration') {
+                            const getMinutes = (s) => {
+                                if(!s) return 9999;
+                                let h = 0, m = 0;
+                                const parts = s.split(' ');
+                                for(let p of parts) {
+                                    if(p.includes('h')) h = parseInt(p);
+                                    if(p.includes('m')) m = parseInt(p);
+                                }
+                                return h * 60 + m;
+                            };
+                            return getMinutes(a.duration) - getMinutes(b.duration);
+                        } else if (oneWay.value.sortBy === 'stops') {
+                            return (a.stops || 0) - (b.stops || 0);
+                        }
+                        return 0;
+                    });
+                    return list;
+                });
 
                 const sortedBuilderResults = computed(() => {
                     if (currentTab.value !== 'builder') return results.value;
