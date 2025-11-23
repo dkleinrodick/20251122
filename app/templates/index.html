@@ -599,20 +599,20 @@
                             </div>
 
                             <!-- Weather / Common Filters -->
-                            <div v-if="currentTab === 'explore' || (currentTab === 'daytrip' && dayTripMode === 'anywhere')" class="flex gap-2">
+                            <div v-if="currentTab === 'explore' || (currentTab === 'daytrip' && dayTripMode === 'anywhere')" class="flex flex-wrap gap-2">
                                 <button @click="filters.noRain = !filters.noRain" 
                                     :class="filters.noRain ? 'bg-brand-100 text-brand-700 border-brand-300' : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'"
-                                    class="px-4 py-2 rounded-xl border text-sm font-bold transition flex items-center gap-2 h-[42px]">
+                                    class="px-4 py-2 rounded-xl border text-sm font-bold transition flex items-center gap-2 h-[42px] whitespace-nowrap">
                                     <i class="ph ph-cloud-slash"></i> No Rain
                                 </button>
                                 <button @click="filters.warm = !filters.warm"
                                     :class="filters.warm ? 'bg-orange-100 text-orange-700 border-orange-300' : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'" 
-                                    class="px-4 py-2 rounded-xl border text-sm font-bold transition flex items-center gap-2 h-[42px]">
+                                    class="px-4 py-2 rounded-xl border text-sm font-bold transition flex items-center gap-2 h-[42px] whitespace-nowrap">
                                     <i class="ph ph-sun"></i> Warm (60°+)
                                 </button>
                                 <button @click="filters.nonStop = !filters.nonStop"
                                     :class="filters.nonStop ? 'bg-purple-100 text-purple-700 border-purple-300' : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'" 
-                                    class="px-4 py-2 rounded-xl border text-sm font-bold transition flex items-center gap-2 h-[42px]">
+                                    class="px-4 py-2 rounded-xl border text-sm font-bold transition flex items-center gap-2 h-[42px] whitespace-nowrap">
                                     <i class="ph ph-airplane"></i> Nonstop
                                 </button>
                             </div>
