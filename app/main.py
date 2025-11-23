@@ -2,6 +2,10 @@ from fastapi import FastAPI, Depends, HTTPException, BackgroundTasks, Request, F
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse, JSONResponse
+from dotenv import load_dotenv
+
+load_dotenv()
+
 from sqlalchemy.future import select
 from sqlalchemy import delete, update, or_, func
 from sqlalchemy.ext.asyncio import AsyncSession

@@ -6,6 +6,9 @@ import ssl
 from datetime import datetime
 import pytz
 import httpx
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # Add parent directory to path so we can import 'app'
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
