@@ -1,0 +1,29 @@
+name: Weather Scraper
+
+on:
+  schedule:
+    # Run daily at 05:49 UTC (11:49 PM CST during standard time)
+    # Note: During CDT (daylight saving), this will be 12:49 AM CDT
+    - cron: '49 5 * * *'
+  workflow_dispatch:
+    # Manual trigger available in GitHub Actions UI
+
+jobs:
+  update-weather:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Setup Python 3.11
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install Dependencies
+        run: pip install httpx asyncio pytz sqlalchemy[asyncpg] aiosqlite
+
+      - name: Run Weather Scraper
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: python weather_cloud/main.py

@@ -1,0 +1,6 @@
+httpx==0.25.1
+asyncio
+pytz==2023.3
+sqlalchemy==2.0.23
+asyncpg==0.29.0
+aiosqlite==0.19.0

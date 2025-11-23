@@ -167,11 +167,15 @@ async def main():
             return
 
         logger.info(f"Executing {len(tasks_to_run)} flight search tasks...")
-        
-        # 5. Execute
+
+        # 5. Execute with configured concurrency
         engine_scraper = ScraperEngine()
-        chunk_size = 5
-        
+
+        # Get max concurrent requests from database settings
+        max_concurrent = int(await get_setting(session, "max_concurrent_requests", "5"))
+        chunk_size = max_concurrent
+        logger.info(f"Using concurrency level: {chunk_size}")
+
         for i in range(0, len(tasks_to_run), chunk_size):
             chunk = tasks_to_run[i:i+chunk_size]
             chunk_tasks = []
@@ -179,7 +183,7 @@ async def main():
                 chunk_tasks.append(
                     engine_scraper.perform_search(item['origin'], item['destination'], item['date'], session, force_refresh=True)
                 )
-            
+
             await asyncio.gather(*chunk_tasks, return_exceptions=True)
             await asyncio.sleep(0.5)
 

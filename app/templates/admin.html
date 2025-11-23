@@ -198,10 +198,10 @@
                                     <div class="p-2 bg-indigo-50 text-indigo-600 rounded-lg"><i class="ph-duotone ph-clock-counter-clockwise text-xl"></i></div>
                                 </div>
                                 <div>
-                                    <div class="text-lg font-bold text-slate-800 truncate" :title="settings.last_auto_scrape ? new Date(settings.last_auto_scrape).toLocaleString() : 'Never'">
+                                    <div class="text-lg font-bold text-slate-800 truncate" :title="settings.last_auto_scrape ? formatCST(settings.last_auto_scrape) : 'Never'">
                                         {{ settings.last_auto_scrape ? formatSmartTime(settings.last_auto_scrape) : 'Never' }}
                                     </div>
-                                    <div class="text-xs font-bold text-slate-400 uppercase tracking-wide">Last Scraper Run</div>
+                                    <div class="text-xs font-bold text-slate-400 uppercase tracking-wide">Last Scraper Run (CST)</div>
                                 </div>
                             </div>
                         </div>
@@ -351,7 +351,21 @@
                                             <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Cache Expiry (Mins)</label>
                                             <input v-model="settings.cache_duration_minutes" type="number" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm font-bold text-slate-700 focus:ring-2 focus:ring-brand-500 outline-none">
                                         </div>
-                                        
+
+                                        <!-- Weather Scraper Controls -->
+                                        <label class="flex items-center justify-between p-4 bg-orange-50 rounded-xl border border-orange-200 cursor-pointer hover:border-orange-300 transition">
+                                            <span class="text-sm font-bold text-slate-700">Enable Weather Scraper</span>
+                                            <div class="relative inline-flex items-center">
+                                                <input type="checkbox" v-model="settings.weather_scrape_enabled" true-value="true" false-value="false" class="sr-only peer">
+                                                <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-500"></div>
+                                            </div>
+                                        </label>
+
+                                        <div>
+                                            <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Weather Scrape Time (CST)</label>
+                                            <input v-model="settings.weather_scrape_time_cst" type="time" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm font-bold text-slate-700 focus:ring-2 focus:ring-orange-500 outline-none" title="Daily weather update time in Central Standard Time">
+                                        </div>
+
                                         <!-- Toggles -->
                                         <div class="col-span-1 md:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-4">
                                             <label class="flex items-center justify-between p-3 border border-slate-200 rounded-xl cursor-pointer hover:bg-slate-50 transition">
@@ -576,6 +590,8 @@
                         cache_reset_time: '09:00',
                         save_debug_responses: 'false',
                         weather_scrape_time: '08:00',
+                        weather_scrape_enabled: 'true',
+                        weather_scrape_time_cst: '23:49',
                         proxy_enabled: 'false',
                         max_concurrent_requests: 5,
                         auto_scrape_interval: 60,
@@ -631,6 +647,21 @@
                     const now = new Date();
                     const isToday = date.toDateString() === now.toDateString();
                     return isToday ? date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : date.toLocaleDateString();
+                },
+                formatCST(isoStr) {
+                    if (!isoStr) return 'Never';
+                    const date = new Date(isoStr);
+                    // Convert to Central Time (US/Central)
+                    return date.toLocaleString('en-US', {
+                        timeZone: 'America/Chicago',
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit',
+                        hour12: true
+                    }) + ' CST';
                 },
                 startUptimeLoop() {
                     setInterval(async () => {

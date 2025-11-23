@@ -100,6 +100,8 @@ INSERT INTO system_settings (key, value) VALUES
     ('cache_reset_days', '2'),
     ('cache_reset_time', '09:00'),
     ('weather_scrape_time', '06:00'),
+    ('weather_scrape_enabled', 'true'),
+    ('weather_scrape_time_cst', '23:49'),
     ('admin_password', 'admin'),
     ('proxy_enabled', 'false'),
     ('scraper_popup_enabled', 'true'),

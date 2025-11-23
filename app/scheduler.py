@@ -451,24 +451,52 @@ def start_scheduler():
 
 async def reschedule_weather_job():
     """
-    Reads the 'weather_scrape_time' setting and schedules the weather job accordingly.
-    Format expected: "HH:MM" (24-hour). Default: "06:00"
+    Reads the 'weather_scrape_enabled' and 'weather_scrape_time_cst' settings and schedules the weather job accordingly.
+    Time is specified in CST and converted to UTC for scheduling.
+    Format expected: "HH:MM" (24-hour). Default: "23:49" CST
     """
-    time_str = await get_setting("weather_scrape_time", "06:00")
+    # Check if weather scraper is enabled
+    enabled = await get_setting("weather_scrape_enabled", "true")
+    if enabled.lower() != "true":
+        logger.info("Weather scraper is disabled in settings")
+        if scheduler.get_job("weather_updater"):
+            scheduler.remove_job("weather_updater")
+        return
+
+    # Get time in CST
+    time_str_cst = await get_setting("weather_scrape_time_cst", "23:49")
     try:
-        hour, minute = map(int, time_str.split(':'))
+        hour_cst, minute_cst = map(int, time_str_cst.split(':'))
     except ValueError:
-        logger.error(f"Invalid weather_scrape_time format: {time_str}. Fallback to 06:00")
-        hour, minute = 6, 0
+        logger.error(f"Invalid weather_scrape_time_cst format: {time_str_cst}. Fallback to 23:49 CST")
+        hour_cst, minute_cst = 23, 49
+
+    # Convert CST to UTC
+    # CST is UTC-6 (standard time) or UTC-5 (daylight time)
+    # To be safe, we'll use pytz to handle the conversion properly
+    from datetime import datetime
+    import pytz
+
+    cst = pytz.timezone('America/Chicago')
+    utc = pytz.UTC
+
+    # Create a datetime for today at the specified CST time
+    today = datetime.now(cst)
+    target_time_cst = cst.localize(datetime(today.year, today.month, today.day, hour_cst, minute_cst))
+
+    # Convert to UTC
+    target_time_utc = target_time_cst.astimezone(utc)
+    hour_utc = target_time_utc.hour
+    minute_utc = target_time_utc.minute
 
     # Remove existing if any
     if scheduler.get_job("weather_updater"):
         scheduler.remove_job("weather_updater")
-        
+
     scheduler.add_job(
-        lambda: _run_async_job(update_weather_data), 
-        CronTrigger(hour=hour, minute=minute), 
-        id="weather_updater", 
+        lambda: _run_async_job(update_weather_data),
+        CronTrigger(hour=hour_utc, minute=minute_utc),
+        id="weather_updater",
         replace_existing=True
     )
-    logger.info(f"Weather job scheduled for {hour:02d}:{minute:02d} UTC daily.")
+    logger.info(f"Weather job scheduled for {hour_cst:02d}:{minute_cst:02d} CST ({hour_utc:02d}:{minute_utc:02d} UTC) daily.")
