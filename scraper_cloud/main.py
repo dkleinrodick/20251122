@@ -173,19 +173,34 @@ async def main():
 
         # Get max concurrent requests from database settings
         max_concurrent = int(await get_setting(session, "max_concurrent_requests", "5"))
-        chunk_size = max_concurrent
-        logger.info(f"Using concurrency level: {chunk_size}")
+        logger.info(f"Using concurrency level: {max_concurrent}")
 
-        for i in range(0, len(tasks_to_run), chunk_size):
-            chunk = tasks_to_run[i:i+chunk_size]
-            chunk_tasks = []
-            for item in chunk:
-                chunk_tasks.append(
-                    engine_scraper.perform_search(item['origin'], item['destination'], item['date'], session, force_refresh=True)
-                )
+        # Create a semaphore to control concurrency
+        async with SessionLocal() as tmp_session:
+            sem = await engine_scraper.get_semaphore(tmp_session)
 
-            await asyncio.gather(*chunk_tasks, return_exceptions=True)
-            await asyncio.sleep(0.5)
+        completed_count = 0
+        total_tasks = len(tasks_to_run)
+
+        async def scrape_single(origin, destination, date):
+            nonlocal completed_count
+            try:
+                async with sem:
+                    async with SessionLocal() as task_session:
+                        # Each task gets its own session to avoid conflicts
+                        await engine_scraper.perform_search(origin, destination, date, task_session, force_refresh=True)
+            except Exception as e:
+                logger.error(f"Scrape failed for {origin}->{destination} on {date}: {e}")
+            finally:
+                completed_count += 1
+                if completed_count % 10 == 0:
+                    logger.info(f"Progress: {completed_count}/{total_tasks} tasks completed")
+
+        tasks = []
+        for item in tasks_to_run:
+            tasks.append(scrape_single(item['origin'], item['destination'], item['date']))
+
+        await asyncio.gather(*tasks)
 
         # 6. Update Timestamp (only if full scrape ran)
         if run_full_scrape:
