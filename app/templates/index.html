@@ -279,7 +279,7 @@
 
 
                         <!-- ORIGIN INPUT -->
-                        <div :class="currentTab === 'explore' || currentTab === 'daytrip' ? 'md:col-span-4' : 'md:col-span-3'" class="relative z-20" v-click-outside="() => showOriginDropdown = false">
+                        <div :class="currentTab === 'explore' || currentTab === 'daytrip' ? 'md:col-span-4' : 'md:col-span-3'" class="relative z-50" v-click-outside="() => showOriginDropdown = false">
                             <div class="flex justify-between items-end mb-2 h-6 ml-1">
                                 <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider">
                                     {{ currentTab === 'explore' ? (exploreMode === 'origin' ? 'Departing From' : 'Arriving To') : 'Origin' }}
