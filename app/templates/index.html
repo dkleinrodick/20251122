@@ -1974,12 +1974,25 @@
                     else showDestDropdown.value = true;
                 };
                 const selectAirport = (type, ap) => {
-                    if (type === 'origin') { 
-                        search.value.origin = ap.code; 
+                    if (type === 'origin') {
+                        search.value.origin = ap.code;
                         showOriginDropdown.value = false;
                         calculateDateOptions();
+                        // Clear results when origin changes after a search
+                        if (searchExecuted.value && currentTab.value !== 'explore') {
+                            results.value = [];
+                            searchExecuted.value = false;
+                        }
                     }
-                    else { search.value.dest = ap.code; showDestDropdown.value = false; }
+                    else {
+                        search.value.dest = ap.code;
+                        showDestDropdown.value = false;
+                        // Clear results when destination changes after a search
+                        if (searchExecuted.value && currentTab.value !== 'explore') {
+                            results.value = [];
+                            searchExecuted.value = false;
+                        }
+                    }
                 };
                 const swapAirports = () => {
                     const t = search.value.origin; search.value.origin = search.value.dest; search.value.dest = t;
