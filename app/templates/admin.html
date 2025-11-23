@@ -198,10 +198,10 @@
                                     <div class="p-2 bg-indigo-50 text-indigo-600 rounded-lg"><i class="ph-duotone ph-clock-counter-clockwise text-xl"></i></div>
                                 </div>
                                 <div>
-                                    <div class="text-lg font-bold text-slate-800 truncate" :title="settings.last_auto_scrape ? formatCST(settings.last_auto_scrape) : 'Never'">
+                                    <div class="text-lg font-bold text-slate-800 truncate" :title="settings.last_auto_scrape ? formatLocalTime(settings.last_auto_scrape) : 'Never'">
                                         {{ settings.last_auto_scrape ? formatSmartTime(settings.last_auto_scrape) : 'Never' }}
                                     </div>
-                                    <div class="text-xs font-bold text-slate-400 uppercase tracking-wide">Last Scraper Run (CST)</div>
+                                    <div class="text-xs font-bold text-slate-400 uppercase tracking-wide">Last Scraper Run</div>
                                 </div>
                             </div>
                         </div>
@@ -708,33 +708,25 @@
                 },
                 formatSmartTime(isoStr) {
                     if (!isoStr) return '-';
+                    // Treat backend ISO strings as UTC if they don't have a timezone indicator
+                    if (!isoStr.endsWith('Z') && !isoStr.includes('+')) isoStr += 'Z';
                     const date = new Date(isoStr);
                     const now = new Date();
 
-                    // Compare dates in Central Time to determine if it's "today"
-                    const dateCSTStr = date.toLocaleDateString('en-US', { timeZone: 'America/Chicago' });
-                    const nowCSTStr = now.toLocaleDateString('en-US', { timeZone: 'America/Chicago' });
-                    const isToday = dateCSTStr === nowCSTStr;
+                    // Compare dates in Local Time
+                    const isToday = date.toDateString() === now.toDateString();
 
-                    // Format in Central Time
+                    // Format in Local Time
                     return isToday
-                        ? date.toLocaleTimeString('en-US', { timeZone: 'America/Chicago', hour: '2-digit', minute:'2-digit' })
-                        : date.toLocaleDateString('en-US', { timeZone: 'America/Chicago' });
+                        ? date.toLocaleTimeString([], { hour: '2-digit', minute:'2-digit' })
+                        : date.toLocaleDateString([], { month: 'short', day: 'numeric' });
                 },
-                formatCST(isoStr) {
+                formatLocalTime(isoStr) {
                     if (!isoStr) return 'Never';
+                    if (!isoStr.endsWith('Z') && !isoStr.includes('+')) isoStr += 'Z';
                     const date = new Date(isoStr);
-                    // Convert to Central Time (US/Central)
-                    return date.toLocaleString('en-US', {
-                        timeZone: 'America/Chicago',
-                        year: 'numeric',
-                        month: '2-digit',
-                        day: '2-digit',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                        second: '2-digit',
-                        hour12: true
-                    }) + ' CST';
+                    // Convert to Local Time
+                    return date.toLocaleString();
                 },
                 startUptimeLoop() {
                     setInterval(async () => {
