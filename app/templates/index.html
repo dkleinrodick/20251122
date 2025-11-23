@@ -1161,8 +1161,7 @@
                                                     </div>
                                                 </div>
                                                 
-                                                <div class="flex justify-between items-center pt-2 border-t border-slate-50">
-                                                    <span class="text-[10px] font-bold text-slate-400">F9 {{ item.segments[0].flightNumber }}</span>
+                                                <div class="flex justify-center items-center pt-2 border-t border-slate-50">
                                                     <span v-if="item.segments[0].stops === 0" class="text-[10px] font-bold text-brand-600 uppercase">Nonstop</span>
                                                     <span v-else class="text-[10px] font-bold text-orange-600 uppercase">{{ item.segments[0].stops }} Stop</span>
                                                 </div>
@@ -1210,8 +1209,7 @@
                                                     </div>
                                                 </div>
 
-                                                <div class="flex justify-between items-center pt-2 border-t border-slate-50">
-                                                    <span class="text-[10px] font-bold text-slate-400">F9 {{ item.segments[1].flightNumber }}</span>
+                                                <div class="flex justify-center items-center pt-2 border-t border-slate-50">
                                                     <span v-if="item.segments[1].stops === 0" class="text-[10px] font-bold text-brand-600 uppercase">Nonstop</span>
                                                     <span v-else class="text-[10px] font-bold text-orange-600 uppercase">{{ item.segments[1].stops }} Stop</span>
                                                 </div>
@@ -1226,10 +1224,9 @@
                                         
                                         <!-- Left: Flight Info -->
                                         <div class="flex-1 p-5 flex items-center gap-6">
-                                            <!-- Airline Logo / Carrier -->
+                                            <!-- Airline Logo -->
                                             <div class="hidden sm:flex flex-col items-center justify-center w-12">
                                                 <img src="/static/logo_wild.svg" alt="Frontier" class="w-8 h-8 opacity-80" onerror="this.style.display='none'">
-                                                <span class="text-[10px] font-bold text-slate-400 mt-1">F9</span>
                                             </div>
 
                                             <!-- Times & Route -->
@@ -1292,10 +1289,9 @@
                             <div v-else-if="currentTab === 'oneway'" class="p-0">
                                 <div class="flex flex-col md:flex-row items-stretch">
                                     
-                                    <!-- F9 Logo / Flight Number -->
-                                    <div class="hidden sm:flex flex-col items-center justify-center w-16">
+                                    <!-- F9 Logo -->
+                                    <div class="hidden sm:flex flex-col items-center justify-center w-12">
                                         <img src="/static/logo_wild.svg" alt="Frontier" class="w-8 h-8 opacity-80" onerror="this.style.display='none'">
-                                        <span class="text-[10px] font-bold text-slate-400 mt-1 whitespace-nowrap">{{ item.segments[0].flightNumber }}</span>
                                     </div>
 
                                     <!-- Times & Route -->
