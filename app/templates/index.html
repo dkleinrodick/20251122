@@ -941,10 +941,10 @@
                                                 <span>{{ formatDurationMain(flight.duration) }}</span>
                                                 <span v-if="formatDurationSub(flight.duration)" class="text-orange-500 font-bold text-[10px]">{{ formatDurationSub(flight.duration) }}</span>
                                             </div>
-                                            <div class="w-full h-px bg-slate-200 relative my-1">
+                                            <div class="w-full h-px bg-slate-200 relative my-1 mb-2">
                                                 <i class="ph ph-airplane text-slate-300 absolute top-1/2 right-0 -translate-y-1/2 rotate-90 text-xs bg-white pl-1"></i>
                                             </div>
-                                            <div class="text-[10px] text-brand-600 font-bold uppercase text-center leading-tight">
+                                            <div class="text-[10px] text-brand-600 font-bold uppercase text-center leading-tight mt-1">
                                                 <span v-if="flight.stops === 0">Nonstop</span>
                                                 <span v-else>
                                                     {{ flight.stops }} Stop{{ flight.stops > 1 ? 's' : '' }}
@@ -1647,7 +1647,7 @@
                     window.addEventListener('resize', () => windowWidth.value = window.innerWidth);
 
                     // 1. Fetch Config immediately
-                    fetchConfig();
+                    await fetchConfig();
 
                     try {
                         const [locs, routes] = await Promise.all([
