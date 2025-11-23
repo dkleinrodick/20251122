@@ -1121,38 +1121,92 @@
                                         </div>
                                     </div>
 
-                                    <!-- Horizontal Layout -->
-                                    <div class="p-6">
-                                        <div class="flex flex-col lg:flex-row gap-6 items-stretch relative">
-                                            <!-- Connecting Line (Desktop) -->
-                                            <div class="hidden lg:block absolute top-1/2 left-0 right-0 h-px bg-slate-200 -translate-y-1/2 z-0"></div>
-
-                                            <!-- Leg 1 -->
-                                            <div class="flex-1 bg-slate-50 rounded-xl p-4 border border-slate-200 relative z-10 hover:border-brand-300 transition">
-                                                <div class="flex justify-between items-start mb-2">
-                                                    <div class="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-brand-500"></span> Leg 1</div>
-                                                    <div class="text-xs font-bold text-slate-700 bg-white px-2 py-1 rounded border border-slate-200 shadow-sm">${{ item.segments[0].price }}</div>
+                                    <!-- Vertical Layout (2 Standard Cards Stacked) -->
+                                    <div class="p-0">
+                                        <!-- Leg 1 -->
+                                        <div class="flex flex-col md:flex-row items-stretch border-b border-dashed border-slate-300 bg-white relative z-10">
+                                            <!-- Left: Flight Info -->
+                                            <div class="flex-1 p-5 flex items-center gap-6">
+                                                <div class="hidden sm:flex flex-col items-center justify-center w-16">
+                                                    <img src="/static/logo_wild.svg" alt="Frontier" class="w-8 h-8 opacity-80" onerror="this.style.display='none'">
+                                                    <span class="text-[10px] font-bold text-slate-400 mt-1 whitespace-nowrap">{{ item.segments[0].flightNumber }}</span>
                                                 </div>
-                                                <div class="text-xs text-slate-500 mb-1">{{ formatTime(item.segments[0].departure) }} - {{ formatTime(item.segments[0].arrival) }}</div>
-                                                <div class="font-bold text-slate-800 text-sm">{{ item.segments[0].origin }} → {{ item.segments[0].destination }}</div>
+                                                <div class="flex-1 flex items-center justify-between gap-8">
+                                                    <div class="text-center min-w-[80px]">
+                                                        <div class="text-xl font-bold text-slate-800">{{ formatTime(item.segments[0].departure) }}</div>
+                                                        <div class="text-xs font-bold text-slate-500">{{ item.segments[0].origin }}</div>
+                                                    </div>
+                                                    <div class="flex-1 flex flex-col items-center px-2">
+                                                        <div class="text-[10px] font-bold text-slate-400 mb-1 flex items-center gap-1">{{ item.segments[0].duration }}</div>
+                                                        <div class="w-full h-px bg-slate-300 relative flex items-center justify-between">
+                                                            <div class="w-1.5 h-1.5 rounded-full bg-slate-400"></div>
+                                                            <div class="w-1.5 h-1.5 rounded-full bg-slate-400"></div>
+                                                        </div>
+                                                        <div class="text-[10px] font-bold uppercase mt-1 text-center">
+                                                            <span v-if="item.segments[0].stops === 0" class="text-brand-600">Nonstop</span>
+                                                            <span v-else class="text-orange-600">{{ item.segments[0].stops }} Stop</span>
+                                                        </div>
+                                                    </div>
+                                                    <div class="text-center min-w-[80px]">
+                                                        <div class="text-xl font-bold text-slate-800">{{ formatTime(item.segments[0].arrival) }}</div>
+                                                        <div class="text-xs font-bold text-slate-500">{{ item.segments[0].destination }}</div>
+                                                    </div>
+                                                </div>
                                             </div>
-
-                                            <!-- Connection Node -->
-                                            <div class="lg:w-auto flex flex-col items-center justify-center relative z-10">
-                                                <div class="bg-white border-2 border-orange-100 rounded-xl p-2 shadow-sm text-center min-w-[100px]">
-                                                    <div class="text-[10px] font-bold text-orange-800 uppercase">{{ item.via }}</div>
-                                                    <div class="text-xs font-bold text-orange-600">{{ item.layover_hours }}h</div>
+                                            <!-- Right: Price -->
+                                            <div class="border-t md:border-t-0 md:border-l border-slate-100 bg-slate-50/50 p-5 flex items-center justify-center md:w-48">
+                                                <div class="text-center">
+                                                    <div class="text-xs font-bold text-slate-400 uppercase">Leg 1</div>
+                                                    <div class="text-xl font-bold text-slate-700">${{ item.segments[0].price }}</div>
                                                 </div>
                                             </div>
+                                        </div>
 
-                                            <!-- Leg 2 -->
-                                            <div class="flex-1 bg-slate-50 rounded-xl p-4 border border-slate-200 relative z-10 hover:border-brand-300 transition">
-                                                <div class="flex justify-between items-start mb-2">
-                                                    <div class="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-brand-500"></span> Leg 2</div>
-                                                    <div class="text-xs font-bold text-slate-700">${{ item.segments[1].price }}</div>
+                                        <!-- Connection Info -->
+                                        <div class="bg-orange-50 border-b border-dashed border-orange-200 py-2 px-6 flex justify-center items-center gap-3 text-xs font-bold text-orange-700">
+                                            <i class="ph ph-arrows-left-right"></i>
+                                            <span>Self Transfer in {{ item.via }}</span>
+                                            <span class="w-1 h-1 rounded-full bg-orange-300"></span>
+                                            <span>{{ item.layover_hours }}h Layover</span>
+                                            <i class="ph ph-clock"></i>
+                                        </div>
+
+                                        <!-- Leg 2 -->
+                                        <div class="flex flex-col md:flex-row items-stretch bg-white">
+                                            <!-- Left: Flight Info -->
+                                            <div class="flex-1 p-5 flex items-center gap-6">
+                                                <div class="hidden sm:flex flex-col items-center justify-center w-16">
+                                                    <img src="/static/logo_wild.svg" alt="Frontier" class="w-8 h-8 opacity-80" onerror="this.style.display='none'">
+                                                    <span class="text-[10px] font-bold text-slate-400 mt-1 whitespace-nowrap">{{ item.segments[1].flightNumber }}</span>
                                                 </div>
-                                                <div class="text-xs text-slate-500 mb-1">{{ formatTime(item.segments[1].departure) }} - {{ formatTime(item.segments[1].arrival) }}</div>
-                                                <div class="font-bold text-slate-800 text-sm">{{ item.segments[1].origin }} → {{ item.segments[1].destination }}</div>
+                                                <div class="flex-1 flex items-center justify-between gap-8">
+                                                    <div class="text-center min-w-[80px]">
+                                                        <div class="text-xl font-bold text-slate-800">{{ formatTime(item.segments[1].departure) }}</div>
+                                                        <div class="text-xs font-bold text-slate-500">{{ item.segments[1].origin }}</div>
+                                                    </div>
+                                                    <div class="flex-1 flex flex-col items-center px-2">
+                                                        <div class="text-[10px] font-bold text-slate-400 mb-1 flex items-center gap-1">{{ item.segments[1].duration }}</div>
+                                                        <div class="w-full h-px bg-slate-300 relative flex items-center justify-between">
+                                                            <div class="w-1.5 h-1.5 rounded-full bg-slate-400"></div>
+                                                            <div class="w-1.5 h-1.5 rounded-full bg-slate-400"></div>
+                                                        </div>
+                                                        <div class="text-[10px] font-bold uppercase mt-1 text-center">
+                                                            <span v-if="item.segments[1].stops === 0" class="text-brand-600">Nonstop</span>
+                                                            <span v-else class="text-orange-600">{{ item.segments[1].stops }} Stop</span>
+                                                        </div>
+                                                    </div>
+                                                    <div class="text-center min-w-[80px]">
+                                                        <div class="text-xl font-bold text-slate-800">{{ formatTime(item.segments[1].arrival) }}</div>
+                                                        <div class="text-xs font-bold text-slate-500">{{ item.segments[1].destination }}</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <!-- Right: Price -->
+                                            <div class="border-t md:border-t-0 md:border-l border-slate-100 bg-slate-50/50 p-5 flex items-center justify-center md:w-48">
+                                                <div class="text-center">
+                                                    <div class="text-xs font-bold text-slate-400 uppercase">Leg 2</div>
+                                                    <div class="text-xl font-bold text-slate-700">${{ item.segments[1].price }}</div>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
@@ -1230,68 +1284,66 @@
                             <div v-else-if="currentTab === 'oneway'" class="p-0">
                                 <div class="flex flex-col md:flex-row items-stretch">
                                     
-                                    <!-- Left: Flight Info -->
-                                    <div class="flex-1 p-5 flex items-center gap-6">
-                                        <!-- Airline Logo / Carrier -->
-                                        <div class="hidden sm:flex flex-col items-center justify-center w-12">
-                                            <img src="/static/logo_wild.svg" alt="Frontier" class="w-8 h-8 opacity-80" onerror="this.style.display='none'">
-                                            <span class="text-[10px] font-bold text-slate-400 mt-1">F9</span>
+                                    <!-- F9 Logo / Flight Number -->
+                                    <div class="hidden sm:flex flex-col items-center justify-center w-16">
+                                        <img src="/static/logo_wild.svg" alt="Frontier" class="w-8 h-8 opacity-80" onerror="this.style.display='none'">
+                                        <span class="text-[10px] font-bold text-slate-400 mt-1 whitespace-nowrap">{{ item.segments[0].flightNumber }}</span>
+                                    </div>
+
+                                    <!-- Times & Route -->
+                                    <div class="flex-1 flex items-center justify-between gap-8">
+                                        <!-- Departure -->
+                                        <div class="text-center min-w-[80px]">
+                                            <div class="text-xl font-bold text-slate-800">{{ formatTime(item.departure) }}</div>
+                                            <div class="text-xs font-bold text-slate-500">{{ item.origin }}</div>
                                         </div>
 
-                                        <!-- Times & Route -->
-                                        <div class="flex-1 flex items-center justify-between gap-8">
-                                            <!-- Departure -->
-                                            <div class="text-center min-w-[80px]">
-                                                <div class="text-xl font-bold text-slate-800">{{ formatTime(item.departure) }}</div>
-                                                <div class="text-xs font-bold text-slate-500">{{ item.origin }}</div>
+                                        <!-- Duration / Stops Graphic -->
+                                        <div class="flex-1 flex flex-col items-center px-2">
+                                            <div class="text-[10px] font-bold text-slate-400 mb-1 flex items-center gap-1">
+                                                {{ item.duration }}
                                             </div>
-
-                                            <!-- Duration / Stops Graphic -->
-                                            <div class="flex-1 flex flex-col items-center px-2">
-                                                <div class="text-[10px] font-bold text-slate-400 mb-1 flex items-center gap-1">
-                                                    {{ item.duration }}
+                                            <div class="w-full h-px bg-slate-300 relative flex items-center justify-between">
+                                                <div class="w-1.5 h-1.5 rounded-full bg-slate-400"></div>
+                                                <!-- Stops Dots -->
+                                                <div v-if="item.stops > 0" class="flex gap-1 bg-white px-1 relative z-10">
+                                                    <div v-for="n in item.stops" :key="n" class="w-1 h-1 rounded-full bg-orange-400 border border-white ring-1 ring-orange-100"></div>
                                                 </div>
-                                                <div class="w-full h-px bg-slate-300 relative flex items-center justify-between">
-                                                    <div class="w-1.5 h-1.5 rounded-full bg-slate-400"></div>
-                                                    <!-- Stops Dots -->
-                                                    <div v-if="item.stops > 0" class="flex gap-1 bg-white px-1 relative z-10">
-                                                        <div v-for="n in item.stops" :key="n" class="w-1 h-1 rounded-full bg-orange-400 border border-white ring-1 ring-orange-100"></div>
-                                                    </div>
-                                                    <div class="w-1.5 h-1.5 rounded-full bg-slate-400"></div>
-                                                </div>
-                                                <div class="text-[10px] font-bold uppercase mt-1 text-center">
-                                                    <span v-if="item.stops === 0" class="text-brand-600">Nonstop</span>
-                                                    <span v-else class="text-orange-600">
-                                                        {{ item.stops }} Stop{{ item.stops > 1 ? 's' : '' }}
-                                                        <span v-if="item.layover_airports" class="normal-case text-slate-400 block text-[9px] truncate max-w-[100px]" :title="item.layover_airports.join(', ')">{{ item.layover_airports.join(', ') }}</span>
-                                                    </span>
-                                                </div>
+                                                <div class="w-1.5 h-1.5 rounded-full bg-slate-400"></div>
                                             </div>
+                                            <div class="text-[10px] font-bold uppercase mt-1 text-center">
+                                                <span v-if="item.stops === 0" class="text-brand-600">Nonstop</span>
+                                                <span v-else class="text-orange-600">
+                                                    {{ item.stops }} Stop{{ item.stops > 1 ? 's' : '' }}
+                                                    <span v-if="item.layover_airports" class="normal-case text-slate-400 block text-[9px] truncate max-w-[100px]" :title="item.layover_airports.join(', ')">{{ item.layover_airports.join(', ') }}</span>
+                                                </span>
+                                            </div>
+                                        </div>
 
-                                            <!-- Arrival -->
-                                            <div class="text-center min-w-[80px]">
-                                                <div class="text-xl font-bold text-slate-800">{{ formatTime(item.arrival) }}</div>
-                                                <div class="text-xs font-bold text-slate-500">{{ item.destination }}</div>
-                                                <div v-if="getDateDiffLabel(item.departure, item.arrival)" class="text-[10px] text-red-500 font-bold mt-0.5">
-                                                    {{ getDateDiffLabel(item.departure, item.arrival) }}
-                                                </div>
+                                        <!-- Arrival -->
+                                        <div class="text-center min-w-[80px]">
+                                            <div class="text-xl font-bold text-slate-800">{{ formatTime(item.arrival) }}</div>
+                                            <div class="text-xs font-bold text-slate-500">{{ item.destination }}</div>
+                                            <div v-if="getDateDiffLabel(item.departure, item.arrival)" class="text-[10px] text-red-500 font-bold mt-0.5">
+                                                {{ getDateDiffLabel(item.departure, item.arrival) }}
                                             </div>
                                         </div>
                                     </div>
-
-                                    <!-- Right: Price & Action (Separated by border on desktop) -->
-                                    <div class="border-t md:border-t-0 md:border-l border-slate-100 bg-slate-50/50 p-5 flex flex-row md:flex-col items-center justify-between md:justify-center gap-4 md:w-48">
-                                        <div class="text-right md:text-center">
-                                            <div class="text-xs font-bold text-slate-400 uppercase mb-0.5">Total</div>
-                                            <div class="text-2xl font-bold text-slate-900 tracking-tight">${{ Number(item.price).toFixed(0) }}</div>
-                                        </div>
-                                        <a href="javascript:void(0)" @click.stop="bookFlight(item)" class="w-auto md:w-full px-6 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-bold text-center text-sm transition shadow-lg shadow-brand-600/20 active:scale-95 whitespace-nowrap flex items-center justify-center gap-2">
-                                            Select <i class="ph-bold ph-caret-right"></i>
-                                        </a>
-                                    </div>
-
                                 </div>
+
+                                <!-- Right: Price & Action -->
+                                <div class="border-t md:border-t-0 md:border-l border-slate-100 bg-slate-50/50 p-5 flex flex-row md:flex-col items-center justify-between md:justify-center gap-4 md:w-48">
+                                    <div class="text-right md:text-center">
+                                        <div class="text-xs font-bold text-slate-400 uppercase mb-0.5">Total</div>
+                                        <div class="text-2xl font-bold text-slate-900 tracking-tight">${{ Number(item.price).toFixed(0) }}</div>
+                                    </div>
+                                    <a href="javascript:void(0)" @click.stop="bookFlight(item)" class="w-auto md:w-full px-6 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-bold text-center text-sm transition shadow-lg shadow-brand-600/20 active:scale-95 whitespace-nowrap flex items-center justify-center gap-2">
+                                        Select <i class="ph-bold ph-caret-right"></i>
+                                    </a>
+                                </div>
+
                             </div>
+                        </div>
 
                         </div>
 
