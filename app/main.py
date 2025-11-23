@@ -990,3 +990,40 @@ async def delete_weather_data_date(date_str: str, db: AsyncSession = Depends(get
     await db.execute(delete(WeatherData).where(WeatherData.date == date_str))
     await db.commit()
     return {"status": "deleted"}
+
+@app.get("/api/admin/seat_inventory", dependencies=[Depends(verify_admin)])
+async def get_seat_inventory(db: AsyncSession = Depends(get_db)):
+    # Fetch all cache entries
+    stmt = select(FlightCache)
+    res = await db.execute(stmt)
+    entries = res.scalars().all()
+    
+    inventory = []
+    
+    for e in entries:
+        flights = decompress_data(e.data)
+        if not flights: continue
+        
+        for f in flights:
+            flight_num = "Unknown"
+            if f.get("segments"):
+                flight_num = f["segments"][0].get("flightNumber", "Unknown")
+            
+            # Handle timestamp
+            updated_ts = e.created_at
+            if updated_ts and updated_ts.tzinfo is None:
+                updated_ts = pytz.UTC.localize(updated_ts)
+
+            inventory.append({
+                "date": e.travel_date,
+                "origin": e.origin,
+                "destination": e.destination,
+                "flight": flight_num,
+                "seats": f.get("seats_available", 0),
+                "price": f.get("price", 0),
+                "updated": updated_ts.isoformat() if updated_ts else None
+            })
+            
+    # Sort by date, then origin
+    inventory.sort(key=lambda x: (x["date"], x["origin"]))
+    return inventory

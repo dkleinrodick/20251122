@@ -475,6 +475,59 @@
                         </div>
                     </div>
 
+                    <!-- SEAT AVAILABILITY VIEW -->
+                    <div v-if="activeTab === 'seats'" class="max-w-7xl mx-auto animate-fade-in pb-20">
+                        <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+                            <div class="p-6 border-b border-slate-50 flex justify-between items-center">
+                                <div>
+                                    <h3 class="text-lg font-bold text-slate-800">Seat Inventory</h3>
+                                    <p class="text-xs text-slate-400">Live view of cached seat counts per flight.</p>
+                                </div>
+                                <div class="text-xs font-bold text-slate-500 bg-slate-100 px-3 py-1 rounded-lg">
+                                    {{ seatInventory.length }} Flights Found
+                                </div>
+                            </div>
+
+                            <div v-if="isLoadingSeats" class="p-12 flex justify-center">
+                                <i class="ph-duotone ph-circle-notch animate-spin text-3xl text-brand-400"></i>
+                            </div>
+
+                            <div v-else class="overflow-x-auto">
+                                <table class="min-w-full divide-y divide-slate-100">
+                                    <thead class="bg-slate-50/50">
+                                        <tr>
+                                            <th class="px-6 py-3 text-left text-[10px] font-bold text-slate-400 uppercase">Date</th>
+                                            <th class="px-6 py-3 text-left text-[10px] font-bold text-slate-400 uppercase">Flight</th>
+                                            <th class="px-6 py-3 text-left text-[10px] font-bold text-slate-400 uppercase">Route</th>
+                                            <th class="px-6 py-3 text-left text-[10px] font-bold text-slate-400 uppercase">Seats</th>
+                                            <th class="px-6 py-3 text-left text-[10px] font-bold text-slate-400 uppercase">Price</th>
+                                            <th class="px-6 py-3 text-right text-[10px] font-bold text-slate-400 uppercase">Cached</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="bg-white divide-y divide-slate-50">
+                                        <tr v-for="(row, i) in seatInventory" :key="i" class="hover:bg-slate-50 transition">
+                                            <td class="px-6 py-3 text-xs font-mono font-bold text-slate-600">{{ row.date }}</td>
+                                            <td class="px-6 py-3 text-xs font-bold text-slate-800">{{ row.flight }}</td>
+                                            <td class="px-6 py-3 text-xs text-slate-500">
+                                                <span class="font-bold">{{ row.origin }}</span> <i class="ph-bold ph-arrow-right text-[10px] mx-1"></i> <span class="font-bold">{{ row.destination }}</span>
+                                            </td>
+                                            <td class="px-6 py-3">
+                                                <span :class="row.seats > 5 ? 'bg-emerald-100 text-emerald-700' : (row.seats > 0 ? 'bg-orange-100 text-orange-700' : 'bg-rose-100 text-rose-700')" class="px-2 py-0.5 rounded text-[10px] font-bold uppercase">
+                                                    {{ row.seats }} Seats
+                                                </span>
+                                            </td>
+                                            <td class="px-6 py-3 text-xs font-bold text-slate-700">${{ row.price }}</td>
+                                            <td class="px-6 py-3 text-xs text-slate-400 text-right">{{ formatSmartTime(row.updated) }}</td>
+                                        </tr>
+                                        <tr v-if="seatInventory.length === 0">
+                                            <td colspan="6" class="px-6 py-12 text-center text-slate-400 text-sm">No flight data cached.</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- DATA EXPLORER VIEW -->
                     <div v-if="activeTab === 'data'" class="max-w-6xl mx-auto animate-fade-in pb-20">
                         <div class="flex items-center gap-4 mb-6">
@@ -579,6 +632,7 @@
                         { id: 'settings', label: 'Configuration', icon: 'ph-sliders-horizontal' },
                         { id: 'proxies', label: 'Proxies', icon: 'ph-shield-check' },
                         { id: 'data', label: 'Data Explorer', icon: 'ph-database' },
+                        { id: 'seats', label: 'Seat Availability', icon: 'ph-chair' },
                     ],
                     settings: {
                         scraper_mode: 'ondemand',
@@ -615,7 +669,9 @@
                     explorerMode: 'flights', 
                     explorerData: { flights: {}, weather: {} },
                     explorerExpanded: {}, 
-                    isLoadingExplorer: false
+                    isLoadingExplorer: false,
+                    seatInventory: [],
+                    isLoadingSeats: false
                 }
             },
             computed: {
@@ -633,6 +689,7 @@
             watch: {
                 activeTab(newVal) {
                     if (newVal === 'data') this.openExplorer();
+                    if (newVal === 'seats') this.fetchSeats();
                 },
                 'settings.announcement_enabled': function(val) {
                     if (val === 'true' && !this.settings.announcement_html) {
@@ -641,6 +698,14 @@
                 }
             },
             methods: {
+                async fetchSeats() {
+                    this.isLoadingSeats = true;
+                    try {
+                        const res = await axios.get('/api/admin/seat_inventory', { headers: this.getHeaders() });
+                        this.seatInventory = res.data;
+                    } catch (e) { console.error(e); }
+                    finally { this.isLoadingSeats = false; }
+                },
                 formatSmartTime(isoStr) {
                     if (!isoStr) return '-';
                     const date = new Date(isoStr);
