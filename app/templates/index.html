@@ -1158,67 +1158,138 @@
                                     </div>
                                 </div>
 
-                                <!-- Direct Flight (Builder Fallback) -->
-                                <div v-else class="p-6 flex items-center justify-between">
-                                    <div>
-                                        <div class="text-lg font-bold text-slate-800">Direct Flight</div>
-                                        <div class="text-xs text-slate-400">{{ item.segments[0].origin }} → {{ item.segments[0].destination }}</div>
-                                    </div>
-                                    <div class="text-right">
-                                        <div class="text-2xl font-bold text-brand-600">${{ Number(item.total_price).toFixed(2) }}</div>
-                                        <a href="javascript:void(0)" @click.stop="bookFlight(item.segments[0], false)" class="inline-block mt-1 px-4 py-1.5 bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold rounded-lg transition">Book</a>
+                                <!-- Direct Flight (Builder Fallback - New Standard Layout) -->
+                                <div v-else class="p-0">
+                                    <div class="flex flex-col md:flex-row items-stretch">
+                                        
+                                        <!-- Left: Flight Info -->
+                                        <div class="flex-1 p-5 flex items-center gap-6">
+                                            <!-- Airline Logo / Carrier -->
+                                            <div class="hidden sm:flex flex-col items-center justify-center w-12">
+                                                <img src="/static/logo_wild.svg" alt="Frontier" class="w-8 h-8 opacity-80" onerror="this.style.display='none'">
+                                                <span class="text-[10px] font-bold text-slate-400 mt-1">F9</span>
+                                            </div>
+
+                                            <!-- Times & Route -->
+                                            <div class="flex-1 flex items-center justify-between gap-8">
+                                                <!-- Departure -->
+                                                <div class="text-center min-w-[80px]">
+                                                    <div class="text-xl font-bold text-slate-800">{{ formatTime(item.segments[0].departure) }}</div>
+                                                    <div class="text-xs font-bold text-slate-500">{{ item.segments[0].origin }}</div>
+                                                </div>
+
+                                                <!-- Duration / Stops Graphic -->
+                                                <div class="flex-1 flex flex-col items-center px-2">
+                                                    <div class="text-[10px] font-bold text-slate-400 mb-1 flex items-center gap-1">
+                                                        {{ item.segments[0].duration }}
+                                                    </div>
+                                                    <div class="w-full h-px bg-slate-300 relative flex items-center justify-between">
+                                                        <div class="w-1.5 h-1.5 rounded-full bg-slate-400"></div>
+                                                        <!-- Stops Dots -->
+                                                        <div v-if="item.segments[0].stops > 0" class="flex gap-1 bg-white px-1 relative z-10">
+                                                            <div v-for="n in item.segments[0].stops" :key="n" class="w-1 h-1 rounded-full bg-orange-400 border border-white ring-1 ring-orange-100"></div>
+                                                        </div>
+                                                        <div class="w-1.5 h-1.5 rounded-full bg-slate-400"></div>
+                                                    </div>
+                                                    <div class="text-[10px] font-bold uppercase mt-1 text-center">
+                                                        <span v-if="item.segments[0].stops === 0" class="text-brand-600">Nonstop</span>
+                                                        <span v-else class="text-orange-600">
+                                                            {{ item.segments[0].stops }} Stop{{ item.segments[0].stops > 1 ? 's' : '' }}
+                                                            <span v-if="item.segments[0].layover_airports" class="normal-case text-slate-400 block text-[9px] truncate max-w-[100px]" :title="item.segments[0].layover_airports.join(', ')">{{ item.segments[0].layover_airports.join(', ') }}</span>
+                                                        </span>
+                                                    </div>
+                                                </div>
+
+                                                <!-- Arrival -->
+                                                <div class="text-center min-w-[80px]">
+                                                    <div class="text-xl font-bold text-slate-800">{{ formatTime(item.segments[0].arrival) }}</div>
+                                                    <div class="text-xs font-bold text-slate-500">{{ item.segments[0].destination }}</div>
+                                                    <div v-if="getDateDiffLabel(item.segments[0].departure, item.segments[0].arrival)" class="text-[10px] text-red-500 font-bold mt-0.5">
+                                                        {{ getDateDiffLabel(item.segments[0].departure, item.segments[0].arrival) }}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Right: Price & Action -->
+                                        <div class="border-t md:border-t-0 md:border-l border-slate-100 bg-slate-50/50 p-5 flex flex-row md:flex-col items-center justify-between md:justify-center gap-4 md:w-48">
+                                            <div class="text-right md:text-center">
+                                                <div class="text-xs font-bold text-slate-400 uppercase mb-0.5">Total</div>
+                                                <div class="text-2xl font-bold text-slate-900 tracking-tight">${{ Number(item.total_price).toFixed(0) }}</div>
+                                            </div>
+                                            <a href="javascript:void(0)" @click.stop="bookFlight(item.segments[0], false)" class="w-auto md:w-full px-6 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-bold text-center text-sm transition shadow-lg shadow-brand-600/20 active:scale-95 whitespace-nowrap flex items-center justify-center gap-2">
+                                                Select <i class="ph-bold ph-caret-right"></i>
+                                            </a>
+                                        </div>
+
                                     </div>
                                 </div>
                             </div>
 
-                            <!-- 2. ONE WAY (New Wide Layout) -->
-                            <div v-else-if="currentTab === 'oneway'" class="px-6 py-5 flex flex-col md:flex-row items-center justify-between gap-6">
-                                <!-- Flight Info -->
-                                <div class="flex items-center gap-6 flex-1 w-full md:w-auto justify-between md:justify-start">
-                                    <!-- Times/Airports -->
-                                    <div class="text-center min-w-[80px]">
-                                        <div class="text-xl font-bold text-slate-800">{{ formatTime(item.departure) }}</div>
-                                        <div class="text-sm font-bold text-slate-400">{{ item.origin }}</div>
-                                    </div>
+                            <!-- 2. ONE WAY (New Standard Layout) -->
+                            <div v-else-if="currentTab === 'oneway'" class="p-0">
+                                <div class="flex flex-col md:flex-row items-stretch">
                                     
-                                    <!-- Graphic -->
-                                    <div class="flex-1 flex flex-col items-center px-4 max-w-[200px]">
-                                        <div class="text-xs text-slate-400 font-bold mb-1 flex items-center gap-1">
-                                            <i class="ph ph-clock"></i> {{ item.duration }}
+                                    <!-- Left: Flight Info -->
+                                    <div class="flex-1 p-5 flex items-center gap-6">
+                                        <!-- Airline Logo / Carrier -->
+                                        <div class="hidden sm:flex flex-col items-center justify-center w-12">
+                                            <img src="/static/logo_wild.svg" alt="Frontier" class="w-8 h-8 opacity-80" onerror="this.style.display='none'">
+                                            <span class="text-[10px] font-bold text-slate-400 mt-1">F9</span>
                                         </div>
-                                        <div class="w-full h-px bg-slate-200 relative my-1 flex items-center justify-center">
-                                            <div class="h-1.5 w-1.5 rounded-full bg-slate-300 absolute left-0"></div>
-                                            <i class="ph ph-airplane text-slate-300 rotate-90 text-xs bg-white px-1"></i>
-                                            <div class="h-1.5 w-1.5 rounded-full bg-slate-300 absolute right-0"></div>
-                                        </div>
-                                        <div class="text-[10px] font-bold text-center uppercase tracking-wide">
-                                            <span v-if="item.stops === 0" class="text-brand-600">Nonstop</span>
-                                            <span v-else class="text-orange-600">
-                                                {{ item.stops }} Stop(s)
-                                                <span v-if="item.layover_airports" class="normal-case text-slate-400 block truncate max-w-[100px]" :title="item.layover_airports.join(', ')">{{ item.layover_airports.join(', ') }}</span>
-                                            </span>
+
+                                        <!-- Times & Route -->
+                                        <div class="flex-1 flex items-center justify-between gap-8">
+                                            <!-- Departure -->
+                                            <div class="text-center min-w-[80px]">
+                                                <div class="text-xl font-bold text-slate-800">{{ formatTime(item.departure) }}</div>
+                                                <div class="text-xs font-bold text-slate-500">{{ item.origin }}</div>
+                                            </div>
+
+                                            <!-- Duration / Stops Graphic -->
+                                            <div class="flex-1 flex flex-col items-center px-2">
+                                                <div class="text-[10px] font-bold text-slate-400 mb-1 flex items-center gap-1">
+                                                    {{ item.duration }}
+                                                </div>
+                                                <div class="w-full h-px bg-slate-300 relative flex items-center justify-between">
+                                                    <div class="w-1.5 h-1.5 rounded-full bg-slate-400"></div>
+                                                    <!-- Stops Dots -->
+                                                    <div v-if="item.stops > 0" class="flex gap-1 bg-white px-1 relative z-10">
+                                                        <div v-for="n in item.stops" :key="n" class="w-1 h-1 rounded-full bg-orange-400 border border-white ring-1 ring-orange-100"></div>
+                                                    </div>
+                                                    <div class="w-1.5 h-1.5 rounded-full bg-slate-400"></div>
+                                                </div>
+                                                <div class="text-[10px] font-bold uppercase mt-1 text-center">
+                                                    <span v-if="item.stops === 0" class="text-brand-600">Nonstop</span>
+                                                    <span v-else class="text-orange-600">
+                                                        {{ item.stops }} Stop{{ item.stops > 1 ? 's' : '' }}
+                                                        <span v-if="item.layover_airports" class="normal-case text-slate-400 block text-[9px] truncate max-w-[100px]" :title="item.layover_airports.join(', ')">{{ item.layover_airports.join(', ') }}</span>
+                                                    </span>
+                                                </div>
+                                            </div>
+
+                                            <!-- Arrival -->
+                                            <div class="text-center min-w-[80px]">
+                                                <div class="text-xl font-bold text-slate-800">{{ formatTime(item.arrival) }}</div>
+                                                <div class="text-xs font-bold text-slate-500">{{ item.destination }}</div>
+                                                <div v-if="getDateDiffLabel(item.departure, item.arrival)" class="text-[10px] text-red-500 font-bold mt-0.5">
+                                                    {{ getDateDiffLabel(item.departure, item.arrival) }}
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
 
-                                    <!-- Arrival -->
-                                    <div class="text-center min-w-[80px]">
-                                        <div class="text-xl font-bold text-slate-800">{{ formatTime(item.arrival) }}</div>
-                                        <div class="text-sm font-bold text-slate-400">{{ item.destination }}</div>
-                                        <div v-if="getDateDiffLabel(item.departure, item.arrival)" class="text-[10px] text-indigo-500 font-bold mt-0.5">
-                                            {{ getDateDiffLabel(item.departure, item.arrival) }}
+                                    <!-- Right: Price & Action (Separated by border on desktop) -->
+                                    <div class="border-t md:border-t-0 md:border-l border-slate-100 bg-slate-50/50 p-5 flex flex-row md:flex-col items-center justify-between md:justify-center gap-4 md:w-48">
+                                        <div class="text-right md:text-center">
+                                            <div class="text-xs font-bold text-slate-400 uppercase mb-0.5">Total</div>
+                                            <div class="text-2xl font-bold text-slate-900 tracking-tight">${{ Number(item.price).toFixed(0) }}</div>
                                         </div>
+                                        <a href="javascript:void(0)" @click.stop="bookFlight(item)" class="w-auto md:w-full px-6 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-bold text-center text-sm transition shadow-lg shadow-brand-600/20 active:scale-95 whitespace-nowrap flex items-center justify-center gap-2">
+                                            Select <i class="ph-bold ph-caret-right"></i>
+                                        </a>
                                     </div>
-                                </div>
 
-                                <!-- Price & Action -->
-                                <div class="flex flex-row md:flex-col items-center md:items-end gap-4 md:gap-2 min-w-[140px] w-full md:w-auto justify-between md:justify-end border-t md:border-t-0 md:border-l border-slate-100 pt-4 md:pt-0 pl-0 md:pl-6">
-                                    <div class="text-right">
-                                        <div class="text-2xl font-bold text-slate-900">${{ Number(item.price).toFixed(2) }}</div>
-                                        <div class="text-xs text-slate-400">One Way</div>
-                                    </div>
-                                    <a href="javascript:void(0)" @click.stop="bookFlight(item)" class="px-6 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-bold text-center text-sm transition shadow-lg shadow-brand-600/20 active:scale-95 whitespace-nowrap">
-                                        Select
-                                    </a>
                                 </div>
                             </div>
 
@@ -1664,8 +1735,16 @@
                     const options = [];
                     for(let i=0; i<windowSize; i++) {
                         const iso = getIsoDate(i);
-                        let label = i === 0 ? 'Today' : (i === 1 ? 'Tomorrow' : new Date(iso).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }));
-                        options.push({ value: iso, label: label, short: formatDateShort(iso) });
+                        // Create date object from ISO string components to avoid TZ issues
+                        // We know ISO is YYYY-MM-DD
+                        const [y, m, d] = iso.split('-').map(Number);
+                        const localDate = new Date(y, m - 1, d); // Month is 0-indexed
+                        
+                        let label = i === 0 ? 'Today' : (i === 1 ? 'Tomorrow' : localDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }));
+                        // Manually build short date to match exactly
+                        const shortDate = `${m.toString().padStart(2, '0')}/${d.toString().padStart(2, '0')}`;
+                        
+                        options.push({ value: iso, label: label, short: shortDate });
                     }
                     
                     dateOptions.value = options;

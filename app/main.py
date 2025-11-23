@@ -786,7 +786,7 @@ async def update_weather_task():
                 if not lat or not lon: continue
                 
                 try:
-                    url = f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&daily=weathercode,temperature_2m_max&timezone=auto"
+                    url = f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&daily=weathercode,temperature_2m_max&timezone=auto&forecast_days=16"
                     resp = await client.get(url, timeout=10.0)
                     if resp.status_code == 200:
                         data = resp.json()
