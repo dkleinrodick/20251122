@@ -2116,7 +2116,12 @@
                 watch(exploreView, (v) => {
                     selectedDest.value = null;
                     selectedExploreCode.value = null;
-                    if (v === 'map') nextTick(() => initMap());
+                    if (v === 'map') {
+                        nextTick(() => initMap());
+                    } else if (v === 'list' && allExploreFlights.value.length > 0) {
+                        // Populate list view with existing data when switching from map
+                        results.value = processExploreList();
+                    }
                 });
 
                 watch(filters, () => { if (exploreView.value === 'map') renderMap(); else results.value = processExploreList(); }, { deep: true });
