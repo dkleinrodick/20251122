@@ -1019,7 +1019,7 @@ async def get_seat_inventory(db: AsyncSession = Depends(get_db)):
                 "origin": e.origin,
                 "destination": e.destination,
                 "flight": flight_num,
-                "seats": f.get("seats_available", 0),
+                "seats": f.get("seats_available") or 0,
                 "price": f.get("price", 0),
                 "updated": updated_ts.isoformat() if updated_ts else None
             })

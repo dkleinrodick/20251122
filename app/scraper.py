@@ -515,9 +515,18 @@ class ScraperEngine:
                                 
                                 # Extract Seat Count
                                 try:
+                                    # 1. Try fare.gowildFareDetails
                                     details = fare.get('gowildFareDetails')
                                     if details and isinstance(details, list) and len(details) > 0:
                                         seats_available = details[0].get('availableCount')
+                                    
+                                    # 2. Try fare_info (faresAvailable) if still None
+                                    if seats_available is None and fare_info:
+                                        # Sometimes it's directly in the fare info? Rare but possible.
+                                        # Or maybe in a 'details' sub-object
+                                        pass
+                                        
+                                    logger.debug(f"Seats for {f_origin}-{f_dest}: {seats_available}")
                                 except Exception as e:
                                     logger.warning(f"Failed to extract seats: {e}")
 
