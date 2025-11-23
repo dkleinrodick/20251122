@@ -843,12 +843,9 @@ async def run_manual_scrape_task(job_id: str):
             JOBS[job_id]["message"] = "No active routes found."
             return
 
-        today = datetime.utcnow().strftime("%Y-%m-%d")
-        tomorrow = (datetime.utcnow() + timedelta(days=1)).strftime("%Y-%m-%d")
-        dates_to_scrape = [today, tomorrow]
-        
-        total_tasks = len(routes_data) * len(dates_to_scrape)
-        
+        # Identify International Airports
+        intl_codes = {a['code'] for a in AIRPORTS_LIST if a.get('is_international')}
+
         engine = ScraperEngine()
         async with SessionLocal() as tmp_session:
             sem = await engine.get_semaphore(tmp_session)
@@ -866,14 +863,26 @@ async def run_manual_scrape_task(job_id: str):
                 logger.error(f"Manual scrape failed for {origin}->{destination} on {date}: {e}")
             finally:
                 completed_count += 1
-                progress = int((completed_count / total_tasks) * 100)
-                JOBS[job_id]["progress"] = progress
-                JOBS[job_id]["message"] = f"Scraped {completed_count}/{total_tasks}"
+                if total_tasks > 0:
+                    progress = int((completed_count / total_tasks) * 100)
+                    JOBS[job_id]["progress"] = progress
+                    JOBS[job_id]["message"] = f"Scraped {completed_count}/{total_tasks}"
 
+        # Build Task List with Dynamic Windows
         tasks = []
+        now = datetime.utcnow()
+        
         for origin, destination in routes_data:
-            for date in dates_to_scrape:
-                tasks.append(scrape_single(origin, destination, date))
+            # Determine window size
+            window = 2 # Default: Today + Tomorrow
+            if origin in intl_codes or destination in intl_codes:
+                window = 10 # Extended for Intl
+            
+            for i in range(window):
+                date_str = (now + timedelta(days=i)).strftime("%Y-%m-%d")
+                tasks.append(scrape_single(origin, destination, date_str))
+        
+        total_tasks = len(tasks)
         
         await asyncio.gather(*tasks)
         
