@@ -21,7 +21,7 @@ jobs:
           python-version: '3.11'
 
       - name: Install Dependencies
-        run: pip install httpx asyncio pytz sqlalchemy[asyncpg] aiosqlite
+        run: pip install -r weather_cloud/requirements.txt
 
       - name: Run Weather Scraper
         env:
