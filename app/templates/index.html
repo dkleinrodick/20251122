@@ -390,27 +390,21 @@
                                 class="bg-white border border-slate-200 hover:border-brand-300 rounded-2xl flex items-center px-4 py-3.5 relative cursor-pointer transition-all shadow-sm group">
                                 <i class="ph ph-calendar-blank text-slate-400 text-xl mr-3 group-hover:text-brand-500"></i>
                                 <div class="font-bold text-slate-800 flex-1 truncate">
-                                    {{ search.date === dates.today ? 'Today' : 'Tomorrow' }}<span v-if="search.origin" class="text-brand-500">*</span>
-                                    <span class="font-mono font-normal text-slate-400 ml-1">({{ formatDateShort(search.date) }})</span>
+                                    {{ dateOptions.find(o => o.value === search.date)?.label || 'Select Date' }}<span v-if="search.origin" class="text-brand-500">*</span>
+                                    <span v-if="dateOptions.find(o => o.value === search.date)?.short" class="font-mono font-normal text-slate-400 ml-1">({{ dateOptions.find(o => o.value === search.date)?.short }})</span>
                                 </div>
                                 <i class="ph ph-caret-down text-slate-400 transition-transform duration-300" :class="showDateDropdown ? 'rotate-180' : ''"></i>
                             </div>
                             
                             <!-- Custom Dropdown -->
-                            <div v-if="showDateDropdown" class="absolute top-full left-0 w-full bg-white border border-slate-100 rounded-xl shadow-xl mt-2 z-50 py-2 animate-fade-in">
-                                <div @click="search.date = dates.today; showDateDropdown = false" 
+                            <div v-if="showDateDropdown" class="absolute top-full left-0 w-full bg-white border border-slate-100 rounded-xl shadow-xl mt-2 z-50 py-2 animate-fade-in max-h-64 overflow-y-auto">
+                                <div v-for="opt in dateOptions" :key="opt.value" 
+                                     @click="search.date = opt.value; showDateDropdown = false" 
                                      class="px-4 py-3 hover:bg-brand-50 cursor-pointer flex items-center justify-between group">
                                     <span class="font-bold text-slate-700 group-hover:text-brand-700">
-                                        Today<span v-if="search.origin" class="text-brand-500">*</span>
+                                        {{ opt.label }}<span v-if="search.origin" class="text-brand-500">*</span>
                                     </span>
-                                    <span class="text-xs text-slate-400 font-mono">{{ formatDateShort(dates.today) }}</span>
-                                </div>
-                                <div @click="search.date = dates.tomorrow; showDateDropdown = false"
-                                     class="px-4 py-3 hover:bg-brand-50 cursor-pointer flex items-center justify-between group">
-                                    <span class="font-bold text-slate-700 group-hover:text-brand-700">
-                                        Tomorrow<span v-if="search.origin" class="text-brand-500">*</span>
-                                    </span>
-                                    <span class="text-xs text-slate-400 font-mono">{{ formatDateShort(dates.tomorrow) }}</span>
+                                    <span class="text-xs text-slate-400 font-mono">{{ opt.short }}</span>
                                 </div>
                             </div>
                         </div>
@@ -1350,7 +1344,7 @@
                 
                 // Data Models
                 const search = ref({ origin: '', dest: '', date: '' });
-                const dates = ref({ today: '', tomorrow: '' });
+                const dateOptions = ref([]); // Replaces simple dates object
                 const passengers = ref({ adults: 1, kids: [] });
                 const showPassengerMenu = ref(false);
                 const showSortDropdown = ref(false);
@@ -1612,6 +1606,45 @@
                         }
                     }
 
+                    // DETERMINE WINDOW SIZE
+                    // Logic:
+                    // 1. Day Trips: Always 2 days (Today, Tomorrow)
+                    // 2. Others: 
+                    //    - Check Origin is International?
+                    //    - Check Destination is International?
+                    //    - If either is true => 10 Days
+                    //    - Else => 2 Days
+                    
+                    let windowSize = 2; // Default
+                    if (currentTab.value !== 'daytrip') {
+                        let isIntl = false;
+                        
+                        // Check Origin
+                        if (search.value.origin) {
+                            const o = locations.value.find(l => l.code === search.value.origin);
+                            if (o && o.is_international) isIntl = true;
+                        }
+                        
+                        // Check Destination (if applicable)
+                        // In Explore mode, check based on exploreMode or target?
+                        // Explore Mode:
+                        //  - 'origin': we have search.origin. destination is "Anywhere" (effectively). 
+                        //    Wait, if search.origin is INT, we allow 10 days. 
+                        //    If search.origin is DOM, we allow 2 days (even if dest could be INT).
+                        //    The Prompt says: "if choosing an international airport to depart from OR arrive to".
+                        //    So if exploreMode is 'destination' (Incoming), search.origin is the target. If target is INT, then allow 10.
+                        //    If exploreMode is 'origin' (Outgoing), search.origin is the source. If source is INT, then allow 10.
+                        
+                        // In OneWay/Builder:
+                        //  - Check search.dest if set.
+                        if (search.value.dest) {
+                            const d = locations.value.find(l => l.code === search.value.dest);
+                            if (d && d.is_international) isIntl = true;
+                        }
+                        
+                        if (isIntl) windowSize = 10;
+                    }
+
                     const getIsoDate = (offsetDays = 0) => {
                         const d = new Date();
                         d.setDate(d.getDate() + offsetDays);
@@ -1628,11 +1661,19 @@
                         return `${year}-${month}-${day}`;
                     };
 
-                    dates.value.today = getIsoDate(0);
-                    dates.value.tomorrow = getIsoDate(1);
+                    const options = [];
+                    for(let i=0; i<windowSize; i++) {
+                        const iso = getIsoDate(i);
+                        let label = i === 0 ? 'Today' : (i === 1 ? 'Tomorrow' : new Date(iso).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }));
+                        options.push({ value: iso, label: label, short: formatDateShort(iso) });
+                    }
+                    
+                    dateOptions.value = options;
 
-                    if (search.value.date !== dates.value.today && search.value.date !== dates.value.tomorrow) {
-                        search.value.date = dates.value.today;
+                    // Validate current selection
+                    const validValues = new Set(options.map(o => o.value));
+                    if (!search.value.date || !validValues.has(search.value.date)) {
+                        search.value.date = options[0].value;
                     }
                 };
 
@@ -2117,10 +2158,11 @@
                     selectedDayTripCity.value = null;
                     search.value.origin = '';
                     search.value.dest = '';
-                    if (dates.value.today) {
-                        search.value.date = dates.value.today;
-                    }
+                    calculateDateOptions();
                 });
+
+                watch(() => search.value.origin, () => calculateDateOptions());
+                watch(() => search.value.dest, () => calculateDateOptions());
 
                 watch(dayTripMode, (v) => {
                     if (v === 'anywhere') {
@@ -2203,7 +2245,7 @@
                     getWeather, dayTripMode, destInput,
                     showBookingWarning, bookingWarningItem, openBookingModal, isOvernightLayover, getDateDiffLabel,
                     passengers, totalPassengers, showPassengerMenu, showSortDropdown, addAdult, removeAdult, addKid, removeKid,
-                    filteredMapCount, showAnnouncement, announcementHtml
+                    filteredMapCount, showAnnouncement, announcementHtml, dateOptions
                 };
             }
         }).mount('#app');

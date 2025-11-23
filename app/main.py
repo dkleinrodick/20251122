@@ -254,13 +254,18 @@ async def get_locations(db: AsyncSession = Depends(get_db)):
     try:
         res = await db.execute(select(Airport).order_by(Airport.city_name))
         airports = res.scalars().all()
+        
+        # Build map for is_international
+        intl_codes = {a['code'] for a in AIRPORTS_LIST if a.get('is_international')}
+        
         # Include City for grouping and Timezone for date logic
         return [
             {
                 "code": a.code,
                 "name": f"{a.city_name} [{a.code}]" if a.city_name else a.code,
                 "city": a.city_name,
-                "timezone": a.timezone
+                "timezone": a.timezone,
+                "is_international": a.code in intl_codes
             }
             for a in airports
         ]
