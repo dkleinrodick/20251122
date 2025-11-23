@@ -202,17 +202,18 @@ async def main():
 
         await asyncio.gather(*tasks)
 
-        # 6. Update Timestamp (only if full scrape ran)
-        if run_full_scrape:
-            res = await session.execute(select(SystemSetting).where(SystemSetting.key == "last_auto_scrape"))
+    # 6. Update Timestamp (only if full scrape ran) - use fresh session
+    if run_full_scrape:
+        async with SessionLocal() as update_session:
+            res = await update_session.execute(select(SystemSetting).where(SystemSetting.key == "last_auto_scrape"))
             setting = res.scalar_one_or_none()
             if setting:
                 setting.value = now_utc.isoformat()
             else:
-                session.add(SystemSetting(key="last_auto_scrape", value=now_utc.isoformat()))
-            await session.commit()
-        
-        logger.info("Cloud Scraper Cycle Complete.")
+                update_session.add(SystemSetting(key="last_auto_scrape", value=now_utc.isoformat()))
+            await update_session.commit()
+
+    logger.info("Cloud Scraper Cycle Complete.")
 
 if __name__ == "__main__":
     asyncio.run(main())
