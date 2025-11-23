@@ -108,6 +108,14 @@ async def read_root(request: Request):
 async def read_features(request: Request):
     return templates.TemplateResponse("marketing.html", {"request": request})
 
+@app.get("/terms", response_class=HTMLResponse)
+async def read_terms(request: Request):
+    return templates.TemplateResponse("terms.html", {"request": request})
+
+@app.get("/privacy", response_class=HTMLResponse)
+async def read_privacy(request: Request):
+    return templates.TemplateResponse("privacy.html", {"request": request})
+
 @app.get("/admin", response_class=HTMLResponse)
 async def read_admin(request: Request):
     return templates.TemplateResponse("admin.html", {"request": request})
