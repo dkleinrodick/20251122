@@ -1773,7 +1773,7 @@
                         let fetchedResults = res.data;
 
                         // FILTER: Remove past flights (globally if date is today)
-                        if (search.value.date === dates.value.today && fetchedResults.length > 0) {
+                        if (dateOptions.value.length > 0 && search.value.date === dateOptions.value[0].value && fetchedResults.length > 0) {
                             const now = new Date();
                             const cutoff = new Date(now.getTime() + 60 * 60 * 1000); // Now + 1 Hour
                             
