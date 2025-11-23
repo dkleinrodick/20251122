@@ -34,7 +34,7 @@ class RoutePair(Base):
     destination = Column(String, index=True)
     last_validated = Column(DateTime(timezone=True), nullable=True)
     is_active = Column(Boolean, default=True)
-    last_error_at = Column(DateTime, nullable=True)
+    last_error_at = Column(DateTime(timezone=True), nullable=True)
     error_count = Column(Integer, default=0)
 
 class FlightCache(Base):
