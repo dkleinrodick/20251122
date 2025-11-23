@@ -187,7 +187,8 @@ async def debug_db():
                 p = urlparse(db_url)
                 
                 ssl_ctx = ssl.create_default_context()
-                # SSL verification enabled by default
+                ssl_ctx.check_hostname = False
+                ssl_ctx.verify_mode = ssl.CERT_NONE
                 
                 conn = await asyncpg.connect(
                     user=p.username,

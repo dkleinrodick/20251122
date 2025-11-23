@@ -47,7 +47,8 @@ DATABASE_URL = DATABASE_URL.strip()
 
 # Configure SSL for Supabase
 ssl_context = ssl.create_default_context()
-# SSL verification enabled by default
+ssl_context.check_hostname = False
+ssl_context.verify_mode = ssl.CERT_NONE
 connect_args = {
     "ssl": ssl_context,
     "server_settings": {
