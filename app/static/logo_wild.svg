@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 350 100">
+  <defs>
+    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#fb923c;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#ea580c;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <!-- Claw Marks -->
+  <path d="M20 10 Q 35 40 10 80" stroke="url(#grad)" stroke-width="10" fill="none" stroke-linecap="round" />
+  <path d="M50 5 Q 65 45 40 90" stroke="url(#grad)" stroke-width="10" fill="none" stroke-linecap="round" />
+  <path d="M80 15 Q 95 40 70 85" stroke="url(#grad)" stroke-width="10" fill="none" stroke-linecap="round" />
+  
+  <!-- Text -->
+  <text x="100" y="75" font-family="Impact, sans-serif" font-weight="bold" font-size="60" fill="#ea580c" style="text-shadow: 2px 2px 0px rgba(0,0,0,0.1);">WILD</text>
+  <text x="230" y="75" font-family="Arial, sans-serif" font-weight="bold" font-size="60" fill="#431407">Fares</text>
+</svg>

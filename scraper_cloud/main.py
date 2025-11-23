@@ -1,0 +1,176 @@
+import sys
+import os
+import asyncio
+import logging
+from datetime import datetime, timedelta
+import pytz
+
+# Add parent directory to path so we can import 'app'
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy import select
+
+from app.models import RoutePair, SystemSetting, Airport
+from app.scraper import ScraperEngine
+from app.airports_data import AIRPORTS_LIST
+
+# Setup Logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("scraper_cloud")
+
+# Database Config (Session Mode)
+DATABASE_URL = os.environ.get("DATABASE_URL", "postgresql://postgres.vwtxmyboywwncglunrxv:egPI3VHuOf4QHSjv@aws-1-us-east-1.pooler.supabase.com:5432/postgres")
+
+# Force asyncpg for Postgres
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql+asyncpg://")
+elif DATABASE_URL.startswith("postgresql://"):
+    DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://")
+
+# Strip whitespace just in case
+DATABASE_URL = DATABASE_URL.strip()
+
+engine = create_async_engine(DATABASE_URL, echo=False)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine, class_=AsyncSession)
+
+async def get_setting(session, key, default):
+    res = await session.execute(select(SystemSetting).where(SystemSetting.key == key))
+    s = res.scalar_one_or_none()
+    return s.value if s else default
+
+async def main():
+    logger.info("Starting Cloud Scraper...")
+    
+    async with SessionLocal() as session:
+        # 1. Load Settings
+        auto_enabled = (await get_setting(session, "auto_scrape_enabled", "true")).lower() == "true"
+        auto_interval = int(await get_setting(session, "auto_scrape_interval", "60"))
+        last_auto_str = await get_setting(session, "last_auto_scrape", "2000-01-01T00:00:00")
+        
+        midnight_enabled = (await get_setting(session, "midnight_scrape_enabled", "true")).lower() == "true"
+        midnight_window = int(await get_setting(session, "midnight_scrape_window", "15"))
+        
+        now_utc = datetime.utcnow()
+        
+        tasks_to_run = []
+        run_full_scrape = False
+        
+        # 2. Check Full Scrape Eligibility
+        if auto_enabled:
+            try:
+                last_run = datetime.fromisoformat(last_auto_str)
+                if (now_utc - last_run).total_seconds() / 60 >= auto_interval:
+                    logger.info("Auto Scrape interval reached. Queueing full scrape.")
+                    run_full_scrape = True
+            except:
+                run_full_scrape = True
+
+        # 3. Check Midnight Scrape Eligibility
+        if midnight_enabled:
+            # Group airports by timezone
+            tz_map = {}
+            for ap in AIRPORTS_LIST:
+                tz = ap.get("timezone")
+                if tz:
+                    if tz not in tz_map: tz_map[tz] = []
+                    tz_map[tz].append(ap["code"])
+            
+            midnight_targets = []
+            for tz_name, codes in tz_map.items():
+                try:
+                    tz_obj = pytz.timezone(tz_name)
+                    now_loc = datetime.now(tz_obj)
+                    # Check if time is 00:00 - 00:WINDOW
+                    if 0 <= now_loc.hour < 1 and 0 <= now_loc.minute < midnight_window:
+                        logger.info(f"Midnight window active for {tz_name} ({now_loc.strftime('%H:%M')}). Adding {len(codes)} airports.")
+                        midnight_targets.extend(codes)
+                except:
+                    pass
+            
+            if midnight_targets:
+                # Find routes originating from these airports
+                stmt = select(RoutePair).where(RoutePair.origin.in_(midnight_targets), RoutePair.is_active == True)
+                res = await session.execute(stmt)
+                m_routes = res.scalars().all()
+                
+                # Target date is usually "Tomorrow" relative to the local midnight
+                # But safely, let's just scrape the next 2 days to be sure we catch the GoWild window
+                target_date = (now_utc + timedelta(days=1)).strftime("%Y-%m-%d")
+                
+                for r in m_routes:
+                    tasks_to_run.append({"origin": r.origin, "destination": r.destination, "date": target_date, "type": "midnight"})
+
+        # 4. Build Task List
+        if run_full_scrape:
+            res = await session.execute(select(RoutePair).where(RoutePair.is_active == True))
+            all_routes = res.scalars().all()
+            
+            today = now_utc.strftime("%Y-%m-%d")
+            tomorrow = (now_utc + timedelta(days=1)).strftime("%Y-%m-%d")
+            
+            for r in all_routes:
+                # Add if not already added by midnight logic
+                # (Simple de-dupe could be done here, but overlapping is fine/safer)
+                tasks_to_run.append({"origin": r.origin, "destination": r.destination, "date": today, "type": "full"})
+                tasks_to_run.append({"origin": r.origin, "destination": r.destination, "date": tomorrow, "type": "full"})
+
+        # If invoked manually (workflow_dispatch), force full scrape?
+        # For now, let's assume manual invocation via GitHub Actions implies "Run Full Scrape" 
+        # unless we pass inputs. But typically manual = "I want data now".
+        # Since we can't easily detect trigger type here without env vars, 
+        # let's rely on the DB state. IF the user clicked "Run" in GitHub, they likely expect a run.
+        # We can check if the list is empty. If so, force full run? 
+        # Or relying on 'last_auto_scrape' is safer to avoid spamming.
+        # However, if the user MANUALLY runs it, they bypass the schedule.
+        # Let's check GITHUB_EVENT_NAME
+        is_manual = os.environ.get("GITHUB_EVENT_NAME") == "workflow_dispatch"
+        if is_manual and not run_full_scrape:
+             logger.info("Manual trigger detected. Forcing full scrape.")
+             run_full_scrape = True
+             # Re-populate
+             tasks_to_run = [] # Clear potential partials
+             res = await session.execute(select(RoutePair).where(RoutePair.is_active == True))
+             all_routes = res.scalars().all()
+             today = now_utc.strftime("%Y-%m-%d")
+             tomorrow = (now_utc + timedelta(days=1)).strftime("%Y-%m-%d")
+             for r in all_routes:
+                tasks_to_run.append({"origin": r.origin, "destination": r.destination, "date": today, "type": "full"})
+                tasks_to_run.append({"origin": r.origin, "destination": r.destination, "date": tomorrow, "type": "full"})
+
+        if not tasks_to_run:
+            logger.info("No scrape tasks required at this time.")
+            return
+
+        logger.info(f"Executing {len(tasks_to_run)} flight search tasks...")
+        
+        # 5. Execute
+        engine_scraper = ScraperEngine()
+        chunk_size = 5
+        
+        for i in range(0, len(tasks_to_run), chunk_size):
+            chunk = tasks_to_run[i:i+chunk_size]
+            chunk_tasks = []
+            for item in chunk:
+                chunk_tasks.append(
+                    engine_scraper.perform_search(item['origin'], item['destination'], item['date'], session, force_refresh=True)
+                )
+            
+            await asyncio.gather(*chunk_tasks, return_exceptions=True)
+            await asyncio.sleep(0.5)
+
+        # 6. Update Timestamp (only if full scrape ran)
+        if run_full_scrape:
+            res = await session.execute(select(SystemSetting).where(SystemSetting.key == "last_auto_scrape"))
+            setting = res.scalar_one_or_none()
+            if setting:
+                setting.value = now_utc.isoformat()
+            else:
+                session.add(SystemSetting(key="last_auto_scrape", value=now_utc.isoformat()))
+            await session.commit()
+        
+        logger.info("Cloud Scraper Cycle Complete.")
+
+if __name__ == "__main__":
+    asyncio.run(main())

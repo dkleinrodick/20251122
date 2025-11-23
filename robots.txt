@@ -1,0 +1,11 @@
+User-agent: *
+Allow: /
+
+# Disallow access to the Admin panel to prevent accidental exposure of settings
+Disallow: /admin
+
+# Disallow API endpoints to prevent crawler resource consumption
+Disallow: /api/
+
+# Disallow static assets if not necessary for indexing (optional)
+Disallow: /static/
