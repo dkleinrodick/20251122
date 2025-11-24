@@ -334,53 +334,181 @@
                     </div>
 
                     <!-- SETTINGS & PROXIES -->
-                    <div v-if="activeTab === 'settings'" class="max-w-4xl mx-auto animate-fade-in space-y-8">
+                    <div v-if="activeTab === 'settings'" class="max-w-6xl mx-auto animate-fade-in space-y-8">
                         <!-- Config -->
                         <div class="bg-surface-50 rounded-2xl border border-surface-100 p-6">
-                            <h3 class="text-lg font-bold text-white mb-6 border-b border-surface-100 pb-4">Configuration</h3>
-                            
-                            <!-- Scraper Logic -->
-                            <div class="mb-8">
-                                <h4 class="text-xs font-bold text-surface-200 uppercase mb-4">Scraper Logic</h4>
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <h3 class="text-lg font-bold text-white mb-6 border-b border-surface-100 pb-4">System Configuration</h3>
+
+                            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                                <!-- LEFT COLUMN -->
+                                <div class="space-y-8">
+                                    <!-- Announcement Settings -->
                                     <div>
-                                        <label class="block text-xs font-bold text-surface-200 uppercase mb-2">Mode</label>
-                                        <select v-model="settings.scraper_mode" class="w-full bg-surface-900 border border-surface-100 rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-brand-500">
-                                            <option value="ondemand">On-Demand</option>
-                                            <option value="automatic">Automatic (Cache)</option>
-                                        </select>
+                                        <h4 class="text-xs font-bold text-surface-200 uppercase mb-4 flex items-center gap-2">
+                                            <i class="ph-bold ph-megaphone"></i> Announcement
+                                        </h4>
+                                        <div class="space-y-4">
+                                            <toggle-switch v-model="settings.announcement_enabled" label="Enable Announcement"></toggle-switch>
+                                            <div>
+                                                <label class="block text-xs font-bold text-surface-200 uppercase mb-2">HTML Content</label>
+                                                <textarea v-model="settings.announcement_html" class="w-full bg-surface-900 border border-surface-100 rounded-lg px-3 py-2.5 text-white text-xs font-mono h-32 outline-none focus:border-brand-500"></textarea>
+                                            </div>
+                                        </div>
                                     </div>
+
+                                    <!-- Auto Scraper Settings -->
                                     <div>
-                                        <label class="block text-xs font-bold text-surface-200 uppercase mb-2">Scraper Interval (Min)</label>
-                                        <input v-model="settings.auto_scrape_interval" type="number" class="w-full bg-surface-900 border border-surface-100 rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-brand-500">
+                                        <h4 class="text-xs font-bold text-surface-200 uppercase mb-4 flex items-center gap-2">
+                                            <i class="ph-bold ph-robot"></i> Auto Scraper
+                                        </h4>
+                                        <div class="space-y-4">
+                                            <toggle-switch v-model="settings.auto_scrape_enabled" label="Enable Auto Scraper"></toggle-switch>
+                                            <div class="grid grid-cols-2 gap-4">
+                                                <div>
+                                                    <label class="block text-xs font-bold text-surface-200 uppercase mb-2">Mode</label>
+                                                    <select v-model="settings.scraper_mode" class="w-full bg-surface-900 border border-surface-100 rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-brand-500">
+                                                        <option value="ondemand">On-Demand</option>
+                                                        <option value="automatic">Automatic</option>
+                                                    </select>
+                                                </div>
+                                                <div>
+                                                    <label class="block text-xs font-bold text-surface-200 uppercase mb-2">Interval (Min)</label>
+                                                    <input v-model="settings.auto_scrape_interval" type="number" class="w-full bg-surface-900 border border-surface-100 rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-brand-500">
+                                                </div>
+                                                <div>
+                                                    <label class="block text-xs font-bold text-surface-200 uppercase mb-2">Max Workers</label>
+                                                    <input v-model="settings.max_concurrent_requests" type="number" class="w-full bg-surface-900 border border-surface-100 rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-brand-500">
+                                                </div>
+                                                <div>
+                                                    <label class="block text-xs font-bold text-surface-200 uppercase mb-2">Timeout (Sec)</label>
+                                                    <input v-model="settings.scraper_timeout" type="number" class="w-full bg-surface-900 border border-surface-100 rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-brand-500">
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <label class="block text-xs font-bold text-surface-200 uppercase mb-2">User Agent</label>
+                                                <input v-model="settings.scraper_user_agent" type="text" class="w-full bg-surface-900 border border-surface-100 rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-brand-500">
+                                            </div>
+                                            <toggle-switch v-model="settings.scraper_popup_enabled" label="Show Scraper Popup"></toggle-switch>
+                                        </div>
+                                    </div>
+
+                                    <!-- Midnight Scraper Settings -->
+                                    <div>
+                                        <h4 class="text-xs font-bold text-surface-200 uppercase mb-4 flex items-center gap-2">
+                                            <i class="ph-bold ph-moon"></i> Midnight Scraper
+                                        </h4>
+                                        <div class="space-y-4">
+                                            <toggle-switch v-model="settings.midnight_scrape_enabled" label="Enable Midnight Scraper"></toggle-switch>
+                                            <div class="grid grid-cols-2 gap-4">
+                                                <div>
+                                                    <label class="block text-xs font-bold text-surface-200 uppercase mb-2">Interval (Min)</label>
+                                                    <input v-model="settings.midnight_scrape_interval" type="number" class="w-full bg-surface-900 border border-surface-100 rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-brand-500">
+                                                </div>
+                                                <div>
+                                                    <label class="block text-xs font-bold text-surface-200 uppercase mb-2">Window (Min)</label>
+                                                    <input v-model="settings.midnight_scrape_window" type="number" class="w-full bg-surface-900 border border-surface-100 rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-brand-500">
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Weather Scraper Settings -->
+                                    <div>
+                                        <h4 class="text-xs font-bold text-surface-200 uppercase mb-4 flex items-center gap-2">
+                                            <i class="ph-bold ph-cloud-sun"></i> Weather Scraper
+                                        </h4>
+                                        <div class="space-y-4">
+                                            <toggle-switch v-model="settings.weather_scrape_enabled" label="Enable Weather Scraper"></toggle-switch>
+                                            <div class="grid grid-cols-2 gap-4">
+                                                <div>
+                                                    <label class="block text-xs font-bold text-surface-200 uppercase mb-2">Time (UTC)</label>
+                                                    <input v-model="settings.weather_scrape_time" type="time" class="w-full bg-surface-900 border border-surface-100 rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-brand-500">
+                                                </div>
+                                                <div>
+                                                    <label class="block text-xs font-bold text-surface-200 uppercase mb-2">Time (CST)</label>
+                                                    <input v-model="settings.weather_scrape_time_cst" type="time" class="w-full bg-surface-900 border border-surface-100 rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-brand-500">
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- RIGHT COLUMN -->
+                                <div class="space-y-8">
+                                    <!-- Cache Settings -->
+                                    <div>
+                                        <h4 class="text-xs font-bold text-surface-200 uppercase mb-4 flex items-center gap-2">
+                                            <i class="ph-bold ph-database"></i> Cache Management
+                                        </h4>
+                                        <div class="space-y-4">
+                                            <div>
+                                                <label class="block text-xs font-bold text-surface-200 uppercase mb-2">Cache Duration (Min)</label>
+                                                <input v-model="settings.cache_duration_minutes" type="number" class="w-full bg-surface-900 border border-surface-100 rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-brand-500">
+                                            </div>
+                                            <toggle-switch v-model="settings.cache_reset_enabled" label="Enable Scheduled Cache Reset"></toggle-switch>
+                                            <div class="grid grid-cols-2 gap-4">
+                                                <div>
+                                                    <label class="block text-xs font-bold text-surface-200 uppercase mb-2">Reset Every (Days)</label>
+                                                    <input v-model="settings.cache_reset_days" type="number" class="w-full bg-surface-900 border border-surface-100 rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-brand-500">
+                                                </div>
+                                                <div>
+                                                    <label class="block text-xs font-bold text-surface-200 uppercase mb-2">Reset Time</label>
+                                                    <input v-model="settings.cache_reset_time" type="time" class="w-full bg-surface-900 border border-surface-100 rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-brand-500">
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Proxy Settings -->
+                                    <div>
+                                        <h4 class="text-xs font-bold text-surface-200 uppercase mb-4 flex items-center gap-2">
+                                            <i class="ph-bold ph-shield-check"></i> Proxy Configuration
+                                        </h4>
+                                        <div class="space-y-4">
+                                            <toggle-switch v-model="settings.proxy_enabled" label="Enable Proxy Rotation"></toggle-switch>
+                                            <div>
+                                                <label class="block text-xs font-bold text-surface-200 uppercase mb-2">Current Proxy Index</label>
+                                                <input v-model="settings.proxy_index" type="number" class="w-full bg-surface-900 border border-surface-100 rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-brand-500">
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Safety & Stealth -->
+                                    <div>
+                                        <h4 class="text-xs font-bold text-surface-200 uppercase mb-4 flex items-center gap-2">
+                                            <i class="ph-bold ph-eye-slash"></i> Safety & Stealth
+                                        </h4>
+                                        <div class="space-y-4">
+                                            <toggle-switch v-model="settings.scraper_jitter_enabled" label="Enable Random Delay (Jitter)"></toggle-switch>
+                                            <div v-if="settings.scraper_jitter_enabled === 'true'" class="grid grid-cols-2 gap-4 animate-fade-in">
+                                                <div>
+                                                    <label class="block text-xs font-bold text-surface-200 uppercase mb-2">Min Delay (Sec)</label>
+                                                    <input v-model="settings.scraper_jitter_min" type="number" step="0.1" class="w-full bg-surface-900 border border-surface-100 rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-brand-500">
+                                                </div>
+                                                <div>
+                                                    <label class="block text-xs font-bold text-surface-200 uppercase mb-2">Max Delay (Sec)</label>
+                                                    <input v-model="settings.scraper_jitter_max" type="number" step="0.1" class="w-full bg-surface-900 border border-surface-100 rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-brand-500">
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Debug Settings -->
+                                    <div>
+                                        <h4 class="text-xs font-bold text-surface-200 uppercase mb-4 flex items-center gap-2">
+                                            <i class="ph-bold ph-bug"></i> Debug & Logging
+                                        </h4>
+                                        <div class="space-y-4">
+                                            <toggle-switch v-model="settings.debug_logging_enabled" label="Enable Debug Logging"></toggle-switch>
+                                            <toggle-switch v-model="settings.save_debug_responses" label="Save Debug Responses"></toggle-switch>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
 
-                            <!-- Safety & Stealth -->
-                            <div class="mb-8">
-                                <h4 class="text-xs font-bold text-surface-200 uppercase mb-4">Safety & Stealth</h4>
-                                <toggle-switch v-model="settings.scraper_jitter_enabled" label="Enable Random Delay (Jitter)"></toggle-switch>
-                                <div v-if="settings.scraper_jitter_enabled === 'true'" class="grid grid-cols-2 gap-6 mt-4 animate-fade-in">
-                                    <div>
-                                        <label class="block text-xs font-bold text-surface-200 uppercase mb-2">Min Delay (Sec)</label>
-                                        <input v-model="settings.scraper_jitter_min" type="number" step="0.1" class="w-full bg-surface-900 border border-surface-100 rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-brand-500">
-                                    </div>
-                                    <div>
-                                        <label class="block text-xs font-bold text-surface-200 uppercase mb-2">Max Delay (Sec)</label>
-                                        <input v-model="settings.scraper_jitter_max" type="number" step="0.1" class="w-full bg-surface-900 border border-surface-100 rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-brand-500">
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Announcement -->
-                            <div>
-                                <label class="block text-xs font-bold text-surface-200 uppercase mb-2">Announcement HTML</label>
-                                <textarea v-model="settings.announcement_html" class="w-full bg-surface-900 border border-surface-100 rounded-lg px-3 py-2.5 text-white text-xs font-mono h-24 outline-none focus:border-brand-500"></textarea>
-                            </div>
-
-                            <div class="mt-6 pt-6 border-t border-surface-100 flex justify-end">
-                                <button @click="saveSettings" class="bg-white text-surface-900 font-bold py-2.5 px-6 rounded-lg hover:bg-brand-500 hover:text-white transition">Save Config</button>
+                            <div class="mt-8 pt-6 border-t border-surface-100 flex justify-end gap-4">
+                                <button @click="fetchData" class="bg-surface-100 text-white font-bold py-2.5 px-6 rounded-lg hover:bg-surface-200 transition">Reset</button>
+                                <button @click="saveSettings" class="bg-brand-600 text-white font-bold py-2.5 px-8 rounded-lg hover:bg-brand-500 transition shadow-lg shadow-brand-500/20">Save All Settings</button>
                             </div>
                         </div>
 
