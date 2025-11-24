@@ -104,7 +104,9 @@
             <div v-if="activeTab !== 'settings'">
                 <!-- Placeholder for other tabs like Proxies, Routes, etc. -->
                 <div class="bg-white shadow-md rounded-lg p-6">
+                    {% raw %}
                     <h2 class="text-xl font-semibold mb-4 text-gray-700">{{ activeTab.charAt(0).toUpperCase() + activeTab.slice(1) }}</h2>
+                    {% endraw %}
                     <p class="text-gray-600">This section is under construction.</p>
                 </div>
             </div>
