@@ -9,3 +9,5 @@ Disallow: /api/
 
 # Disallow static assets if not necessary for indexing (optional)
 Disallow: /static/
+
+Sitemap: https://wildfares.com/sitemap.xml
