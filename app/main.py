@@ -42,7 +42,7 @@ logger = logging.getLogger(__name__)
 app = FastAPI(title="WildFares")
 
 # Static files disabled for serverless - use CDN or public folder instead
-# app.mount("/static", StaticFiles(directory="app/static"), name="static")
+app.mount("/static", StaticFiles(directory="app/static"), name="static")
 templates = Jinja2Templates(directory="app/templates")
 
 # Global Job Store (In-memory for simplicity)

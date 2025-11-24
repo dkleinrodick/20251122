@@ -4,7 +4,7 @@ echo ========================================
 echo.
 
 REM Check if Python is installed
-python --version >nul 2>&1
+py --version >nul 2>&1
 if errorlevel 1 (
     echo ERROR: Python is not installed or not in PATH
     echo Please install Python 3.10+ from https://www.python.org/downloads/
@@ -14,11 +14,11 @@ if errorlevel 1 (
 
 REM Display Python version
 echo Checking Python version...
-python --version
+py --version
 echo.
 
 REM Check Python version is 3.10 or higher
-python -c "import sys; exit(0 if sys.version_info >= (3, 10) else 1)" >nul 2>&1
+py -c "import sys; exit(0 if sys.version_info >= (3, 10) else 1)" >nul 2>&1
 if errorlevel 1 (
     echo ERROR: Python 3.10 or higher is required
     echo Please upgrade Python from https://www.python.org/downloads/
@@ -35,7 +35,7 @@ if /i "%CREATE_VENV%"=="n" goto SKIP_VENV
 
 echo.
 echo Creating virtual environment...
-python -m venv venv
+py -m venv venv
 if errorlevel 1 (
     echo ERROR: Failed to create virtual environment
     echo Make sure the venv module is available
@@ -60,7 +60,7 @@ echo.
 
 REM Upgrade pip
 echo Upgrading pip to latest version...
-python -m pip install --upgrade pip
+py -m pip install --upgrade pip
 if errorlevel 1 (
     echo WARNING: Failed to upgrade pip, continuing anyway...
 )

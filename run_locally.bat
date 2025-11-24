@@ -7,7 +7,7 @@ echo ===================================================
 echo.
 
 :: Check for Python
-python --version >nul 2>&1
+py --version >nul 2>&1
 if %errorlevel% neq 0 (
     echo [ERROR] Python is not installed or not in PATH.
     echo Please install Python 3.10+ and try again.
@@ -37,7 +37,7 @@ start http://localhost:8000
 echo Press Ctrl+C to stop the server.
 
 :loop
-python -m uvicorn app.main:app --reload --port 8000 --log-level warning
+py -m uvicorn app.main:app --reload --port 8000 --log-level warning
 echo Server stopped. Restarting...
 timeout /t 2 >nul
 goto loop

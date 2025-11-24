@@ -10,7 +10,7 @@ echo Note: You must have Python installed.
 echo.
 
 :: Check for Python
-python --version >nul 2>&1
+py --version >nul 2>&1
 if %errorlevel% neq 0 (
     echo [ERROR] Python is not installed or not in PATH.
     pause
@@ -29,6 +29,6 @@ echo.
 echo [INFO] Starting Server on Port 8000...
 start http://localhost:8000
 
-python -m uvicorn app.main:app --reload --port 8000 --log-level info
+py -m uvicorn app.main:app --reload --port 8000 --log-level info
 
 pause
