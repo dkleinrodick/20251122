@@ -1510,6 +1510,9 @@
     </div>
 
     <script>
+        window.onerror = function(message, source, lineno, colno, error) {
+            alert("Error: " + message + "\nLine: " + lineno);
+        };
         const { createApp, ref, computed, watch, onMounted, nextTick } = Vue;
 
         const clickOutside = {
