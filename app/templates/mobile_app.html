@@ -238,7 +238,8 @@
 </head>
 <body class="text-slate-800 antialiased min-h-screen flex flex-col">
 
-    <div id="app" class="flex-grow flex flex-col relative" v-cloak>
+    <!-- Aggressive Inline Style to hide immediately -->
+    <div id="app" class="flex-grow flex flex-col relative" style="display: none;" :style="{ display: 'flex' }">
         {% raw %}
 
         <!-- Navbar -->
