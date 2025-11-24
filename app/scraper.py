@@ -659,11 +659,20 @@ class ScraperEngine:
 
 # Helper to verify proxies
 async def verify_proxy(proxy_url: str, protocol: str) -> bool:
+    # Construct full URL with auth if present in 'proxy_url' (which usually is user:pass@host:port)
+    # If protocol is http, full_url is http://...
     full_url = f"{protocol}://{proxy_url}"
+    
+    # Create proxy dictionary to route ALL traffic through this proxy
+    proxies_dict = {
+        "http://": full_url,
+        "https://": full_url
+    }
+    
     try:
-        # Use example.com as it is neutral and highly available. 
-        # Verify=False to avoid SSL cert issues on some proxies.
-        async with httpx.AsyncClient(proxies=full_url, timeout=20.0, verify=True) as client:
+        # Use httpbin to verify IP masking if possible, or example.com for availability
+        # Reduced timeout to 10s for responsiveness
+        async with httpx.AsyncClient(proxies=proxies_dict, timeout=10.0, verify=True) as client:
             resp = await client.get("https://www.example.com", follow_redirects=True)
             if resp.status_code == 200:
                 return True

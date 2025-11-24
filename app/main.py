@@ -556,13 +556,13 @@ async def check_all_proxies():
     # 1. Get all IDs first
     async with AsyncSession(engine) as db:
         res = await db.execute(select(Proxy.id, Proxy.url, Proxy.protocol))
-        proxies_data = res.all() # List of tuples: (id, url, protocol)
+        proxies_data = res.all()
 
-    # 2. Iterate and update individually
-    for pid, url, protocol in proxies_data:
+    # 2. Define worker for parallel execution
+    async def check_single(pid, url, protocol):
         try:
             is_valid = await verify_proxy(url, protocol)
-            
+            # New session for update to avoid conflicts
             async with AsyncSession(engine) as db:
                 stmt = select(Proxy).where(Proxy.id == pid)
                 res = await db.execute(stmt)
@@ -573,6 +573,12 @@ async def check_all_proxies():
                     await db.commit()
         except Exception as e:
             logger.error(f"Error checking proxy {pid}: {e}")
+
+    # 3. Run in parallel (capped if needed, but for <50 proxies gathering is fine)
+    if proxies_data:
+        logger.info(f"Checking {len(proxies_data)} proxies in parallel...")
+        await asyncio.gather(*[check_single(p.id, p.url, p.protocol) for p in proxies_data])
+        logger.info("Proxy check complete.")
 
 @app.delete("/api/proxies/{proxy_id}", dependencies=[Depends(verify_admin)])
 async def delete_proxy(proxy_id: int, db: AsyncSession = Depends(get_db)):
