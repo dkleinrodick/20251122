@@ -159,6 +159,10 @@ async def read_root(request: Request):
 
 @app.get("/v2", response_class=HTMLResponse)
 async def read_root_v2(request: Request):
+    return templates.TemplateResponse("mobile_app.html", {"request": request})
+
+@app.get("/v2", response_class=HTMLResponse)
+async def read_root_v2(request: Request):
     return templates.TemplateResponse("index_v2.html", {"request": request})
 
 @app.get("/v2", response_class=HTMLResponse)
