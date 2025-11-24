@@ -128,6 +128,7 @@
     </script>
 
     <style>
+        [v-cloak] { display: none !important; }
         html { overflow-x: hidden; }
         body { font-family: 'Inter', sans-serif; background-color: #f8fafc; overflow-x: hidden; }
         h1, h2, h3, h4, h5, h6 { font-family: 'Space Grotesk', sans-serif; }
@@ -237,7 +238,7 @@
 </head>
 <body class="text-slate-800 antialiased min-h-screen flex flex-col">
 
-    <div id="app" class="flex-grow flex flex-col relative">
+    <div id="app" class="flex-grow flex flex-col relative" v-cloak>
         {% raw %}
 
         <!-- Navbar -->
