@@ -902,7 +902,8 @@ async def run_manual_scrape_task(job_id: str):
 
         # Build Task List with Dynamic Windows
         tasks = []
-        now = datetime.utcnow()
+        # Use US/Pacific time as reference to ensure we cover "today" for all US zones
+        now_ref = datetime.now(pytz.timezone('America/Los_Angeles'))
         
         for origin, destination in routes_data:
             # Determine window size
@@ -911,7 +912,7 @@ async def run_manual_scrape_task(job_id: str):
                 window = 10 # Extended for Intl
             
             for i in range(window):
-                date_str = (now + timedelta(days=i)).strftime("%Y-%m-%d")
+                date_str = (now_ref + timedelta(days=i)).strftime("%Y-%m-%d")
                 tasks.append(scrape_single(origin, destination, date_str))
         
         total_tasks = len(tasks)

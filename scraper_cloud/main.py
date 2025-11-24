@@ -81,7 +81,9 @@ async def main():
         midnight_enabled = (await get_setting(session, "midnight_scrape_enabled", "true")).lower() == "true"
         midnight_window = int(await get_setting(session, "midnight_scrape_window", "15"))
         
-        now_utc = datetime.utcnow()
+        # Use US/Pacific time to determine "Today" to ensure we don't skip the current day 
+        # during late-night hours when UTC has already rolled over.
+        now_ref = datetime.now(pytz.timezone('America/Los_Angeles'))
         
         tasks_to_run = []
         run_full_scrape = False
@@ -90,7 +92,8 @@ async def main():
         if auto_enabled:
             try:
                 last_run = datetime.fromisoformat(last_auto_str)
-                if (now_utc - last_run).total_seconds() / 60 >= auto_interval:
+                # Use UTC for interval comparison to keep it consistent
+                if (datetime.utcnow() - last_run).total_seconds() / 60 >= auto_interval:
                     logger.info("Auto Scrape interval reached. Queueing full scrape.")
                     run_full_scrape = True
             except:
@@ -126,8 +129,8 @@ async def main():
                 
                 # Target "Today" and "Tomorrow" to be safe for Midnight scraper
                 target_dates = [
-                    now_utc.strftime("%Y-%m-%d"), 
-                    (now_utc + timedelta(days=1)).strftime("%Y-%m-%d")
+                    now_ref.strftime("%Y-%m-%d"), 
+                    (now_ref + timedelta(days=1)).strftime("%Y-%m-%d")
                 ]
                 
                 for r in m_routes:
@@ -149,7 +152,7 @@ async def main():
                     window = 10
                 
                 for i in range(window):
-                    d_str = (now_utc + timedelta(days=i)).strftime("%Y-%m-%d")
+                    d_str = (now_ref + timedelta(days=i)).strftime("%Y-%m-%d")
                     tasks_to_run.append({"origin": r.origin, "destination": r.destination, "date": d_str, "type": "full"})
 
         # If invoked manually (workflow_dispatch), force full scrape?
@@ -180,7 +183,7 @@ async def main():
                     window = 10
                 
                 for i in range(window):
-                    d_str = (now_utc + timedelta(days=i)).strftime("%Y-%m-%d")
+                    d_str = (now_ref + timedelta(days=i)).strftime("%Y-%m-%d")
                     tasks_to_run.append({"origin": r.origin, "destination": r.destination, "date": d_str, "type": "full"})
 
         if not tasks_to_run:
