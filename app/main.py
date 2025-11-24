@@ -601,33 +601,6 @@ async def validate_routes_task(job_id: str):
         res = await session.execute(select(RoutePair.id, RoutePair.origin, RoutePair.destination))
         routes_data = res.all()
 
-    total = len(routes_data)
-    if total == 0:
-        JOBS[job_id]["status"] = "completed"
-        JOBS[job_id]["message"] = "No routes to validate."
-        return
-
-    today = datetime.utcnow().strftime("%Y-%m-%d")
-    tomorrow = (datetime.utcnow() + timedelta(days=1)).strftime("%Y-%m-%d")
-    
-    engine = ScraperEngine()
-    async with SessionLocal() as tmp_session:
-        sem = await engine.get_semaphore(tmp_session)
-
-    # Progress tracking
-    completed_count = 0
-    active_count = 0
-    bad_count = 0
-
-async def validate_routes_task(job_id: str):
-    JOBS[job_id] = {"status": "running", "progress": 0, "message": "Starting validation..."}
-    
-    # 1. Fetch all route data (detached)
-    routes_data = []
-    async with SessionLocal() as session:
-        res = await session.execute(select(RoutePair.id, RoutePair.origin, RoutePair.destination))
-        routes_data = res.all()
-
         # Ensure all airports exist before we start validation logic
         res_airports = await session.execute(select(Airport.code))
         existing_codes = {r for r in res_airports.scalars().all()}
