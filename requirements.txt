@@ -7,7 +7,7 @@ httpx==0.25.1
 
 # Database (PostgreSQL/Supabase)
 sqlalchemy==2.0.23
-asyncpg==0.29.0
+asyncpg==0.28.0
 
 # Data Validation
 pydantic>=2.5.0

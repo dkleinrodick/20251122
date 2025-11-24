@@ -274,12 +274,19 @@ async def main():
                             tasks_to_run.append({"origin": r.origin, "destination": r.destination, "date": d_str, "type": "midnight"})
 
             # 4. Build Task List
-            if run_full_scrape:
+            if run_full_scrape or os.environ.get("GITHUB_EVENT_NAME") == "workflow_dispatch":
+                if os.environ.get("GITHUB_EVENT_NAME") == "workflow_dispatch":
+                    logger.info("Manual trigger detected. Forcing full scrape check.")
+                
                 res = await session.execute(select(RoutePair).where(RoutePair.is_active == True))
                 all_routes = res.scalars().all()
 
                 # Identify International Airports
                 intl_codes = {a['code'] for a in AIRPORTS_LIST if a.get('is_international')}
+
+                # Clear tasks to prevent duplicates if both auto and manual are true
+                tasks_to_run = []
+                stats["routes_skipped"] = 0
 
                 skipped_count = 0
                 for r in all_routes:
@@ -306,44 +313,6 @@ async def main():
                 if skipped_count > 0:
                     logger.info(f"Skipped {skipped_count} routes with fresh cache data")
 
-            # If invoked manually (workflow_dispatch), force full scrape?
-            is_manual = os.environ.get("GITHUB_EVENT_NAME") == "workflow_dispatch"
-            if is_manual and not run_full_scrape:
-                 logger.info("Manual trigger detected. Forcing full scrape.")
-                 run_full_scrape = True
-                 # Re-populate
-                 tasks_to_run = [] # Clear potential partials
-                 res = await session.execute(select(RoutePair).where(RoutePair.is_active == True))
-                 all_routes = res.scalars().all()
-
-                 # Identify International Airports (Redundant but safe if scope changes)
-                 intl_codes = {a['code'] for a in AIRPORTS_LIST if a.get('is_international')}
-
-                 skipped_count = 0
-                 for r in all_routes:
-                    # Determine window size
-                    window = 2
-                    if r.origin in intl_codes or r.destination in intl_codes:
-                        window = 10
-
-                    for i in range(window):
-                        d_str = (now_ref + timedelta(days=i)).strftime("%Y-%m-%d")
-
-                        # Check if we should skip this route based on cache age
-                        should_skip = await should_skip_route(
-                            session, r.origin, r.destination, d_str, i,
-                            cache_domestic_min, cache_intl_hours
-                        )
-
-                        if should_skip:
-                            skipped_count += 1
-                            stats["routes_skipped"] += 1
-                        else:
-                            tasks_to_run.append({"origin": r.origin, "destination": r.destination, "date": d_str, "type": "full"})
-
-                 if skipped_count > 0:
-                     logger.info(f"Skipped {skipped_count} routes with fresh cache data")
-
             if not tasks_to_run:
                 logger.info("No scrape tasks required at this time.")
                 # Update run record
@@ -357,7 +326,7 @@ async def main():
                         run.status = "completed"
                         run.total_routes = 0
                         run.routes_scraped = 0
-                        run.routes_skipped = 0
+                        run.routes_skipped = stats["routes_skipped"] # Save skipped count
                         run.routes_failed = 0
                         await update_session.commit()
                 await cleanup_old_runs(update_session)
