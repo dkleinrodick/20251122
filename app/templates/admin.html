@@ -75,7 +75,6 @@
                         <i class="ph-duotone ph-airplane-tilt text-brand-500 text-xl"></i>
                         <span class="font-bold text-lg tracking-tight">WildFares</span>
                     </div>
-                    <!-- Mobile Menu Toggle (Optional, using bottom nav instead) -->
                 </div>
 
                 <!-- Desktop Nav -->
@@ -90,7 +89,7 @@
                         <span class="text-xs font-bold text-surface-200 uppercase tracking-wide">Online</span>
                     </div>
                     <div class="text-[10px] text-surface-200 font-mono mb-1">UPTIME: {{ uptimeString }}</div>
-                    <div class="text-[10px] text-surface-400 font-mono mb-3">VERSION: v2.2.0</div>
+                    <div class="text-[10px] text-surface-400 font-mono mb-3">VERSION: v2.3.0</div>
                     <button @click="logout" class="w-full py-2 rounded-lg bg-surface-100 hover:bg-surface-200 text-xs font-bold text-surface-200 hover:text-white transition">Logout</button>
                 </div>
             </div>
@@ -147,7 +146,7 @@
                                 <div class="space-y-4">
                                     <toggle-switch v-model="settings.auto_scrape_enabled" label="Auto Scraper"></toggle-switch>
                                     <toggle-switch v-model="settings.proxy_enabled" label="Use Proxies"></toggle-switch>
-                                    <toggle-switch v-model="settings.announcement_enabled" label="Show Announcement"></toggle-switch>
+                                    <toggle-switch v-model="settings.scraper_jitter_enabled" label="Scraper Jitter (Stealth)"></toggle-switch>
                                     <div class="pt-4 mt-4 border-t border-surface-100">
                                         <button @click="saveSettings" class="w-full bg-white text-surface-900 font-bold py-3 rounded-xl hover:bg-brand-500 hover:text-white transition">Save Changes</button>
                                     </div>
@@ -156,7 +155,7 @@
                         </div>
                     </div>
 
-                    <!-- SCRAPER TOOL (NEW) -->
+                    <!-- SCRAPER TOOL -->
                     <div v-if="activeTab === 'scraper'" class="max-w-4xl mx-auto animate-fade-in">
                         <div class="bg-surface-50 rounded-2xl border border-surface-100 overflow-hidden">
                             <div class="p-6 border-b border-surface-100">
@@ -196,6 +195,57 @@
                                 <div v-if="manualScrape.error" class="mt-6 bg-rose-500/10 border border-rose-500/30 rounded-xl p-4 text-rose-400 text-sm font-bold flex items-center gap-3">
                                     <i class="ph-bold ph-warning-circle text-xl"></i> {{ manualScrape.error }}
                                 </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ROUTES MANAGER (NEW) -->
+                    <div v-if="activeTab === 'routes'" class="max-w-6xl mx-auto animate-fade-in">
+                        <div class="flex justify-between items-center mb-6">
+                            <h3 class="text-xl font-bold text-white">Route Manager</h3>
+                            <div class="flex bg-surface-50 rounded-lg p-1 border border-surface-100 shadow-sm gap-1">
+                                <button @click="routeSort = 'origin'" :class="routeSort === 'origin' ? 'bg-surface-200 text-white' : 'text-surface-200 hover:bg-surface-100'" class="px-3 py-1.5 rounded text-xs font-bold transition">By Origin</button>
+                                <button @click="routeSort = 'errors'" :class="routeSort === 'errors' ? 'bg-surface-200 text-white' : 'text-surface-200 hover:bg-surface-100'" class="px-3 py-1.5 rounded text-xs font-bold transition">Most Errors</button>
+                            </div>
+                        </div>
+
+                        <div v-if="isLoadingRoutes" class="p-12 flex justify-center text-brand-500 text-3xl">
+                            <i class="ph-bold ph-spinner animate-spin"></i>
+                        </div>
+
+                        <div v-else class="bg-surface-50 rounded-2xl border border-surface-100 overflow-hidden">
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-left border-collapse">
+                                    <thead>
+                                        <tr class="bg-surface-100 text-[10px] font-bold text-surface-200 uppercase">
+                                            <th class="px-6 py-3">Status</th>
+                                            <th class="px-6 py-3">Route</th>
+                                            <th class="px-6 py-3 text-right">Error Count</th>
+                                            <th class="px-6 py-3 text-right">Last Validated</th>
+                                            <th class="px-6 py-3 text-right">Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-surface-100 text-xs">
+                                        <tr v-for="r in sortedRoutes" :key="r.id" class="hover:bg-surface-100/50 transition" :class="!r.is_active ? 'opacity-50' : ''">
+                                            <td class="px-6 py-3">
+                                                <span :class="r.is_active ? 'text-emerald-400' : 'text-surface-400'" class="flex items-center gap-1.5 font-bold">
+                                                    <div class="w-1.5 h-1.5 rounded-full" :class="r.is_active ? 'bg-emerald-400' : 'bg-surface-400'"></div>
+                                                    {{ r.is_active ? 'Active' : 'Inactive' }}
+                                                </span>
+                                            </td>
+                                            <td class="px-6 py-3 font-bold text-white">{{ r.origin }} <span class="text-surface-200 mx-1">→</span> {{ r.destination }}</td>
+                                            <td class="px-6 py-3 text-right">
+                                                <span :class="r.error_count > 0 ? 'text-rose-400' : 'text-surface-200'" class="font-mono font-bold">{{ r.error_count }}</span>
+                                            </td>
+                                            <td class="px-6 py-3 text-right text-surface-200 font-mono">{{ r.last_validated ? formatSmartTime(r.last_validated) : '-' }}</td>
+                                            <td class="px-6 py-3 text-right">
+                                                <button @click="toggleRoute(r)" class="px-3 py-1 rounded bg-surface-200 hover:bg-white text-surface-900 font-bold text-[10px] transition">
+                                                    {{ r.is_active ? 'Disable' : 'Enable' }}
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
                             </div>
                         </div>
                     </div>
@@ -288,23 +338,47 @@
                         <!-- Config -->
                         <div class="bg-surface-50 rounded-2xl border border-surface-100 p-6">
                             <h3 class="text-lg font-bold text-white mb-6 border-b border-surface-100 pb-4">Configuration</h3>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div>
-                                    <label class="block text-xs font-bold text-surface-200 uppercase mb-2">Mode</label>
-                                    <select v-model="settings.scraper_mode" class="w-full bg-surface-900 border border-surface-100 rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-brand-500">
-                                        <option value="ondemand">On-Demand</option>
-                                        <option value="automatic">Automatic (Cache)</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label class="block text-xs font-bold text-surface-200 uppercase mb-2">Scraper Interval (Min)</label>
-                                    <input v-model="settings.auto_scrape_interval" type="number" class="w-full bg-surface-900 border border-surface-100 rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-brand-500">
-                                </div>
-                                <div class="md:col-span-2">
-                                    <label class="block text-xs font-bold text-surface-200 uppercase mb-2">Announcement HTML</label>
-                                    <textarea v-model="settings.announcement_html" class="w-full bg-surface-900 border border-surface-100 rounded-lg px-3 py-2.5 text-white text-xs font-mono h-24 outline-none focus:border-brand-500"></textarea>
+                            
+                            <!-- Scraper Logic -->
+                            <div class="mb-8">
+                                <h4 class="text-xs font-bold text-surface-200 uppercase mb-4">Scraper Logic</h4>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div>
+                                        <label class="block text-xs font-bold text-surface-200 uppercase mb-2">Mode</label>
+                                        <select v-model="settings.scraper_mode" class="w-full bg-surface-900 border border-surface-100 rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-brand-500">
+                                            <option value="ondemand">On-Demand</option>
+                                            <option value="automatic">Automatic (Cache)</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-bold text-surface-200 uppercase mb-2">Scraper Interval (Min)</label>
+                                        <input v-model="settings.auto_scrape_interval" type="number" class="w-full bg-surface-900 border border-surface-100 rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-brand-500">
+                                    </div>
                                 </div>
                             </div>
+
+                            <!-- Safety & Stealth -->
+                            <div class="mb-8">
+                                <h4 class="text-xs font-bold text-surface-200 uppercase mb-4">Safety & Stealth</h4>
+                                <toggle-switch v-model="settings.scraper_jitter_enabled" label="Enable Random Delay (Jitter)"></toggle-switch>
+                                <div v-if="settings.scraper_jitter_enabled === 'true'" class="grid grid-cols-2 gap-6 mt-4 animate-fade-in">
+                                    <div>
+                                        <label class="block text-xs font-bold text-surface-200 uppercase mb-2">Min Delay (Sec)</label>
+                                        <input v-model="settings.scraper_jitter_min" type="number" step="0.1" class="w-full bg-surface-900 border border-surface-100 rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-brand-500">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-bold text-surface-200 uppercase mb-2">Max Delay (Sec)</label>
+                                        <input v-model="settings.scraper_jitter_max" type="number" step="0.1" class="w-full bg-surface-900 border border-surface-100 rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-brand-500">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Announcement -->
+                            <div>
+                                <label class="block text-xs font-bold text-surface-200 uppercase mb-2">Announcement HTML</label>
+                                <textarea v-model="settings.announcement_html" class="w-full bg-surface-900 border border-surface-100 rounded-lg px-3 py-2.5 text-white text-xs font-mono h-24 outline-none focus:border-brand-500"></textarea>
+                            </div>
+
                             <div class="mt-6 pt-6 border-t border-surface-100 flex justify-end">
                                 <button @click="saveSettings" class="bg-white text-surface-900 font-bold py-2.5 px-6 rounded-lg hover:bg-brand-500 hover:text-white transition">Save Config</button>
                             </div>
@@ -428,6 +502,7 @@
                 const tabs = [
                     { id: 'dashboard', label: 'Dashboard', icon: 'ph-squares-four' },
                     { id: 'scraper', label: 'Scraper Tool', icon: 'ph-wrench' },
+                    { id: 'routes', label: 'Routes', icon: 'ph-path' },
                     { id: 'data', label: 'Data', icon: 'ph-database' },
                     { id: 'settings', label: 'Settings', icon: 'ph-gear' },
                 ];
@@ -453,6 +528,11 @@
                     loading: false, result: null, error: null
                 });
 
+                // Routes Manager
+                const allRoutes = ref([]);
+                const isLoadingRoutes = ref(false);
+                const routeSort = ref('errors'); // 'origin' or 'errors'
+
                 const activeProxiesCount = computed(() => proxies.value.filter(p => p.is_active).length);
                 const uptimeString = computed(() => {
                     const h = Math.floor(uptimeSeconds.value / 3600);
@@ -461,10 +541,22 @@
                 });
                 const currentTabLabel = computed(() => tabs.find(t => t.id === activeTab.value)?.label || 'Dashboard');
 
+                const sortedRoutes = computed(() => {
+                    const list = [...allRoutes.value];
+                    if (routeSort.value === 'origin') {
+                        list.sort((a, b) => a.origin.localeCompare(b.origin) || a.destination.localeCompare(b.destination));
+                    } else {
+                        // Sort by Error Count desc, then origin
+                        list.sort((a, b) => b.error_count - a.error_count || a.origin.localeCompare(b.origin));
+                    }
+                    return list;
+                });
+
                 // Watchers
                 watch(activeTab, (val) => {
                     if (val === 'data') openExplorer();
-                    if (val === 'settings') fetchProxies(); // Load proxies when settings tab
+                    if (val === 'settings') fetchProxies();
+                    if (val === 'routes') fetchRoutes();
                 });
 
                 // Methods
@@ -509,6 +601,28 @@
                 const fetchProxies = async () => {
                     const res = await axios.get('/api/proxies', { headers: getHeaders() });
                     proxies.value = res.data;
+                };
+
+                const fetchRoutes = async () => {
+                    isLoadingRoutes.value = true;
+                    try {
+                        const res = await axios.get('/api/admin/routes_list', { headers: getHeaders() });
+                        allRoutes.value = res.data;
+                    } catch(e) { console.error(e); }
+                    finally { isLoadingRoutes.value = false; }
+                };
+
+                const toggleRoute = async (route) => {
+                    // Optimistic UI
+                    route.is_active = !route.is_active;
+                    try {
+                        await axios.post(`/api/admin/routes/${route.id}/toggle`, {}, { headers: getHeaders() });
+                        // If turning on, reset error count in UI too
+                        if (route.is_active) route.error_count = 0;
+                    } catch (e) {
+                        route.is_active = !route.is_active; // Revert
+                        alert("Failed to toggle route");
+                    }
                 };
 
                 // Actions
@@ -634,6 +748,7 @@
                     routeJob,
                     manualScrape, runManualScrape,
                     explorerMode, explorerData, expanded, toggleExpand, deleteDate,
+                    allRoutes, isLoadingRoutes, sortedRoutes, fetchRoutes, toggleRoute, routeSort,
                     saveSettings,
                     runAutoScraper, updateRoutes, triggerWeatherUpdate, rebootBackend, clearCache, fetchData,
                     newProxies, addProxies, deleteAllProxies, deleteProxy,

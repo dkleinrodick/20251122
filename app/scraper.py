@@ -341,6 +341,20 @@ class ScraperEngine:
                 del ACTIVE_SEARCHES[search_key]
 
     async def _execute_scrape(self, origin: str, dest: str, date: str, session: AsyncSession):
+        # JITTER LOGIC
+        try:
+            res = await session.execute(select(SystemSetting).where(SystemSetting.key.in_(["scraper_jitter_enabled", "scraper_jitter_min", "scraper_jitter_max"])))
+            settings = {s.key: s.value for s in res.scalars().all()}
+            
+            if settings.get("scraper_jitter_enabled") == "true":
+                min_s = float(settings.get("scraper_jitter_min", "1.0"))
+                max_s = float(settings.get("scraper_jitter_max", "5.0"))
+                delay = random.uniform(min_s, max_s)
+                logger.debug(f"Jitter: Sleeping {delay:.2f}s for {origin}->{dest}")
+                await asyncio.sleep(delay)
+        except Exception as e:
+            logger.warning(f"Jitter check failed: {e}")
+
         stats = {"deleted": 0, "added": 0, "errors": 0}
         
         # Prepare for Scrape

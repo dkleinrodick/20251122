@@ -1015,6 +1015,34 @@ async def get_cache_stats(db: AsyncSession = Depends(get_db)):
     count = res.scalar_one()
     return {"total_flights": count}
 
+@app.get("/api/admin/routes_list", dependencies=[Depends(verify_admin)])
+async def get_admin_routes(db: AsyncSession = Depends(get_db)):
+    res = await db.execute(select(RoutePair).order_by(RoutePair.origin, RoutePair.destination))
+    routes = res.scalars().all()
+    return [{
+        "id": r.id,
+        "origin": r.origin,
+        "destination": r.destination,
+        "is_active": r.is_active,
+        "error_count": r.error_count,
+        "last_validated": r.last_validated.isoformat() if r.last_validated else None
+    } for r in routes]
+
+@app.post("/api/admin/routes/{route_id}/toggle", dependencies=[Depends(verify_admin)])
+async def toggle_route(route_id: int, db: AsyncSession = Depends(get_db)):
+    res = await db.execute(select(RoutePair).where(RoutePair.id == route_id))
+    route = res.scalar_one_or_none()
+    if not route:
+        raise HTTPException(status_code=404, detail="Route not found")
+    
+    route.is_active = not route.is_active
+    # Reset errors if re-enabling
+    if route.is_active:
+        route.error_count = 0
+        
+    await db.commit()
+    return {"status": "ok", "is_active": route.is_active}
+
 @app.get("/api/admin/cached_routes", dependencies=[Depends(verify_admin)])
 async def get_cached_routes(db: AsyncSession = Depends(get_db)):
     # Fetch all cache entries (lightweight, maybe select specific columns if data is huge)
