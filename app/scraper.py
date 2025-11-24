@@ -528,6 +528,14 @@ class ScraperEngine:
                                     logger.warning(f"Fare info for key {gowild_key} is missing or invalid type: {type(fare_info)}")
                                     price = 0
                                 
+                                # Determine O/D from segments (Pre-calculate for logging)
+                                f_origin = origin
+                                f_dest = dest
+                                raw_segments = journey.get('segments', [])
+                                if raw_segments:
+                                    f_origin = raw_segments[0].get('designator', {}).get('origin') or origin
+                                    f_dest = raw_segments[-1].get('designator', {}).get('destination') or dest
+
                                 # Extract Seat Count
                                 try:
                                     # 1. Try fare.gowildFareDetails or gowildfaredetails (API case varies)
@@ -547,7 +555,6 @@ class ScraperEngine:
 
                                 # Extract Segments & Layover Info
                                 segments = []
-                                raw_segments = journey.get('segments', [])
                                 layover_airports = []
                                 has_long_layover = False
                                 
@@ -628,12 +635,7 @@ class ScraperEngine:
                                 except Exception as e:
                                     logger.warning(f"Date diff calc failed: {e}")
 
-                                # Determine O/D from segments
-                                f_origin = origin
-                                f_dest = dest
-                                if segments:
-                                    f_origin = segments[0].get('origin')
-                                    f_dest = segments[-1].get('destination')
+                                # (O/D already determined above)
 
                                 flights.append({
                                     "origin": f_origin,

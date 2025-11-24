@@ -619,60 +619,128 @@ async def validate_routes_task(job_id: str):
     active_count = 0
     bad_count = 0
 
+async def validate_routes_task(job_id: str):
+    JOBS[job_id] = {"status": "running", "progress": 0, "message": "Starting validation..."}
+    
+    # 1. Fetch all route data (detached)
+    routes_data = []
+    async with SessionLocal() as session:
+        res = await session.execute(select(RoutePair.id, RoutePair.origin, RoutePair.destination))
+        routes_data = res.all()
+
+        # Ensure all airports exist before we start validation logic
+        res_airports = await session.execute(select(Airport.code))
+        existing_codes = {r for r in res_airports.scalars().all()}
+        
+        missing_airports = []
+        for r in routes_data:
+            if r.origin not in existing_codes: missing_airports.append(r.origin)
+            if r.destination not in existing_codes: missing_airports.append(r.destination)
+        
+        if missing_airports:
+            # Filter duplicates
+            missing_airports = list(set(missing_airports))
+            to_insert = []
+            for code in missing_airports:
+                # Find in static list
+                found = next((a for a in AIRPORTS_LIST if a["code"] == code), None)
+                if found:
+                    to_insert.append({
+                         "code": found["code"], 
+                         "city_name": found["city"],
+                         "timezone": found.get("timezone", "UTC"),
+                         "latitude": found.get("lat"),
+                         "longitude": found.get("lon")
+                     })
+            
+            if to_insert:
+                from sqlalchemy import insert
+                await session.execute(insert(Airport).values(to_insert))
+                await session.commit()
+                logger.info(f"Seeded {len(to_insert)} missing airports during validation.")
+
+    total = len(routes_data)
+    if total == 0:
+        JOBS[job_id]["status"] = "completed"
+        JOBS[job_id]["message"] = "No routes to validate."
+        return
+
+    # Prepare
+    intl_codes = {a['code'] for a in AIRPORTS_LIST if a.get('is_international')}
+    today_utc = datetime.utcnow()
+    
+    engine = ScraperEngine()
+    async with SessionLocal() as tmp_session:
+        sem = await engine.get_semaphore(tmp_session)
+
+    completed_count = 0
+    active_count = 0
+    bad_count = 0
+
     async def validate_single(rid, origin, destination):
         nonlocal completed_count, active_count, bad_count
         try:
             async with sem:
                 async with SessionLocal() as session:
-                    # Perform search (network intensive)
-                    res = await engine.perform_search(origin, destination, today, session, force_refresh=True)
+                    # Determine Window
+                    is_intl = origin in intl_codes or destination in intl_codes
+                    days_to_check = 11 if is_intl else 3
                     
-                    is_valid = True
-                    if isinstance(res, dict) and "error" in res:
-                        err_msg = res["error"]
-                        # Treat 400, 403, 404, 500 as potentially invalid or retryable
-                        # 400 often means 'Route invalid' or 'No flights' for this date
-                        if any(x in err_msg for x in ["400", "403", "404", "500"]):
-                            # Retry with tomorrow's date to be sure
-                            res2 = await engine.perform_search(origin, destination, tomorrow, session, force_refresh=True)
-                            if isinstance(res2, dict) and "error" in res2:
-                                is_valid = False # Both failed -> Invalid
-                            else:
-                                is_valid = True # Tomorrow worked -> Valid
+                    found_valid_flight = False
+                    
+                    for i in range(days_to_check):
+                        date_str = (today_utc + timedelta(days=i)).strftime("%Y-%m-%d")
+                        res = await engine.perform_search(origin, destination, date_str, session, force_refresh=True)
+                        
+                        # If no error, assume valid route exists (even if 0 flights, route is technically valid in system)
+                        # But usually we want to see if *any* flights appear over X days to confirm it's active
+                        # Frontier returns empty list if valid route but no inventory.
+                        # Returns error if route is invalid.
+                        
+                        if isinstance(res, dict) and "error" in res:
+                            # If 400/404/500, likely invalid route or blocked.
+                            # We count as "failure" for this day.
+                            pass 
                         else:
-                            # Other errors (timeouts, etc) might be temporary, but let's default to Valid to be safe
-                            # Or maybe Invalid? Let's keep Valid for now unless explicit error.
-                            is_valid = True
+                            # Success! Route exists.
+                            found_valid_flight = True
+                            break # Found one valid day, so route is valid
                     
-                    # Update DB (short lived)
+                    # Update DB
                     stmt = select(RoutePair).where(RoutePair.id == rid)
                     r_res = await session.execute(stmt)
                     route = r_res.scalar_one_or_none()
+                    
                     if route:
-                        route.is_active = is_valid
-                        if not is_valid:
+                        route.is_active = found_valid_flight
+                        if not found_valid_flight:
                             route.error_count += 1
                             bad_count += 1
                         else:
                             route.error_count = 0
                             active_count += 1
                         await session.commit()
+                        
         except Exception as e:
             logger.error(f"Validation failed for route {rid}: {e}")
-            bad_count += 1 # Assume bad if exception? or just skip counting? Let's count as bad.
+            bad_count += 1
         finally:
             completed_count += 1
-            # Update shared job state occasionally or always
             progress = int((completed_count / total) * 100)
             JOBS[job_id]["progress"] = progress
             JOBS[job_id]["message"] = f"Validated {completed_count}/{total} (Active: {active_count}, Bad: {bad_count})"
 
     # Launch all tasks
+    logger.info(f"Validating {total} routes with concurrency...")
     tasks = [validate_single(rid, origin, destination) for rid, origin, destination in routes_data]
     await asyncio.gather(*tasks)
 
     JOBS[job_id]["status"] = "completed"
-    JOBS[job_id]["message"] = f"Validation complete. Active: {active_count}, Bad: {bad_count}, Total: {total}"
+    JOBS[job_id]["message"] = f"Validation complete. Active: {active_count}, Bad: {bad_count}"
+    
+    # Chain Weather Update
+    logger.info("Triggering chained weather update...")
+    await update_weather_task()
 
 async def run_full_cache_task(job_id: str, scope: str):
     JOBS[job_id] = {"status": "running", "progress": 0, "message": "Starting full cache..."}
