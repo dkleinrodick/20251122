@@ -261,10 +261,13 @@
             </div>
 
             <!-- Mobile Menu -->
-            <div v-if="mobileMenuOpen" class="absolute top-full left-0 w-full bg-brand-950 border-t border-brand-800 shadow-2xl animate-fade-in md:hidden">
+            <div v-if="mobileMenuOpen" class="absolute top-full left-0 w-full bg-brand-950 border-t border-brand-800 shadow-2xl animate-fade-in md:hidden" style="z-index: 1000;">
                 <div class="flex flex-col p-6 space-y-4">
                     <a href="/features" class="text-brand-100 font-bold text-lg py-2 px-4 rounded-lg hover:bg-white/5">Features</a>
-                    
+                    <button @click="toggleDesktopMode" class="text-left text-brand-100 font-bold text-lg py-2 px-4 rounded-lg hover:bg-white/5 flex items-center gap-2">
+                        <i :class="forceDesktop ? 'ph-device-mobile' : 'ph-desktop'" class="ph"></i>
+                        {{ forceDesktop ? 'Switch to Mobile View' : 'Request Desktop Site' }}
+                    </button>
                 </div>
             </div>
         </nav>
@@ -292,37 +295,33 @@
         </div>
 
         <!-- Main Application Container -->
-        <div class="relative z-20 -mt-32 md:-mt-48 container mx-auto px-4 pb-20">
+        <div class="relative z-20 -mt-32 md:-mt-48 container mx-auto px-4" :class="!forceDesktop ? 'pb-32' : 'pb-20'">
             
             <!-- Search Widget -->
-            <div class="glass-panel rounded-3xl p-1 max-w-7xl mx-auto transition-all duration-500 shadow-2xl mb-24 md:mb-0">
+            <div class="glass-panel rounded-3xl p-1 max-w-7xl mx-auto transition-all duration-500 shadow-2xl mb-4 md:mb-0">
                 
-                <!-- Tab Navigation (Desktop Only) -->
-                <div class="hidden md:flex bg-slate-100/50 rounded-2xl p-1">
+                <!-- Tab Navigation (Desktop or Forced) -->
+                <div :class="forceDesktop ? 'flex' : 'hidden md:flex'" class="bg-slate-100/50 rounded-2xl p-1">
                     <button v-for="tab in tabs" :key="tab.id" 
                         @click="currentTab = tab.id" 
                         :class="currentTab === tab.id ? 'bg-white text-brand-700 shadow-sm ring-1 ring-black/5' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'"
                         class="flex-1 py-4 rounded-xl text-sm font-bold transition flex flex-col md:flex-row justify-center items-center gap-2 relative group">
                         <i :class="['ph text-xl mb-1 md:mb-0', tab.icon]"></i>
                         <span>{{ tab.label }}</span>
-                        <!-- Tooltip -->
-                        <div class="absolute -top-10 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-[10px] py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition pointer-events-none whitespace-nowrap">
-                            {{ tab.desc }}
-                        </div>
                     </button>
                 </div>
 
                 <!-- Bottom Navigation (Mobile Only) -->
-                <div class="md:hidden fixed bottom-0 left-0 w-full bg-white border-t border-slate-200 z-[9999] flex justify-around pb-safe pt-2 px-2 shadow-[0_-4px_20px_rgba(0,0,0,0.1)]">
+                <div v-if="!forceDesktop" class="md:hidden fixed bottom-0 left-0 w-full bg-white/90 backdrop-blur-lg border-t border-slate-200 z-[9999] flex justify-around px-2 shadow-[0_-4px_20px_rgba(0,0,0,0.1)] pb-safe" style="padding-bottom: env(safe-area-inset-bottom, 20px); height: calc(60px + env(safe-area-inset-bottom, 20px));">
                     <button v-for="tab in tabs" :key="tab.id" 
                         @click="currentTab = tab.id; window.scrollTo({top: 0, behavior: 'smooth'})" 
-                        class="flex flex-col items-center justify-center p-2 flex-1 transition-all duration-200 active:scale-95"
+                        class="flex flex-col items-center justify-start pt-3 flex-1 transition-all duration-200 active:scale-95 h-full"
                         :class="currentTab === tab.id ? 'text-brand-600' : 'text-slate-400'">
                         <div class="relative">
                             <i :class="[tab.icon, currentTab === tab.id ? 'ph-fill' : 'ph-bold', 'text-2xl mb-1']"></i>
-                            <div v-if="currentTab === tab.id" class="absolute -bottom-2 left-1/2 -translate-x-1/2 w-1 h-1 bg-brand-600 rounded-full"></div>
+                            <div v-if="currentTab === tab.id" class="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-brand-600 rounded-full"></div>
                         </div>
-                        <span class="text-[10px] font-bold mt-1">{{ tab.label }}</span>
+                        <span class="text-[9px] font-bold mt-0.5">{{ tab.label }}</span>
                     </button>
                 </div>
 
@@ -1589,6 +1588,13 @@
                 
                 const showBookingWarning = ref(false);
                 const bookingWarningItem = ref(null);
+                
+                // Toggle for forcing desktop view on mobile
+                const forceDesktop = ref(false);
+                const toggleDesktopMode = () => {
+                    forceDesktop.value = !forceDesktop.value;
+                    mobileMenuOpen.value = false;
+                };
 
                 const totalPassengers = computed(() => passengers.value.adults + passengers.value.kids.length);
 
@@ -2518,7 +2524,8 @@
                     getWeather, dayTripMode, destInput,
                     showBookingWarning, bookingWarningItem, openBookingModal, isOvernightLayover, getDateDiffLabel,
                     passengers, totalPassengers, showPassengerMenu, showSortDropdown, addAdult, removeAdult, addKid, removeKid,
-                    filteredMapCount, showAnnouncement, announcementHtml, dateOptions
+                    filteredMapCount, showAnnouncement, announcementHtml, dateOptions,
+                    forceDesktop, toggleDesktopMode
                 };
             }
         }).mount('#app');
