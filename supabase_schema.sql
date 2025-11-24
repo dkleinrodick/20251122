@@ -72,6 +72,23 @@ CREATE INDEX IF NOT EXISTS idx_flight_cache_date ON flight_cache(travel_date);
 CREATE INDEX IF NOT EXISTS idx_flight_cache_combo ON flight_cache(origin, destination, travel_date);
 CREATE INDEX IF NOT EXISTS idx_flight_cache_created ON flight_cache(created_at);
 
+-- Scraper Runs Table
+CREATE TABLE IF NOT EXISTS scraper_runs (
+    id SERIAL PRIMARY KEY,
+    started_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    completed_at TIMESTAMP WITH TIME ZONE,
+    duration_seconds DOUBLE PRECISION,
+    status VARCHAR(20),
+    total_routes INTEGER,
+    routes_scraped INTEGER,
+    routes_skipped INTEGER,
+    routes_failed INTEGER,
+    error_message VARCHAR(500)
+);
+
+-- Index for scraper runs lookup
+CREATE INDEX IF NOT EXISTS idx_scraper_runs_started_at ON scraper_runs(started_at);
+
 -- Weather Data Table
 CREATE TABLE IF NOT EXISTS weather_data (
     id SERIAL PRIMARY KEY,
@@ -112,5 +129,5 @@ ON CONFLICT (key) DO NOTHING;
 DO $$
 BEGIN
     RAISE NOTICE 'FlyGW database schema created successfully!';
-    RAISE NOTICE 'Tables created: system_settings, proxies, airports, route_pairs, flight_cache, weather_data';
+    RAISE NOTICE 'Tables created: system_settings, proxies, airports, route_pairs, flight_cache, scraper_runs, weather_data';
 END $$;
