@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Depends, HTTPException, BackgroundTasks, Request, Form, Header
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -156,6 +156,10 @@ async def verify_admin(
 @app.get("/", response_class=HTMLResponse)
 async def read_root(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
+
+@app.get("/v2")
+async def redirect_v2():
+    return RedirectResponse(url="/")
 
 @app.get("/features", response_class=HTMLResponse)
 async def read_features(request: Request):
