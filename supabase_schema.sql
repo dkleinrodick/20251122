@@ -125,9 +125,28 @@ INSERT INTO system_settings (key, value) VALUES
     ('save_debug_responses', 'false')
 ON CONFLICT (key) DO NOTHING;
 
+-- Enable Row Level Security (RLS) for all tables
+ALTER TABLE public.system_settings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.proxies ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.airports ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.route_pairs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.flight_cache ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.scraper_runs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.weather_data ENABLE ROW LEVEL SECURITY;
+
+-- Create Policies for Public Read Access
+-- Tables that need to be read by the frontend will have a SELECT policy.
+-- Tables without policies (system_settings, proxies) will be inaccessible to the public.
+CREATE POLICY "Allow public read access" ON public.airports FOR SELECT USING (true);
+CREATE POLICY "Allow public read access" ON public.route_pairs FOR SELECT USING (true);
+CREATE POLICY "Allow public read access" ON public.flight_cache FOR SELECT USING (true);
+CREATE POLICY "Allow public read access" ON public.scraper_runs FOR SELECT USING (true);
+CREATE POLICY "Allow public read access" ON public.weather_data FOR SELECT USING (true);
+
 -- Success message
 DO $$
 BEGIN
     RAISE NOTICE 'FlyGW database schema created successfully!';
     RAISE NOTICE 'Tables created: system_settings, proxies, airports, route_pairs, flight_cache, scraper_runs, weather_data';
+    RAISE NOTICE 'RLS has been enabled and policies have been created for public tables.';
 END $$;
