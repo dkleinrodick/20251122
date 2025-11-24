@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>WildFares Admin</title>
+    <title>WildFares Admin v3.0</title>
     <link rel="icon" type="image/png" href="/static/logo.png">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
@@ -11,7 +11,7 @@
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400&display=swap');
-        body { font-family: 'Inter', sans-serif; background-color: #0f172a; color: #f1f5f9; }
+        body { font-family: 'Inter', sans-serif; background-color: #0b1121; color: #cbd5e1; } /* Darker background */
         .font-mono { font-family: 'JetBrains Mono', monospace; }
         
         /* Transitions */
@@ -23,18 +23,27 @@
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
         ::-webkit-scrollbar-thumb:hover { background: #475569; }
+
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
     </style>
     <script>
         tailwind.config = {
             theme: {
                 extend: {
                     colors: {
-                        brand: { 500: '#38bdf8', 600: '#0284c7' },
+                        brand: { 500: '#38bdf8', 600: '#0284c7', 400: '#7dd3fc' },
                         surface: { 
-                            50: '#1e293b', // Card BG
-                            100: '#334155', // Border/Hover
-                            200: '#475569', // Text Muted
-                            900: '#0f172a' // Main BG
+                            50: '#1e293b', 
+                            100: '#334155', 
+                            200: '#94a3b8', /* Lighter text for readability */
+                            300: '#cbd5e1',
+                            800: '#1e293b',
+                            900: '#0f172a',
+                            950: '#020617' 
                         }
                     }
                 }
@@ -46,164 +55,210 @@
     <div id="app" class="h-full flex flex-col relative">
         {% raw %}
 
-        <!-- LOGIN -->
-        <div v-if="!authenticated" class="absolute inset-0 z-50 bg-surface-900 flex items-center justify-center p-4">
-            <div class="w-full max-w-sm bg-surface-50 rounded-2xl border border-surface-100 shadow-2xl p-8">
+        <!-- LOGIN OVERLAY -->
+        <div v-if="!authenticated" class="absolute inset-0 z-50 bg-surface-950 flex items-center justify-center p-4">
+            <div class="w-full max-w-sm glass-panel rounded-2xl p-8 border border-surface-100/20 shadow-2xl">
                 <div class="flex flex-col items-center mb-8">
-                    <div class="w-12 h-12 bg-brand-500 rounded-xl flex items-center justify-center text-white shadow-lg shadow-brand-500/20 mb-4">
-                        <i class="ph-bold ph-lock-key text-2xl"></i>
+                    <div class="w-14 h-14 bg-gradient-to-br from-brand-400 to-brand-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-brand-500/20 mb-5">
+                        <i class="ph-bold ph-shield-check text-3xl"></i>
                     </div>
-                    <h1 class="text-xl font-bold text-white">Admin Access</h1>
+                    <h1 class="text-2xl font-bold text-white tracking-tight">Admin Console</h1>
+                    <p class="text-surface-200 text-sm mt-1">Secure Access Required</p>
                 </div>
                 <div class="space-y-4">
-                    <input v-model="password" type="password" class="w-full bg-surface-900 border border-surface-100 rounded-xl px-4 py-3.5 text-white focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition placeholder:text-surface-200" placeholder="Enter Access Key" @keyup.enter="login">
-                    <button @click="login" class="w-full bg-brand-600 hover:bg-brand-500 text-white font-bold py-3.5 rounded-xl transition shadow-lg shadow-brand-500/20 active:scale-95">Unlock</button>
-                    <p v-if="loginError" class="text-center text-rose-500 text-xs font-bold mt-2 animate-pulse">{{ loginError }}</p>
+                    <div class="relative">
+                        <i class="ph-bold ph-key absolute left-4 top-1/2 -translate-y-1/2 text-surface-200"></i>
+                        <input v-model="password" type="password" class="w-full bg-surface-900/50 border border-surface-100/20 rounded-xl pl-11 pr-4 py-3.5 text-white focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition placeholder:text-surface-200/50" placeholder="Enter Access Key" @keyup.enter="login">
+                    </div>
+                    <button @click="login" class="w-full bg-brand-600 hover:bg-brand-500 text-white font-bold py-3.5 rounded-xl transition shadow-lg shadow-brand-500/20 active:scale-95 flex items-center justify-center gap-2">
+                        <span>Unlock System</span>
+                        <i class="ph-bold ph-arrow-right"></i>
+                    </button>
+                    <p v-if="loginError" class="text-center text-rose-400 text-xs font-bold mt-2 animate-pulse bg-rose-500/10 py-2 rounded-lg border border-rose-500/20">{{ loginError }}</p>
                 </div>
             </div>
         </div>
 
         <!-- APP LAYOUT -->
-        <div v-else class="flex h-full flex-col lg:flex-row">
+        <div v-else class="flex h-full flex-col lg:flex-row bg-surface-950">
             
-            <!-- SIDEBAR (Desktop) / HEADER (Mobile) -->
-            <div class="lg:w-64 bg-surface-50 border-b lg:border-b-0 lg:border-r border-surface-100 flex-shrink-0 flex lg:flex-col justify-between z-20">
+            <!-- SIDEBAR (Desktop) -->
+            <div class="hidden lg:flex w-72 bg-surface-900 border-r border-surface-100/10 flex-col justify-between z-20 shadow-xl">
                 
-                <!-- Logo Area -->
-                <div class="h-16 flex items-center px-6 border-b border-surface-100/50 bg-surface-50/50 backdrop-blur">
+                <!-- Logo -->
+                <div class="h-20 flex items-center px-8 border-b border-surface-100/10">
                     <div class="flex items-center gap-3">
-                        <img src="/static/logo.png" class="w-8 h-8 rounded-md shadow-sm">
-                        <span class="font-bold text-lg tracking-tight">WildFares</span>
+                        <div class="relative">
+                            <div class="absolute inset-0 bg-brand-500 blur-lg opacity-20"></div>
+                            <img src="/static/logo.png" class="w-9 h-9 relative z-10 rounded-lg shadow-sm">
+                        </div>
+                        <div>
+                            <span class="font-bold text-lg text-white tracking-tight block leading-none">WildFares</span>
+                            <span class="text-[10px] text-brand-400 font-bold tracking-widest uppercase">Admin v3.0</span>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Desktop Nav -->
-                <div class="hidden lg:flex flex-1 flex-col p-4 gap-1 overflow-y-auto">
+                <!-- Nav -->
+                <div class="flex-1 overflow-y-auto py-6 px-4 space-y-1">
                     <nav-button v-for="tab in tabs" :key="tab.id" :item="tab" :active="activeTab === tab.id" @click="activeTab = tab.id"></nav-button>
                 </div>
 
-                <!-- Footer Stats (Desktop) -->
-                <div class="hidden lg:block p-6 border-t border-surface-100/50">
-                    <div class="flex items-center gap-2 mb-2">
-                        <div class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
-                        <span class="text-xs font-bold text-surface-200 uppercase tracking-wide">Online</span>
+                <!-- Footer Stats -->
+                <div class="p-6 border-t border-surface-100/10 bg-surface-900">
+                    <div class="bg-surface-800/50 rounded-xl p-4 border border-surface-100/5">
+                        <div class="flex items-center justify-between mb-3">
+                            <span class="text-xs font-bold text-surface-200">System Status</span>
+                            <div class="flex items-center gap-1.5">
+                                <div class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.5)]"></div>
+                                <span class="text-[10px] font-bold text-emerald-400">ONLINE</span>
+                            </div>
+                        </div>
+                        <div class="space-y-1">
+                            <div class="flex justify-between text-[10px]">
+                                <span class="text-surface-200">Uptime</span>
+                                <span class="font-mono text-white">{{ uptimeString }}</span>
+                            </div>
+                            <div class="flex justify-between text-[10px]">
+                                <span class="text-surface-200">Version</span>
+                                <span class="font-mono text-brand-400">3.0.0</span>
+                            </div>
+                        </div>
                     </div>
-                    <div class="text-[10px] text-surface-200 font-mono mb-1">UPTIME: {{ uptimeString }}</div>
-                    <div class="text-[10px] text-surface-400 font-mono mb-3">VERSION: v2.4.0</div>
-                    <button @click="logout" class="w-full py-2 rounded-lg bg-surface-100 hover:bg-surface-200 text-xs font-bold text-surface-200 hover:text-white transition">Logout</button>
+                    <button @click="logout" class="w-full mt-4 py-2.5 rounded-lg border border-surface-100/10 text-xs font-bold text-surface-200 hover:text-white hover:bg-surface-800 transition flex items-center justify-center gap-2">
+                        <i class="ph-bold ph-sign-out"></i> Logout
+                    </button>
                 </div>
             </div>
 
             <!-- MAIN CONTENT -->
-            <div class="flex-1 bg-surface-900 overflow-hidden flex flex-col relative">
+            <div class="flex-1 flex flex-col relative overflow-hidden bg-[#0b1121]">
                 
-                <!-- Top Bar (Context) -->
-                <header class="h-16 border-b border-surface-100 flex items-center justify-between px-6 bg-surface-900/95 backdrop-blur z-10">
-                    <div>
-                        <h2 class="text-lg font-bold text-white">{{ currentTabLabel }}</h2>
+                <!-- Top Header -->
+                <header class="h-16 border-b border-surface-100/10 flex items-center justify-between px-6 lg:px-10 bg-surface-900/80 backdrop-blur z-10 sticky top-0">
+                    <div class="flex items-center gap-4">
+                        <div class="lg:hidden">
+                            <img src="/static/logo.png" class="w-8 h-8 rounded-lg">
+                        </div>
+                        <h2 class="text-xl font-bold text-white tracking-tight">{{ currentTabLabel }}</h2>
                     </div>
                     <div class="flex items-center gap-3">
-                        <button @click="fetchData" class="p-2 text-surface-200 hover:text-white hover:bg-surface-100 rounded-lg transition" title="Refresh Data">
+                        <button @click="fetchData" class="w-9 h-9 flex items-center justify-center rounded-lg bg-surface-800 hover:bg-surface-700 text-surface-200 hover:text-white transition border border-surface-100/10" title="Refresh Data">
                             <i class="ph-bold ph-arrows-clockwise text-lg"></i>
                         </button>
-                        <a href="/" target="_blank" class="hidden md:flex items-center gap-2 px-3 py-1.5 bg-brand-600/10 text-brand-500 rounded-lg text-xs font-bold hover:bg-brand-600 hover:text-white transition">
-                            Live Site <i class="ph-bold ph-arrow-square-out"></i>
+                        <a href="/" target="_blank" class="hidden md:flex items-center gap-2 px-4 py-2 bg-brand-500/10 text-brand-400 border border-brand-500/20 rounded-lg text-xs font-bold hover:bg-brand-500 hover:text-white transition">
+                            Open Live Site <i class="ph-bold ph-arrow-square-out"></i>
                         </a>
                     </div>
                 </header>
 
-                <!-- Scrollable Area -->
-                <main class="flex-1 overflow-y-auto p-4 pb-24 lg:p-8 lg:pb-8">
+                <!-- Scrollable Viewport -->
+                <main class="flex-1 overflow-y-auto p-4 pb-28 lg:p-10 lg:pb-10 custom-scrollbar">
                     
                     <!-- DASHBOARD -->
-                    <div v-if="activeTab === 'dashboard'" class="space-y-6 max-w-6xl mx-auto animate-fade-in">
+                    <div v-if="activeTab === 'dashboard'" class="space-y-8 max-w-7xl mx-auto animate-fade-in">
                         <!-- KPI Grid -->
-                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                            <kpi-card icon="ph-database" color="emerald" :value="cacheCount" label="Cached Flights"></kpi-card>
-                            <kpi-card icon="ph-shield-check" color="blue" :value="activeProxiesCount" label="Active Proxies"></kpi-card>
-                            <kpi-card icon="ph-robot" color="orange" :value="settings.auto_scrape_enabled === 'true' ? 'ON' : 'OFF'" label="Auto Scraper"></kpi-card>
-                            <kpi-card icon="ph-clock" color="purple" :value="settings.last_auto_scrape ? formatSmartTime(settings.last_auto_scrape) : 'Never'" label="Last Run" class="truncate"></kpi-card>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 lg:gap-6">
+                            <kpi-card icon="ph-database" color="emerald" :value="cacheCount" label="Cached Flights" sub="Active Records"></kpi-card>
+                            <kpi-card icon="ph-shield-check" color="blue" :value="activeProxiesCount" label="Active Proxies" sub="Rotating IPs"></kpi-card>
+                            <kpi-card icon="ph-robot" color="orange" :value="settings.auto_scrape_enabled === 'true' ? 'ACTIVE' : 'PAUSED'" label="Auto Scraper" sub="Background Service"></kpi-card>
+                            <kpi-card icon="ph-clock" color="purple" :value="settings.last_auto_scrape ? formatSmartTime(settings.last_auto_scrape) : 'Never'" label="Last Scrape" sub="Run Completion"></kpi-card>
                         </div>
 
-                        <!-- Controls -->
-                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                            <!-- Actions -->
-                            <div class="bg-surface-50 rounded-2xl border border-surface-100 p-6">
-                                <h3 class="text-sm font-bold text-surface-200 uppercase tracking-wider mb-4">System Control</h3>
-                                <div class="space-y-3">
-                                    <action-button icon="ph-play" label="Trigger Auto Scraper" @click="runAutoScraper"></action-button>
-                                    <action-button icon="ph-arrows-clockwise" label="Update Route Map" @click="updateRoutes" :loading="routeJob.status === 'running'" :subtext="routeJob.message"></action-button>
-                                    <action-button icon="ph-cloud-sun" label="Update Weather" @click="triggerWeatherUpdate"></action-button>
-                                    <div class="grid grid-cols-2 gap-3 pt-2">
-                                        <button @click="clearCache" class="py-2.5 rounded-xl bg-surface-100 hover:bg-rose-500/20 hover:text-rose-400 hover:border-rose-500/50 border border-surface-100 text-xs font-bold text-surface-200 transition flex justify-center items-center gap-2"><i class="ph-bold ph-trash"></i> Clear Cache</button>
-                                        <button @click="rebootBackend" class="py-2.5 rounded-xl bg-surface-100 hover:bg-white/5 border border-surface-100 text-xs font-bold text-surface-200 hover:text-white transition flex justify-center items-center gap-2"><i class="ph-bold ph-power"></i> Reboot</button>
+                        <!-- Main Controls Area -->
+                        <div class="grid grid-cols-1 xl:grid-cols-3 gap-6 lg:gap-8">
+                            
+                            <!-- System Actions (Left) -->
+                            <div class="xl:col-span-1 bg-surface-900 rounded-2xl border border-surface-100/10 overflow-hidden">
+                                <div class="p-6 border-b border-surface-100/10 bg-surface-800/30">
+                                    <h3 class="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                                        <i class="ph-fill ph-lightning text-brand-400"></i> Actions
+                                    </h3>
+                                </div>
+                                <div class="p-6 space-y-3">
+                                    <action-button icon="ph-play" label="Trigger Auto Scraper" subtext="Force immediate run" @click="runAutoScraper"></action-button>
+                                    <action-button icon="ph-arrows-clockwise" label="Update Route Map" :loading="routeJob.status === 'running'" :subtext="routeJob.message || 'Sync database routes'" @click="updateRoutes"></action-button>
+                                    <action-button icon="ph-cloud-sun" label="Update Weather" subtext="Fetch latest forecasts" @click="triggerWeatherUpdate"></action-button>
+                                    
+                                    <div class="h-px bg-surface-100/10 my-4"></div>
+                                    
+                                    <div class="grid grid-cols-2 gap-3">
+                                        <button @click="clearCache" class="py-3 rounded-xl bg-surface-800/50 hover:bg-rose-500/10 hover:text-rose-400 hover:border-rose-500/30 border border-surface-100/10 text-xs font-bold text-surface-200 transition flex flex-col items-center justify-center gap-1">
+                                            <i class="ph-bold ph-trash text-lg"></i>
+                                            <span>Clear Cache</span>
+                                        </button>
+                                        <button @click="rebootBackend" class="py-3 rounded-xl bg-surface-800/50 hover:bg-surface-700 border border-surface-100/10 text-xs font-bold text-surface-200 hover:text-white transition flex flex-col items-center justify-center gap-1">
+                                            <i class="ph-bold ph-power text-lg"></i>
+                                            <span>Reboot API</span>
+                                        </button>
                                     </div>
                                 </div>
                             </div>
-                            <!-- Quick Settings -->
-                            <div class="bg-surface-50 rounded-2xl border border-surface-100 p-6">
-                                <h3 class="text-sm font-bold text-surface-200 uppercase tracking-wider mb-4">Quick Config</h3>
-                                <div class="space-y-4">
-                                    <toggle-switch v-model="settings.auto_scrape_enabled" label="Auto Scraper"></toggle-switch>
-                                    <toggle-switch v-model="settings.proxy_enabled" label="Use Proxies"></toggle-switch>
-                                    <toggle-switch v-model="settings.scraper_jitter_enabled" label="Scraper Jitter (Stealth)"></toggle-switch>
-                                    <div class="pt-4 mt-4 border-t border-surface-100">
-                                        <button @click="saveSettings" class="w-full bg-white text-surface-900 font-bold py-3 rounded-xl hover:bg-brand-500 hover:text-white transition">Save Changes</button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
 
-                        <!-- Scraper Run History -->
-                        <div class="bg-surface-50 rounded-2xl border border-surface-100 p-6">
-                            <div class="flex justify-between items-center mb-4">
-                                <h3 class="text-sm font-bold text-surface-200 uppercase tracking-wider">Scraper Run History</h3>
-                                <button @click="fetchScraperRuns" class="text-xs text-brand-400 hover:text-brand-300 transition"><i class="ph-bold ph-arrows-clockwise"></i> Refresh</button>
-                            </div>
-                            <div class="space-y-2">
-                                <div v-if="scraperRuns.length === 0" class="text-center py-8 text-surface-200 text-sm">
-                                    No scraper runs yet
+                            <!-- Scraper History (Right/Wide) -->
+                            <div class="xl:col-span-2 bg-surface-900 rounded-2xl border border-surface-100/10 flex flex-col">
+                                <div class="p-6 border-b border-surface-100/10 bg-surface-800/30 flex justify-between items-center">
+                                    <h3 class="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                                        <i class="ph-fill ph-clock-counter-clockwise text-brand-400"></i> Run History
+                                    </h3>
+                                    <button @click="fetchScraperRuns" class="text-xs text-brand-400 hover:text-brand-300 transition flex items-center gap-1">
+                                        <i class="ph-bold ph-arrows-clockwise"></i> Refresh
+                                    </button>
                                 </div>
-                                <div v-for="run in scraperRuns" :key="run.id" class="bg-surface-900 rounded-xl border border-surface-100 p-4 hover:border-brand-500/30 transition">
-                                    <div class="flex items-start justify-between mb-2">
-                                        <div class="flex items-center gap-2">
-                                            <div class="w-2 h-2 rounded-full" :class="{
-                                                'bg-emerald-500': run.status === 'completed',
-                                                'bg-rose-500': run.status === 'failed',
-                                                'bg-blue-500 animate-pulse': run.status === 'running'
-                                            }"></div>
-                                            <span class="text-xs font-bold text-white">Run #{{ run.id }}</span>
-                                            <span class="text-[10px] text-surface-200 font-mono">{{ formatSmartTime(run.started_at) }}</span>
+                                <div class="flex-1 overflow-y-auto p-4 custom-scrollbar max-h-[500px]">
+                                    <div class="space-y-3">
+                                        <div v-if="scraperRuns.length === 0" class="text-center py-12 text-surface-200/50 text-sm flex flex-col items-center">
+                                            <i class="ph-duotone ph-scroll text-4xl mb-2 opacity-50"></i>
+                                            No run history available
                                         </div>
-                                        <div class="flex items-center gap-2">
-                                            <span class="text-xs font-bold px-2 py-1 rounded-lg" :class="{
-                                                'bg-emerald-500/20 text-emerald-400': run.status === 'completed',
-                                                'bg-rose-500/20 text-rose-400': run.status === 'failed',
-                                                'bg-blue-500/20 text-blue-400': run.status === 'running'
-                                            }">{{ run.status.toUpperCase() }}</span>
-                                            <span class="text-[10px] text-surface-200 font-mono">{{ formatDuration(run.duration_seconds) }}</span>
+                                        <div v-for="run in scraperRuns" :key="run.id" class="bg-surface-950/50 rounded-xl border border-surface-100/5 p-4 hover:border-surface-100/20 transition group">
+                                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
+                                                <div class="flex items-center gap-3">
+                                                    <div class="w-2.5 h-2.5 rounded-full shadow-[0_0_8px_rgba(0,0,0,0.5)]" :class="{
+                                                        'bg-emerald-500 shadow-emerald-500/50': run.status === 'completed',
+                                                        'bg-rose-500 shadow-rose-500/50': run.status === 'failed',
+                                                        'bg-blue-500 animate-pulse shadow-blue-500/50': run.status === 'running'
+                                                    }"></div>
+                                                    <div>
+                                                        <div class="text-sm font-bold text-white">Run #{{ run.id }}</div>
+                                                        <div class="text-[10px] text-surface-200 font-mono">{{ formatSmartTime(run.started_at) }}</div>
+                                                    </div>
+                                                </div>
+                                                <div class="flex items-center gap-3">
+                                                    <span class="text-[10px] font-bold px-2.5 py-1 rounded-lg border" :class="{
+                                                        'bg-emerald-500/10 border-emerald-500/20 text-emerald-400': run.status === 'completed',
+                                                        'bg-rose-500/10 border-rose-500/20 text-rose-400': run.status === 'failed',
+                                                        'bg-blue-500/10 border-blue-500/20 text-blue-400': run.status === 'running'
+                                                    }">{{ run.status.toUpperCase() }}</span>
+                                                    <span class="text-[10px] text-surface-200 font-mono bg-surface-800 px-2 py-1 rounded">{{ formatDuration(run.duration_seconds) }}</span>
+                                                </div>
+                                            </div>
+                                            
+                                            <!-- Stats Bar -->
+                                            <div class="grid grid-cols-4 gap-2 bg-surface-800/30 rounded-lg p-2 border border-surface-100/5">
+                                                <div class="text-center">
+                                                    <div class="text-xs font-bold text-white">{{ run.total_routes || 0 }}</div>
+                                                    <div class="text-[9px] text-surface-300 uppercase tracking-wide">Total</div>
+                                                </div>
+                                                <div class="text-center border-l border-surface-100/5">
+                                                    <div class="text-xs font-bold text-emerald-400">{{ run.routes_scraped || 0 }}</div>
+                                                    <div class="text-[9px] text-surface-300 uppercase tracking-wide">Ok</div>
+                                                </div>
+                                                <div class="text-center border-l border-surface-100/5">
+                                                    <div class="text-xs font-bold text-blue-400">{{ run.routes_skipped || 0 }}</div>
+                                                    <div class="text-[9px] text-surface-300 uppercase tracking-wide">Skip</div>
+                                                </div>
+                                                <div class="text-center border-l border-surface-100/5">
+                                                    <div class="text-xs font-bold text-rose-400">{{ run.routes_failed || 0 }}</div>
+                                                    <div class="text-[9px] text-surface-300 uppercase tracking-wide">Fail</div>
+                                                </div>
+                                            </div>
+                                            
+                                            <div v-if="run.error_message" class="mt-3 text-[10px] text-rose-300 font-mono bg-rose-950/30 rounded-lg p-2.5 border border-rose-500/20 flex items-start gap-2">
+                                                <i class="ph-bold ph-warning mt-0.5"></i>
+                                                {{ run.error_message }}
+                                            </div>
                                         </div>
-                                    </div>
-                                    <div class="grid grid-cols-4 gap-3 mt-3">
-                                        <div class="text-center">
-                                            <div class="text-xs font-bold text-white">{{ run.total_routes || 0 }}</div>
-                                            <div class="text-[10px] text-surface-200 uppercase">Total</div>
-                                        </div>
-                                        <div class="text-center">
-                                            <div class="text-xs font-bold text-emerald-400">{{ run.routes_scraped || 0 }}</div>
-                                            <div class="text-[10px] text-surface-200 uppercase">Scraped</div>
-                                        </div>
-                                        <div class="text-center">
-                                            <div class="text-xs font-bold text-blue-400">{{ run.routes_skipped || 0 }}</div>
-                                            <div class="text-[10px] text-surface-200 uppercase">Skipped</div>
-                                        </div>
-                                        <div class="text-center">
-                                            <div class="text-xs font-bold text-rose-400">{{ run.routes_failed || 0 }}</div>
-                                            <div class="text-[10px] text-surface-200 uppercase">Failed</div>
-                                        </div>
-                                    </div>
-                                    <div v-if="run.error_message" class="mt-3 text-[10px] text-rose-400 font-mono bg-rose-500/10 rounded-lg p-2 border border-rose-500/20">
-                                        {{ run.error_message }}
                                     </div>
                                 </div>
                             </div>
@@ -212,89 +267,111 @@
 
                     <!-- SCRAPER TOOL -->
                     <div v-if="activeTab === 'scraper'" class="max-w-4xl mx-auto animate-fade-in">
-                        <div class="bg-surface-50 rounded-2xl border border-surface-100 overflow-hidden">
-                            <div class="p-6 border-b border-surface-100">
-                                <h3 class="text-lg font-bold text-white">Manual Route Scraper</h3>
-                                <p class="text-xs text-surface-200 mt-1">Force refresh a specific route and date directly from the airline API.</p>
-                            </div>
-                            <div class="p-6 space-y-6">
-                                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                    <div>
-                                        <label class="block text-xs font-bold text-surface-200 uppercase mb-2">Origin</label>
-                                        <input v-model="manualScrape.origin" type="text" class="w-full bg-surface-900 border border-surface-100 rounded-xl px-4 py-3 text-white font-bold uppercase placeholder:text-surface-200 focus:border-brand-500 outline-none" placeholder="LAS">
+                        <div class="bg-surface-900 rounded-2xl border border-surface-100/10 overflow-hidden shadow-lg">
+                            <div class="p-8 border-b border-surface-100/10">
+                                <div class="flex items-center gap-4 mb-2">
+                                    <div class="w-10 h-10 rounded-xl bg-purple-500/20 text-purple-400 flex items-center justify-center border border-purple-500/20">
+                                        <i class="ph-fill ph-wrench text-xl"></i>
                                     </div>
                                     <div>
-                                        <label class="block text-xs font-bold text-surface-200 uppercase mb-2">Destination</label>
-                                        <input v-model="manualScrape.destination" type="text" class="w-full bg-surface-900 border border-surface-100 rounded-xl px-4 py-3 text-white font-bold uppercase placeholder:text-surface-200 focus:border-brand-500 outline-none" placeholder="DEN">
-                                    </div>
-                                    <div>
-                                        <label class="block text-xs font-bold text-surface-200 uppercase mb-2">Date (YYYY-MM-DD)</label>
-                                        <input v-model="manualScrape.date" type="date" class="w-full bg-surface-900 border border-surface-100 rounded-xl px-4 py-3 text-white font-bold focus:border-brand-500 outline-none">
+                                        <h3 class="text-xl font-bold text-white">Manual Route Debugger</h3>
+                                        <p class="text-sm text-surface-200">Test specific routes directly against the backend.</p>
                                     </div>
                                 </div>
-                                <button @click="runManualScrape" :disabled="manualScrape.loading" class="w-full bg-brand-600 hover:bg-brand-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-4 rounded-xl shadow-lg shadow-brand-500/20 transition flex items-center justify-center gap-2">
-                                    <i v-if="manualScrape.loading" class="ph-bold ph-spinner animate-spin"></i>
-                                    <span>{{ manualScrape.loading ? 'Scraping...' : 'Run Scraper' }}</span>
+                            </div>
+                            <div class="p-8 space-y-8">
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                    <div>
+                                        <label class="block text-xs font-bold text-surface-200 uppercase mb-2 pl-1">Origin (IATA)</label>
+                                        <input v-model="manualScrape.origin" type="text" class="w-full bg-surface-950 border border-surface-100/20 rounded-xl px-4 py-3.5 text-white font-bold uppercase placeholder:text-surface-200/30 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none transition" placeholder="LAS">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-bold text-surface-200 uppercase mb-2 pl-1">Destination (IATA)</label>
+                                        <input v-model="manualScrape.destination" type="text" class="w-full bg-surface-950 border border-surface-100/20 rounded-xl px-4 py-3.5 text-white font-bold uppercase placeholder:text-surface-200/30 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none transition" placeholder="DEN">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-bold text-surface-200 uppercase mb-2 pl-1">Target Date</label>
+                                        <input v-model="manualScrape.date" type="date" class="w-full bg-surface-950 border border-surface-100/20 rounded-xl px-4 py-3.5 text-white font-bold focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none transition">
+                                    </div>
+                                </div>
+                                <button @click="runManualScrape" :disabled="manualScrape.loading" class="w-full bg-gradient-to-r from-brand-600 to-brand-500 hover:from-brand-500 hover:to-brand-400 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-4 rounded-xl shadow-lg shadow-brand-500/20 transition flex items-center justify-center gap-3">
+                                    <i v-if="manualScrape.loading" class="ph-bold ph-spinner animate-spin text-xl"></i>
+                                    <i v-else class="ph-bold ph-play text-xl"></i>
+                                    <span class="tracking-wide">{{ manualScrape.loading ? 'Processing Request...' : 'Run Live Scrape' }}</span>
                                 </button>
 
                                 <!-- Result Area -->
-                                <div v-if="manualScrape.result" class="mt-6 bg-surface-900 rounded-xl border border-surface-100 p-4 overflow-hidden relative group">
-                                    <div class="absolute top-2 right-2">
-                                        <button @click="manualScrape.result = null" class="text-surface-200 hover:text-white"><i class="ph-bold ph-x"></i></button>
+                                <div v-if="manualScrape.result" class="mt-6 bg-surface-950 rounded-xl border border-emerald-500/30 p-5 overflow-hidden relative shadow-[0_0_15px_rgba(16,185,129,0.1)]">
+                                    <div class="absolute top-3 right-3">
+                                        <button @click="manualScrape.result = null" class="text-surface-200 hover:text-white bg-surface-800 p-1 rounded-md"><i class="ph-bold ph-x"></i></button>
                                     </div>
-                                    <div class="text-xs font-bold text-emerald-400 mb-2 flex items-center gap-2">
-                                        <i class="ph-bold ph-check-circle"></i> Success
+                                    <div class="text-sm font-bold text-emerald-400 mb-3 flex items-center gap-2">
+                                        <i class="ph-fill ph-check-circle text-xl"></i> Scrape Successful
                                     </div>
-                                    <pre class="text-[10px] font-mono text-surface-200 overflow-x-auto max-h-64 custom-scrollbar">{{ JSON.stringify(manualScrape.result, null, 2) }}</pre>
+                                    <pre class="text-[11px] font-mono text-surface-200 overflow-x-auto max-h-80 custom-scrollbar p-2">{{ JSON.stringify(manualScrape.result, null, 2) }}</pre>
                                 </div>
-                                <div v-if="manualScrape.error" class="mt-6 bg-rose-500/10 border border-rose-500/30 rounded-xl p-4 text-rose-400 text-sm font-bold flex items-center gap-3">
-                                    <i class="ph-bold ph-warning-circle text-xl"></i> {{ manualScrape.error }}
+                                <div v-if="manualScrape.error" class="mt-6 bg-rose-500/10 border border-rose-500/30 rounded-xl p-5 text-rose-400 text-sm font-bold flex items-start gap-3">
+                                    <i class="ph-fill ph-warning-circle text-xl mt-0.5"></i> 
+                                    <div>
+                                        <div class="uppercase text-xs text-rose-300/70 mb-1">Error Details</div>
+                                        {{ manualScrape.error }}
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- ROUTES MANAGER (NEW) -->
-                    <div v-if="activeTab === 'routes'" class="max-w-6xl mx-auto animate-fade-in">
-                        <div class="flex justify-between items-center mb-6">
-                            <h3 class="text-xl font-bold text-white">Route Manager</h3>
-                            <div class="flex bg-surface-50 rounded-lg p-1 border border-surface-100 shadow-sm gap-1">
-                                <button @click="routeSort = 'origin'" :class="routeSort === 'origin' ? 'bg-surface-200 text-white' : 'text-surface-200 hover:bg-surface-100'" class="px-3 py-1.5 rounded text-xs font-bold transition">By Origin</button>
-                                <button @click="routeSort = 'errors'" :class="routeSort === 'errors' ? 'bg-surface-200 text-white' : 'text-surface-200 hover:bg-surface-100'" class="px-3 py-1.5 rounded text-xs font-bold transition">Most Errors</button>
+                    <!-- ROUTES MANAGER -->
+                    <div v-if="activeTab === 'routes'" class="max-w-7xl mx-auto animate-fade-in">
+                        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                            <div>
+                                <h3 class="text-xl font-bold text-white">Route Configuration</h3>
+                                <p class="text-sm text-surface-200">Manage active routes and monitor health status.</p>
+                            </div>
+                            <div class="flex bg-surface-900 rounded-lg p-1 border border-surface-100/10 shadow-sm gap-1 self-start">
+                                <button @click="routeSort = 'origin'" :class="routeSort === 'origin' ? 'bg-surface-700 text-white shadow-sm' : 'text-surface-300 hover:bg-surface-800'" class="px-4 py-2 rounded-md text-xs font-bold transition">By Origin</button>
+                                <button @click="routeSort = 'errors'" :class="routeSort === 'errors' ? 'bg-surface-700 text-white shadow-sm' : 'text-surface-300 hover:bg-surface-800'" class="px-4 py-2 rounded-md text-xs font-bold transition">Most Errors</button>
                             </div>
                         </div>
 
-                        <div v-if="isLoadingRoutes" class="p-12 flex justify-center text-brand-500 text-3xl">
-                            <i class="ph-bold ph-spinner animate-spin"></i>
+                        <div v-if="isLoadingRoutes" class="py-20 flex flex-col items-center justify-center text-brand-500">
+                            <i class="ph-bold ph-spinner animate-spin text-4xl mb-4"></i>
+                            <span class="text-sm font-bold text-surface-200">Loading routes...</span>
                         </div>
 
-                        <div v-else class="bg-surface-50 rounded-2xl border border-surface-100 overflow-hidden">
+                        <div v-else class="bg-surface-900 rounded-2xl border border-surface-100/10 overflow-hidden shadow-lg">
                             <div class="overflow-x-auto">
                                 <table class="w-full text-left border-collapse">
                                     <thead>
-                                        <tr class="bg-surface-100 text-[10px] font-bold text-surface-200 uppercase">
-                                            <th class="px-6 py-3">Status</th>
-                                            <th class="px-6 py-3">Route</th>
-                                            <th class="px-6 py-3 text-right">Error Count</th>
-                                            <th class="px-6 py-3 text-right">Last Validated</th>
-                                            <th class="px-6 py-3 text-right">Action</th>
+                                        <tr class="bg-surface-800/50 text-[10px] font-bold text-surface-300 uppercase tracking-wider border-b border-surface-100/10">
+                                            <th class="px-6 py-4">Status</th>
+                                            <th class="px-6 py-4">Origin → Destination</th>
+                                            <th class="px-6 py-4 text-right">Recent Errors</th>
+                                            <th class="px-6 py-4 text-right">Last Check</th>
+                                            <th class="px-6 py-4 text-right">Controls</th>
                                         </tr>
                                     </thead>
-                                    <tbody class="divide-y divide-surface-100 text-xs">
-                                        <tr v-for="r in sortedRoutes" :key="r.id" class="hover:bg-surface-100/50 transition" :class="!r.is_active ? 'opacity-50' : ''">
-                                            <td class="px-6 py-3">
-                                                <span :class="r.is_active ? 'text-emerald-400' : 'text-surface-400'" class="flex items-center gap-1.5 font-bold">
+                                    <tbody class="divide-y divide-surface-100/5 text-xs">
+                                        <tr v-for="r in sortedRoutes" :key="r.id" class="hover:bg-surface-800/30 transition group" :class="!r.is_active ? 'opacity-60 bg-surface-950' : ''">
+                                            <td class="px-6 py-4">
+                                                <span :class="r.is_active ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' : 'text-surface-400 bg-surface-800 border-surface-700'" class="inline-flex items-center gap-1.5 font-bold px-2.5 py-1 rounded-md border text-[10px]">
                                                     <div class="w-1.5 h-1.5 rounded-full" :class="r.is_active ? 'bg-emerald-400' : 'bg-surface-400'"></div>
-                                                    {{ r.is_active ? 'Active' : 'Inactive' }}
+                                                    {{ r.is_active ? 'Active' : 'Disabled' }}
                                                 </span>
                                             </td>
-                                            <td class="px-6 py-3 font-bold text-white">{{ r.origin }} <span class="text-surface-200 mx-1">→</span> {{ r.destination }}</td>
-                                            <td class="px-6 py-3 text-right">
-                                                <span :class="r.error_count > 0 ? 'text-rose-400' : 'text-surface-200'" class="font-mono font-bold">{{ r.error_count }}</span>
+                                            <td class="px-6 py-4 font-bold text-white text-sm">
+                                                <span class="bg-surface-800 px-1.5 py-0.5 rounded text-brand-300">{{ r.origin }}</span> 
+                                                <i class="ph-bold ph-arrow-right text-surface-400 text-[10px] mx-1"></i>
+                                                <span class="bg-surface-800 px-1.5 py-0.5 rounded text-brand-300">{{ r.destination }}</span>
                                             </td>
-                                            <td class="px-6 py-3 text-right text-surface-200 font-mono">{{ r.last_validated ? formatSmartTime(r.last_validated) : '-' }}</td>
-                                            <td class="px-6 py-3 text-right">
-                                                <button @click="toggleRoute(r)" class="px-3 py-1 rounded bg-surface-200 hover:bg-white text-surface-900 font-bold text-[10px] transition">
+                                            <td class="px-6 py-4 text-right">
+                                                <span v-if="r.error_count > 0" class="inline-block px-2 py-0.5 rounded bg-rose-500/20 text-rose-400 font-mono font-bold">{{ r.error_count }}</span>
+                                                <span v-else class="text-surface-400">-</span>
+                                            </td>
+                                            <td class="px-6 py-4 text-right text-surface-300 font-mono text-[10px]">{{ r.last_validated ? formatSmartTime(r.last_validated) : 'Never' }}</td>
+                                            <td class="px-6 py-4 text-right">
+                                                <button @click="toggleRoute(r)" class="px-3 py-1.5 rounded-lg font-bold text-[10px] transition border border-transparent"
+                                                    :class="r.is_active ? 'bg-surface-800 text-surface-200 hover:text-rose-400 hover:border-rose-500/30' : 'bg-emerald-600 text-white hover:bg-emerald-500'">
                                                     {{ r.is_active ? 'Disable' : 'Enable' }}
                                                 </button>
                                             </td>
@@ -306,34 +383,37 @@
                     </div>
 
                     <!-- DATA EXPLORER -->
-                    <div v-if="activeTab === 'data'" class="max-w-6xl mx-auto animate-fade-in">
-                        <div class="flex gap-2 mb-6 overflow-x-auto pb-2">
-                            <button @click="explorerMode = 'flights'" :class="explorerMode === 'flights' ? 'bg-brand-600 text-white' : 'bg-surface-50 text-surface-200 hover:text-white'" class="px-4 py-2 rounded-lg text-xs font-bold transition whitespace-nowrap">Flights</button>
-                            <button @click="explorerMode = 'weather'" :class="explorerMode === 'weather' ? 'bg-orange-600 text-white' : 'bg-surface-50 text-surface-200 hover:text-white'" class="px-4 py-2 rounded-lg text-xs font-bold transition whitespace-nowrap">Weather</button>
-                            <button @click="explorerMode = 'seats'" :class="explorerMode === 'seats' ? 'bg-purple-600 text-white' : 'bg-surface-50 text-surface-200 hover:text-white'" class="px-4 py-2 rounded-lg text-xs font-bold transition whitespace-nowrap">Inventory</button>
+                    <div v-if="activeTab === 'data'" class="max-w-7xl mx-auto animate-fade-in">
+                        <div class="flex items-center gap-1 mb-6 overflow-x-auto pb-2 border-b border-surface-100/10">
+                            <button @click="explorerMode = 'flights'" :class="explorerMode === 'flights' ? 'text-brand-400 border-b-2 border-brand-400' : 'text-surface-300 hover:text-white'" class="px-6 py-3 text-sm font-bold transition whitespace-nowrap flex items-center gap-2"><i class="ph-bold ph-airplane"></i> Flights</button>
+                            <button @click="explorerMode = 'weather'" :class="explorerMode === 'weather' ? 'text-orange-400 border-b-2 border-orange-400' : 'text-surface-300 hover:text-white'" class="px-6 py-3 text-sm font-bold transition whitespace-nowrap flex items-center gap-2"><i class="ph-bold ph-cloud-sun"></i> Weather</button>
+                            <button @click="explorerMode = 'seats'" :class="explorerMode === 'seats' ? 'text-purple-400 border-b-2 border-purple-400' : 'text-surface-300 hover:text-white'" class="px-6 py-3 text-sm font-bold transition whitespace-nowrap flex items-center gap-2"><i class="ph-bold ph-chair"></i> Inventory</button>
                         </div>
 
-                        <div class="bg-surface-50 rounded-2xl border border-surface-100 overflow-hidden">
+                        <div class="bg-surface-900 rounded-2xl border border-surface-100/10 overflow-hidden shadow-lg min-h-[400px]">
                             <!-- Flights -->
-                            <div v-if="explorerMode === 'flights'" class="divide-y divide-surface-100">
+                            <div v-if="explorerMode === 'flights'" class="divide-y divide-surface-100/5">
                                 <div v-for="(origins, date) in explorerData.flights" :key="date">
-                                    <div @click="toggleExpand(date)" class="px-6 py-4 hover:bg-surface-100 cursor-pointer flex justify-between items-center transition">
-                                        <span class="font-mono font-bold text-white text-sm">{{ date }}</span>
-                                        <div class="flex items-center gap-4">
-                                            <span class="text-xs font-bold text-surface-200">{{ Object.keys(origins).length }} Origins</span>
-                                            <button @click.stop="deleteDate('cached_routes', date)" class="text-surface-200 hover:text-rose-500"><i class="ph-bold ph-trash"></i></button>
+                                    <div @click="toggleExpand(date)" class="px-6 py-4 hover:bg-surface-800/50 cursor-pointer flex justify-between items-center transition group">
+                                        <div class="flex items-center gap-3">
+                                            <i class="ph-bold ph-calendar-blank text-surface-400 group-hover:text-brand-400 transition"></i>
+                                            <span class="font-mono font-bold text-white text-sm">{{ date }}</span>
+                                        </div>
+                                        <div class="flex items-center gap-6">
+                                            <span class="text-xs font-bold text-surface-300 bg-surface-800 px-2 py-1 rounded">{{ Object.keys(origins).length }} Origins Scraped</span>
+                                            <button @click.stop="deleteDate('cached_routes', date)" class="text-surface-400 hover:text-rose-500 p-2 hover:bg-rose-500/10 rounded transition"><i class="ph-bold ph-trash"></i></button>
                                         </div>
                                     </div>
-                                    <div v-if="expanded[date]" class="bg-surface-900/50 p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 border-t border-surface-100">
-                                        <div v-for="(dests, origin) in origins" :key="origin" class="bg-surface-50 border border-surface-100 rounded-lg p-3">
-                                            <div class="flex justify-between items-center mb-2 border-b border-surface-100 pb-2">
-                                                <span class="text-brand-500 font-bold text-xs">{{ origin }}</span>
-                                                <span class="text-[10px] text-surface-200">{{ Object.keys(dests).length }} dests</span>
+                                    <div v-if="expanded[date]" class="bg-surface-950/30 p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 border-t border-surface-100/5 shadow-inner">
+                                        <div v-for="(dests, origin) in origins" :key="origin" class="bg-surface-900 border border-surface-100/10 rounded-xl p-4">
+                                            <div class="flex justify-between items-center mb-3 border-b border-surface-100/10 pb-2">
+                                                <span class="text-brand-400 font-bold text-sm">{{ origin }}</span>
+                                                <span class="text-[10px] text-surface-300 uppercase tracking-wide">{{ Object.keys(dests).length }} Dests</span>
                                             </div>
-                                            <div class="space-y-1 max-h-32 overflow-y-auto no-scrollbar">
-                                                <div v-for="(d, dest) in dests" :key="dest" class="flex justify-between text-[10px] text-surface-200">
+                                            <div class="space-y-1.5 max-h-40 overflow-y-auto custom-scrollbar pr-2">
+                                                <div v-for="(d, dest) in dests" :key="dest" class="flex justify-between text-[11px] text-surface-300 hover:text-white transition group/item">
                                                     <span>{{ dest }}</span>
-                                                    <span class="text-white font-mono">{{ d.count }}</span>
+                                                    <span class="font-mono text-surface-400 group-hover/item:text-brand-300">{{ d.count }} flights</span>
                                                 </div>
                                             </div>
                                         </div>
@@ -342,20 +422,24 @@
                             </div>
                             
                             <!-- Weather -->
-                            <div v-if="explorerMode === 'weather'" class="divide-y divide-surface-100">
+                            <div v-if="explorerMode === 'weather'" class="divide-y divide-surface-100/5">
                                 <div v-for="(airports, date) in explorerData.weather" :key="date">
-                                    <div @click="toggleExpand(date)" class="px-6 py-4 hover:bg-surface-100 cursor-pointer flex justify-between items-center transition">
-                                        <span class="font-mono font-bold text-white text-sm">{{ date }}</span>
-                                        <div class="flex items-center gap-4">
-                                            <span class="text-xs font-bold text-surface-200">{{ airports.length }} Airports</span>
-                                            <button @click.stop="deleteDate('weather_data', date)" class="text-surface-200 hover:text-rose-500"><i class="ph-bold ph-trash"></i></button>
+                                    <div @click="toggleExpand(date)" class="px-6 py-4 hover:bg-surface-800/50 cursor-pointer flex justify-between items-center transition group">
+                                        <div class="flex items-center gap-3">
+                                            <i class="ph-bold ph-calendar-blank text-surface-400 group-hover:text-orange-400 transition"></i>
+                                            <span class="font-mono font-bold text-white text-sm">{{ date }}</span>
+                                        </div>
+                                        <div class="flex items-center gap-6">
+                                            <span class="text-xs font-bold text-surface-300 bg-surface-800 px-2 py-1 rounded">{{ airports.length }} Airports</span>
+                                            <button @click.stop="deleteDate('weather_data', date)" class="text-surface-400 hover:text-rose-500 p-2 hover:bg-rose-500/10 rounded transition"><i class="ph-bold ph-trash"></i></button>
                                         </div>
                                     </div>
-                                    <div v-if="expanded[date]" class="bg-surface-900/50 p-4 border-t border-surface-100">
-                                        <div class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-2">
-                                            <div v-for="a in airports" :key="a.airport" class="bg-surface-50 p-2 rounded text-center">
-                                                <div class="text-xs font-bold text-white">{{ a.airport }}</div>
-                                                <div class="text-[10px] text-surface-200">{{ a.temp }}° ({{ a.condition }})</div>
+                                    <div v-if="expanded[date]" class="bg-surface-950/30 p-6 border-t border-surface-100/5 shadow-inner">
+                                        <div class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3">
+                                            <div v-for="a in airports" :key="a.airport" class="bg-surface-900 border border-surface-100/10 p-3 rounded-lg text-center hover:border-orange-500/30 transition">
+                                                <div class="text-sm font-bold text-white mb-1">{{ a.airport }}</div>
+                                                <div class="text-[10px] text-surface-300">{{ a.temp }}°</div>
+                                                <div class="text-[10px] text-surface-400 capitalize truncate">{{ a.condition }}</div>
                                             </div>
                                         </div>
                                     </div>
@@ -366,19 +450,19 @@
                             <div v-if="explorerMode === 'seats'" class="overflow-x-auto">
                                 <table class="w-full text-left border-collapse">
                                     <thead>
-                                        <tr class="bg-surface-100 text-[10px] font-bold text-surface-200 uppercase">
-                                            <th class="px-6 py-3">Date</th>
-                                            <th class="px-6 py-3">Route</th>
-                                            <th class="px-6 py-3">Flight</th>
-                                            <th class="px-6 py-3 text-right">Seats</th>
-                                            <th class="px-6 py-3 text-right">Price</th>
+                                        <tr class="bg-surface-800/50 text-[10px] font-bold text-surface-300 uppercase border-b border-surface-100/10">
+                                            <th class="px-6 py-4">Date</th>
+                                            <th class="px-6 py-4">Route</th>
+                                            <th class="px-6 py-4">Flight #</th>
+                                            <th class="px-6 py-4 text-right">Avail. Seats</th>
+                                            <th class="px-6 py-4 text-right">Base Price</th>
                                         </tr>
                                     </thead>
-                                    <tbody class="divide-y divide-surface-100 text-xs">
-                                        <tr v-for="(row, i) in seatInventory" :key="i" class="hover:bg-surface-100/50 transition">
-                                            <td class="px-6 py-3 font-mono text-surface-200">{{ row.date }}</td>
-                                            <td class="px-6 py-3 font-bold text-white">{{ row.origin }} → {{ row.destination }}</td>
-                                            <td class="px-6 py-3 text-surface-200">{{ row.flight }}</td>
+                                    <tbody class="divide-y divide-surface-100/5 text-xs">
+                                        <tr v-for="(row, i) in seatInventory" :key="i" class="hover:bg-surface-800/30 transition">
+                                            <td class="px-6 py-3 font-mono text-surface-300">{{ row.date }}</td>
+                                            <td class="px-6 py-3 font-bold text-white">{{ row.origin }} <span class="text-surface-400">→</span> {{ row.destination }}</td>
+                                            <td class="px-6 py-3 text-surface-300">{{ row.flight }}</td>
                                             <td class="px-6 py-3 text-right font-bold" :class="row.seats > 0 ? 'text-emerald-400' : 'text-rose-400'">{{ row.seats }}</td>
                                             <td class="px-6 py-3 text-right font-mono text-white">${{ row.price }}</td>
                                         </tr>
@@ -389,221 +473,213 @@
                     </div>
 
                     <!-- SETTINGS & PROXIES -->
-                    <div v-if="activeTab === 'settings'" class="max-w-6xl mx-auto animate-fade-in space-y-8">
-                        <!-- Config -->
-                        <div class="bg-surface-50 rounded-2xl border border-surface-100 p-6">
-                            <h3 class="text-lg font-bold text-white mb-6 border-b border-surface-100 pb-4">System Configuration</h3>
-
-                            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                                <!-- LEFT COLUMN -->
-                                <div class="space-y-8">
-                                    <!-- Announcement Settings -->
-                                    <div>
-                                        <h4 class="text-xs font-bold text-surface-200 uppercase mb-4 flex items-center gap-2">
-                                            <i class="ph-bold ph-megaphone"></i> Announcement
-                                        </h4>
-                                        <div class="space-y-4">
-                                            <toggle-switch v-model="settings.announcement_enabled" label="Enable Announcement"></toggle-switch>
-                                            <div>
-                                                <label class="block text-xs font-bold text-surface-200 uppercase mb-2">HTML Content</label>
-                                                <textarea v-model="settings.announcement_html" class="w-full bg-surface-900 border border-surface-100 rounded-lg px-3 py-2.5 text-white text-xs font-mono h-32 outline-none focus:border-brand-500"></textarea>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <!-- Auto Scraper Settings -->
-                                    <div>
-                                        <h4 class="text-xs font-bold text-surface-200 uppercase mb-4 flex items-center gap-2">
-                                            <i class="ph-bold ph-robot"></i> Auto Scraper
-                                        </h4>
-                                        <div class="space-y-4">
-                                            <toggle-switch v-model="settings.auto_scrape_enabled" label="Enable Auto Scraper"></toggle-switch>
-                                            <div class="grid grid-cols-2 gap-4">
-                                                <div>
-                                                    <label class="block text-xs font-bold text-surface-200 uppercase mb-2">Mode</label>
-                                                    <select v-model="settings.scraper_mode" class="w-full bg-surface-900 border border-surface-100 rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-brand-500">
-                                                        <option value="ondemand">On-Demand</option>
-                                                        <option value="automatic">Automatic</option>
-                                                    </select>
-                                                </div>
-                                                <div>
-                                                    <label class="block text-xs font-bold text-surface-200 uppercase mb-2">Interval (Min)</label>
-                                                    <input v-model="settings.auto_scrape_interval" type="number" class="w-full bg-surface-900 border border-surface-100 rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-brand-500">
-                                                </div>
-                                                <div>
-                                                    <label class="block text-xs font-bold text-surface-200 uppercase mb-2">Max Workers</label>
-                                                    <input v-model="settings.max_concurrent_requests" type="number" class="w-full bg-surface-900 border border-surface-100 rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-brand-500">
-                                                </div>
-                                                <div>
-                                                    <label class="block text-xs font-bold text-surface-200 uppercase mb-2">Timeout (Sec)</label>
-                                                    <input v-model="settings.scraper_timeout" type="number" class="w-full bg-surface-900 border border-surface-100 rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-brand-500">
-                                                </div>
-                                            </div>
-                                            <div>
-                                                <label class="block text-xs font-bold text-surface-200 uppercase mb-2">User Agent</label>
-                                                <input v-model="settings.scraper_user_agent" type="text" class="w-full bg-surface-900 border border-surface-100 rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-brand-500">
-                                            </div>
-                                            <toggle-switch v-model="settings.scraper_popup_enabled" label="Show Scraper Popup"></toggle-switch>
-                                            <div class="border-t border-surface-100 pt-4 mt-4">
-                                                <h5 class="text-xs font-bold text-surface-200 uppercase mb-3">Smart Cache Settings</h5>
-                                                <div class="grid grid-cols-2 gap-4">
-                                                    <div>
-                                                        <label class="block text-xs font-bold text-surface-200 uppercase mb-2">Near-Term Cache (Min)</label>
-                                                        <input v-model="settings.scraper_cache_domestic_minutes" type="number" class="w-full bg-surface-900 border border-surface-100 rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-brand-500">
-                                                        <p class="text-[10px] text-surface-200 mt-1">Days 1-2: Skip if scraped within X minutes (same day)</p>
-                                                    </div>
-                                                    <div>
-                                                        <label class="block text-xs font-bold text-surface-200 uppercase mb-2">Far-Term Cache (Hours)</label>
-                                                        <input v-model="settings.scraper_cache_international_hours" type="number" class="w-full bg-surface-900 border border-surface-100 rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-brand-500">
-                                                        <p class="text-[10px] text-surface-200 mt-1">Days 3-10: Skip if scraped within X hours</p>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <!-- Midnight Scraper Settings -->
-                                    <div>
-                                        <h4 class="text-xs font-bold text-surface-200 uppercase mb-4 flex items-center gap-2">
-                                            <i class="ph-bold ph-moon"></i> Midnight Scraper
-                                        </h4>
-                                        <div class="space-y-4">
-                                            <toggle-switch v-model="settings.midnight_scrape_enabled" label="Enable Midnight Scraper"></toggle-switch>
-                                            <div class="grid grid-cols-2 gap-4">
-                                                <div>
-                                                    <label class="block text-xs font-bold text-surface-200 uppercase mb-2">Interval (Min)</label>
-                                                    <input v-model="settings.midnight_scrape_interval" type="number" class="w-full bg-surface-900 border border-surface-100 rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-brand-500">
-                                                </div>
-                                                <div>
-                                                    <label class="block text-xs font-bold text-surface-200 uppercase mb-2">Window (Min)</label>
-                                                    <input v-model="settings.midnight_scrape_window" type="number" class="w-full bg-surface-900 border border-surface-100 rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-brand-500">
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <!-- Weather Scraper Settings -->
-                                    <div>
-                                        <h4 class="text-xs font-bold text-surface-200 uppercase mb-4 flex items-center gap-2">
-                                            <i class="ph-bold ph-cloud-sun"></i> Weather Scraper
-                                        </h4>
-                                        <div class="space-y-4">
-                                            <toggle-switch v-model="settings.weather_scrape_enabled" label="Enable Weather Scraper"></toggle-switch>
-                                            <div class="grid grid-cols-2 gap-4">
-                                                <div>
-                                                    <label class="block text-xs font-bold text-surface-200 uppercase mb-2">Time (UTC)</label>
-                                                    <input v-model="settings.weather_scrape_time" type="time" class="w-full bg-surface-900 border border-surface-100 rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-brand-500">
-                                                </div>
-                                                <div>
-                                                    <label class="block text-xs font-bold text-surface-200 uppercase mb-2">Time (CST)</label>
-                                                    <input v-model="settings.weather_scrape_time_cst" type="time" class="w-full bg-surface-900 border border-surface-100 rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-brand-500">
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
+                    <div v-if="activeTab === 'settings'" class="max-w-6xl mx-auto animate-fade-in space-y-10">
+                        
+                        <!-- Proxies Section -->
+                        <div class="bg-surface-900 rounded-2xl border border-surface-100/10 overflow-hidden shadow-lg">
+                            <div class="p-6 border-b border-surface-100/10 flex justify-between items-center bg-surface-800/30">
+                                <div>
+                                    <h3 class="text-lg font-bold text-white">Proxy Network</h3>
+                                    <p class="text-xs text-surface-300 mt-0.5">Manage rotation IPs for scraping anonymity.</p>
                                 </div>
-
-                                <!-- RIGHT COLUMN -->
-                                <div class="space-y-8">
-                                    <!-- Cache Settings -->
-                                    <div>
-                                        <h4 class="text-xs font-bold text-surface-200 uppercase mb-4 flex items-center gap-2">
-                                            <i class="ph-bold ph-database"></i> Cache Management
-                                        </h4>
-                                        <div class="space-y-4">
-                                            <div>
-                                                <label class="block text-xs font-bold text-surface-200 uppercase mb-2">Cache Duration (Min)</label>
-                                                <input v-model="settings.cache_duration_minutes" type="number" class="w-full bg-surface-900 border border-surface-100 rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-brand-500">
-                                            </div>
-                                            <toggle-switch v-model="settings.cache_reset_enabled" label="Enable Scheduled Cache Reset"></toggle-switch>
-                                            <div class="grid grid-cols-2 gap-4">
-                                                <div>
-                                                    <label class="block text-xs font-bold text-surface-200 uppercase mb-2">Reset Every (Days)</label>
-                                                    <input v-model="settings.cache_reset_days" type="number" class="w-full bg-surface-900 border border-surface-100 rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-brand-500">
-                                                </div>
-                                                <div>
-                                                    <label class="block text-xs font-bold text-surface-200 uppercase mb-2">Reset Time</label>
-                                                    <input v-model="settings.cache_reset_time" type="time" class="w-full bg-surface-900 border border-surface-100 rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-brand-500">
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <!-- Proxy Settings -->
-                                    <div>
-                                        <h4 class="text-xs font-bold text-surface-200 uppercase mb-4 flex items-center gap-2">
-                                            <i class="ph-bold ph-shield-check"></i> Proxy Configuration
-                                        </h4>
-                                        <div class="space-y-4">
-                                            <toggle-switch v-model="settings.proxy_enabled" label="Enable Proxy Rotation"></toggle-switch>
-                                            <div>
-                                                <label class="block text-xs font-bold text-surface-200 uppercase mb-2">Current Proxy Index</label>
-                                                <input v-model="settings.proxy_index" type="number" class="w-full bg-surface-900 border border-surface-100 rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-brand-500">
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <!-- Safety & Stealth -->
-                                    <div>
-                                        <h4 class="text-xs font-bold text-surface-200 uppercase mb-4 flex items-center gap-2">
-                                            <i class="ph-bold ph-eye-slash"></i> Safety & Stealth
-                                        </h4>
-                                        <div class="space-y-4">
-                                            <toggle-switch v-model="settings.scraper_jitter_enabled" label="Enable Random Delay (Jitter)"></toggle-switch>
-                                            <div v-if="settings.scraper_jitter_enabled === 'true'" class="grid grid-cols-2 gap-4 animate-fade-in">
-                                                <div>
-                                                    <label class="block text-xs font-bold text-surface-200 uppercase mb-2">Min Delay (Sec)</label>
-                                                    <input v-model="settings.scraper_jitter_min" type="number" step="0.1" class="w-full bg-surface-900 border border-surface-100 rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-brand-500">
-                                                </div>
-                                                <div>
-                                                    <label class="block text-xs font-bold text-surface-200 uppercase mb-2">Max Delay (Sec)</label>
-                                                    <input v-model="settings.scraper_jitter_max" type="number" step="0.1" class="w-full bg-surface-900 border border-surface-100 rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-brand-500">
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <!-- Debug Settings -->
-                                    <div>
-                                        <h4 class="text-xs font-bold text-surface-200 uppercase mb-4 flex items-center gap-2">
-                                            <i class="ph-bold ph-bug"></i> Debug & Logging
-                                        </h4>
-                                        <div class="space-y-4">
-                                            <toggle-switch v-model="settings.debug_logging_enabled" label="Enable Debug Logging"></toggle-switch>
-                                            <toggle-switch v-model="settings.save_debug_responses" label="Save Debug Responses"></toggle-switch>
-                                        </div>
-                                    </div>
+                                <div class="flex gap-3">
+                                    <button @click="recheckProxies" class="px-3 py-1.5 rounded-lg bg-surface-800 hover:bg-brand-600 hover:text-white text-xs font-bold text-brand-400 transition border border-surface-100/10">Recheck All</button>
+                                    <button @click="deleteAllProxies" class="px-3 py-1.5 rounded-lg bg-surface-800 hover:bg-rose-600 hover:text-white text-xs font-bold text-rose-400 transition border border-surface-100/10">Delete All</button>
                                 </div>
                             </div>
-
-                            <div class="mt-8 pt-6 border-t border-surface-100 flex justify-end gap-4">
-                                <button @click="fetchData" class="bg-surface-100 text-white font-bold py-2.5 px-6 rounded-lg hover:bg-surface-200 transition">Reset</button>
-                                <button @click="saveSettings" class="bg-brand-600 text-white font-bold py-2.5 px-8 rounded-lg hover:bg-brand-500 transition shadow-lg shadow-brand-500/20">Save All Settings</button>
+                            <div class="p-6">
+                                <div class="flex flex-col md:flex-row gap-4 mb-6">
+                                    <textarea v-model="newProxies" placeholder="protocol://user:pass@host:port&#10;host:port:user:pass&#10;(One per line)" class="flex-1 bg-surface-950 border border-surface-100/20 rounded-xl px-4 py-3 text-white text-xs font-mono outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 min-h-[100px]"></textarea>
+                                    <button @click="addProxies" class="bg-brand-600 text-white font-bold px-8 py-3 rounded-xl hover:bg-brand-500 transition shadow-lg shadow-brand-500/20 flex items-center justify-center gap-2">
+                                        <i class="ph-bold ph-plus-circle text-lg"></i>
+                                        Add Proxies
+                                    </button>
+                                </div>
+                                <div class="space-y-2 max-h-60 overflow-y-auto custom-scrollbar bg-surface-950/50 rounded-xl p-2 border border-surface-100/5">
+                                    <div v-for="p in proxies" :key="p.id" class="flex justify-between items-center bg-surface-900 p-3 rounded-lg border border-surface-100/10 group hover:border-surface-100/30 transition">
+                                        <div class="flex items-center gap-3 overflow-hidden">
+                                            <div class="w-2 h-2 rounded-full flex-shrink-0 shadow-[0_0_5px_rgba(0,0,0,0.5)]" :class="p.is_active ? 'bg-emerald-500 shadow-emerald-500/50' : 'bg-rose-500 shadow-rose-500/50'"></div>
+                                            <span class="text-xs font-mono text-surface-300 break-all group-hover:text-white transition">{{ p.url }}</span>
+                                        </div>
+                                        <button @click="deleteProxy(p.id)" class="text-surface-400 hover:text-rose-400 opacity-0 group-hover:opacity-100 transition p-1"><i class="ph-bold ph-trash"></i></button>
+                                    </div>
+                                    <div v-if="proxies.length === 0" class="text-center text-xs text-surface-400 py-8 italic">No proxies configured. Scraper will use server IP.</div>
+                                </div>
                             </div>
                         </div>
 
-                        <!-- Proxies -->
-                        <div class="bg-surface-50 rounded-2xl border border-surface-100 p-6">
-                            <div class="flex justify-between items-center mb-6 border-b border-surface-100 pb-4">
-                                <h3 class="text-lg font-bold text-white">Proxies</h3>
-                                <div class="flex gap-4">
-                                    <button @click="recheckProxies" class="text-xs font-bold text-brand-400 hover:text-brand-300 transition">Recheck</button>
-                                    <button @click="deleteAllProxies" class="text-xs font-bold text-rose-400 hover:text-rose-300 transition">Delete All</button>
+                        <!-- System Configuration -->
+                        <div class="bg-surface-900 rounded-2xl border border-surface-100/10 shadow-lg">
+                            <div class="p-6 border-b border-surface-100/10 flex justify-between items-center bg-surface-800/30">
+                                <div>
+                                    <h3 class="text-lg font-bold text-white">Global Configuration</h3>
+                                    <p class="text-xs text-surface-300 mt-0.5">Tune system parameters and thresholds.</p>
                                 </div>
+                                <button @click="saveSettings" class="bg-brand-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-brand-500 transition shadow-lg shadow-brand-500/20 flex items-center gap-2">
+                                    <i class="ph-bold ph-floppy-disk"></i> Save Changes
+                                </button>
                             </div>
-                            <div class="flex flex-col md:flex-row gap-3 mb-4">
-                                <textarea v-model="newProxies" placeholder="host:port:user:pass (one per line)" class="flex-1 bg-surface-900 border border-surface-100 rounded-lg px-3 py-2.5 text-white text-xs font-mono outline-none focus:border-brand-500 min-h-[80px]"></textarea>
-                                <button @click="addProxies" class="bg-brand-600 text-white font-bold px-6 py-2 rounded-lg hover:bg-brand-500 transition flex items-center justify-center shadow-lg shadow-brand-500/20">Add</button>
-                            </div>
-                            <div class="space-y-2 max-h-96 overflow-y-auto custom-scrollbar">
-                                <div v-for="p in proxies" :key="p.id" class="flex justify-between items-start bg-surface-900 p-3 rounded-lg border border-surface-100">
-                                    <div class="flex items-start gap-3 overflow-hidden">
-                                        <div class="w-2 h-2 rounded-full flex-shrink-0 mt-1" :class="p.is_active ? 'bg-emerald-500' : 'bg-rose-500'"></div>
-                                        <span class="text-xs font-mono text-surface-200 break-all">{{ p.url }}</span>
-                                    </div>
-                                    <button @click="deleteProxy(p.id)" class="text-surface-200 hover:text-rose-400 ml-2"><i class="ph-bold ph-trash"></i></button>
+
+                            <div class="p-6 grid grid-cols-1 lg:grid-cols-2 gap-x-12 gap-y-10">
+                                
+                                <!-- COL 1 -->
+                                <div class="space-y-10">
+                                    
+                                    <!-- Auto Scraper -->
+                                    <section>
+                                        <h4 class="text-xs font-bold text-brand-400 uppercase tracking-widest mb-6 border-b border-surface-100/10 pb-2">Auto Scraper Engine</h4>
+                                        <div class="space-y-6">
+                                            <setting-item label="Master Switch" description="Enable or disable the background scraping service entirely.">
+                                                <toggle-switch v-model="settings.auto_scrape_enabled"></toggle-switch>
+                                            </setting-item>
+                                            
+                                            <setting-item label="Operation Mode" description="Automatic runs on interval; On-demand waits for trigger.">
+                                                <select v-model="settings.scraper_mode" class="bg-surface-950 border border-surface-100/20 rounded-lg px-3 py-2 text-white text-xs outline-none focus:border-brand-500 w-32">
+                                                    <option value="ondemand">On-Demand</option>
+                                                    <option value="automatic">Automatic</option>
+                                                </select>
+                                            </setting-item>
+
+                                            <div class="grid grid-cols-2 gap-4">
+                                                <setting-item label="Interval (Min)" description="Time between automatic runs.">
+                                                    <input v-model="settings.auto_scrape_interval" type="number" class="input-base">
+                                                </setting-item>
+                                                <setting-item label="Max Workers" description="Concurrent browser instances.">
+                                                    <input v-model="settings.max_concurrent_requests" type="number" class="input-base">
+                                                </setting-item>
+                                            </div>
+
+                                            <setting-item label="Page Timeout (Sec)" description="Max wait time for airline page load.">
+                                                <input v-model="settings.scraper_timeout" type="number" class="input-base">
+                                            </setting-item>
+
+                                            <setting-item label="Browser User Agent" description="Identity string sent to headers.">
+                                                <input v-model="settings.scraper_user_agent" type="text" class="input-base">
+                                            </setting-item>
+
+                                            <setting-item label="Visible Browser (Debug)" description="Show scraper window on server (Headless OFF).">
+                                                <toggle-switch v-model="settings.scraper_popup_enabled"></toggle-switch>
+                                            </setting-item>
+                                        </div>
+                                    </section>
+
+                                    <!-- Smart Cache -->
+                                    <section>
+                                        <h4 class="text-xs font-bold text-brand-400 uppercase tracking-widest mb-6 border-b border-surface-100/10 pb-2">Smart Cache Logic</h4>
+                                        <div class="space-y-6">
+                                            <setting-item label="Near-Term Cache (Minutes)" description="Validity for flights departing within 48h.">
+                                                <input v-model="settings.scraper_cache_domestic_minutes" type="number" class="input-base">
+                                            </setting-item>
+                                            <setting-item label="Far-Term Cache (Hours)" description="Validity for flights departing in 3+ days.">
+                                                <input v-model="settings.scraper_cache_international_hours" type="number" class="input-base">
+                                            </setting-item>
+                                        </div>
+                                    </section>
+
+                                    <!-- Weather -->
+                                    <section>
+                                        <h4 class="text-xs font-bold text-brand-400 uppercase tracking-widest mb-6 border-b border-surface-100/10 pb-2">Weather Service</h4>
+                                        <div class="space-y-6">
+                                            <setting-item label="Enable Weather Updates" description="Daily fetch of destination forecasts.">
+                                                <toggle-switch v-model="settings.weather_scrape_enabled"></toggle-switch>
+                                            </setting-item>
+                                            <div class="grid grid-cols-2 gap-4">
+                                                <setting-item label="Schedule (UTC)" description="Run time in UTC.">
+                                                    <input v-model="settings.weather_scrape_time" type="time" class="input-base">
+                                                </setting-item>
+                                                <setting-item label="Schedule (CST)" description="Run time in Local.">
+                                                    <input v-model="settings.weather_scrape_time_cst" type="time" class="input-base">
+                                                </setting-item>
+                                            </div>
+                                        </div>
+                                    </section>
+
                                 </div>
-                                <div v-if="proxies.length === 0" class="text-center text-xs text-surface-200 py-4">No proxies defined.</div>
+
+                                <!-- COL 2 -->
+                                <div class="space-y-10">
+
+                                    <!-- Announcement -->
+                                    <section>
+                                        <h4 class="text-xs font-bold text-brand-400 uppercase tracking-widest mb-6 border-b border-surface-100/10 pb-2">Public Announcement</h4>
+                                        <div class="space-y-6">
+                                            <setting-item label="Show Banner" description="Display alert at top of client site.">
+                                                <toggle-switch v-model="settings.announcement_enabled"></toggle-switch>
+                                            </setting-item>
+                                            <div>
+                                                <label class="block text-xs font-bold text-surface-200 mb-2">Banner HTML Content</label>
+                                                <textarea v-model="settings.announcement_html" class="w-full bg-surface-950 border border-surface-100/20 rounded-lg px-3 py-2.5 text-white text-xs font-mono h-24 outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500"></textarea>
+                                            </div>
+                                        </div>
+                                    </section>
+
+                                    <!-- Midnight Scraper -->
+                                    <section>
+                                        <h4 class="text-xs font-bold text-brand-400 uppercase tracking-widest mb-6 border-b border-surface-100/10 pb-2">Midnight Optimization</h4>
+                                        <div class="space-y-6">
+                                            <setting-item label="Enable Midnight Run" description="Dedicated deep-scrape session at night.">
+                                                <toggle-switch v-model="settings.midnight_scrape_enabled"></toggle-switch>
+                                            </setting-item>
+                                            <div class="grid grid-cols-2 gap-4">
+                                                <setting-item label="Interval (Min)" description="Pause between chunks.">
+                                                    <input v-model="settings.midnight_scrape_interval" type="number" class="input-base">
+                                                </setting-item>
+                                                <setting-item label="Window (Min)" description="Total duration allowed.">
+                                                    <input v-model="settings.midnight_scrape_window" type="number" class="input-base">
+                                                </setting-item>
+                                            </div>
+                                        </div>
+                                    </section>
+
+                                    <!-- Database & Cache -->
+                                    <section>
+                                        <h4 class="text-xs font-bold text-brand-400 uppercase tracking-widest mb-6 border-b border-surface-100/10 pb-2">Database Maintenance</h4>
+                                        <div class="space-y-6">
+                                            <setting-item label="Global Cache (Min)" description="Default data validity period.">
+                                                <input v-model="settings.cache_duration_minutes" type="number" class="input-base">
+                                            </setting-item>
+                                            <setting-item label="Auto-Wipe Database" description="Periodically clear all data.">
+                                                <toggle-switch v-model="settings.cache_reset_enabled"></toggle-switch>
+                                            </setting-item>
+                                            <div class="grid grid-cols-2 gap-4" v-if="settings.cache_reset_enabled === 'true'">
+                                                <setting-item label="Every X Days" description="Frequency of wipe.">
+                                                    <input v-model="settings.cache_reset_days" type="number" class="input-base">
+                                                </setting-item>
+                                                <setting-item label="At Time" description="Time of wipe.">
+                                                    <input v-model="settings.cache_reset_time" type="time" class="input-base">
+                                                </setting-item>
+                                            </div>
+                                        </div>
+                                    </section>
+
+                                    <!-- Security & Debug -->
+                                    <section>
+                                        <h4 class="text-xs font-bold text-brand-400 uppercase tracking-widest mb-6 border-b border-surface-100/10 pb-2">Security & Debug</h4>
+                                        <div class="space-y-6">
+                                            <setting-item label="Proxy Rotation" description="Use defined proxies for requests.">
+                                                <toggle-switch v-model="settings.proxy_enabled"></toggle-switch>
+                                            </setting-item>
+                                            <setting-item label="Scraper Jitter" description="Randomize delays to mimic humans.">
+                                                <toggle-switch v-model="settings.scraper_jitter_enabled"></toggle-switch>
+                                            </setting-item>
+                                            <div class="grid grid-cols-2 gap-4" v-if="settings.scraper_jitter_enabled === 'true'">
+                                                <setting-item label="Min Delay (s)" description="Minimum wait.">
+                                                    <input v-model="settings.scraper_jitter_min" type="number" step="0.1" class="input-base">
+                                                </setting-item>
+                                                <setting-item label="Max Delay (s)" description="Maximum wait.">
+                                                    <input v-model="settings.scraper_jitter_max" type="number" step="0.1" class="input-base">
+                                                </setting-item>
+                                            </div>
+                                            <setting-item label="Verbose Logging" description="Detailed server logs.">
+                                                <toggle-switch v-model="settings.debug_logging_enabled"></toggle-switch>
+                                            </setting-item>
+                                            <setting-item label="Save HTML" description="Store raw responses for debugging.">
+                                                <toggle-switch v-model="settings.save_debug_responses"></toggle-switch>
+                                            </setting-item>
+                                        </div>
+                                    </section>
+
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -612,7 +688,7 @@
             </div>
 
             <!-- BOTTOM NAV (Mobile) -->
-            <div class="lg:hidden fixed bottom-0 left-0 w-full bg-surface-50 border-t border-surface-100 flex justify-around items-center pb-safe z-30 shadow-2xl">
+            <div class="lg:hidden fixed bottom-0 left-0 w-full bg-surface-900 border-t border-surface-100/10 flex justify-around items-center pb-safe z-30 shadow-[0_-10px_40px_rgba(0,0,0,0.5)]">
                 <nav-button-mobile v-for="tab in tabs" :key="tab.id" :item="tab" :active="activeTab === tab.id" @click="activeTab = tab.id"></nav-button-mobile>
             </div>
         </div>
@@ -627,9 +703,9 @@
         const NavButton = {
             props: ['item', 'active'],
             template: `
-                <button class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 text-sm font-bold group"
-                    :class="active ? 'bg-brand-600 text-white shadow-lg shadow-brand-500/20' : 'text-surface-200 hover:bg-surface-100 hover:text-white'">
-                    <i :class="[item.icon, 'text-xl']"></i>
+                <button class="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 text-sm font-bold group"
+                    :class="active ? 'bg-brand-600/10 text-brand-400 border border-brand-500/20' : 'text-surface-300 hover:bg-surface-800 hover:text-white border border-transparent'">
+                    <i :class="[item.icon, active ? 'ph-fill' : 'ph-bold', 'text-xl']"></i>
                     <span>{{ item.label }}</span>
                 </button>
             `
@@ -638,24 +714,30 @@
         const NavButtonMobile = {
             props: ['item', 'active'],
             template: `
-                <button class="flex flex-col items-center justify-center p-3 w-full transition-all duration-200"
-                    :class="active ? 'text-brand-500' : 'text-surface-200'">
+                <button class="flex flex-col items-center justify-center p-3 w-full transition-all duration-200 relative overflow-hidden"
+                    :class="active ? 'text-brand-400' : 'text-surface-400'">
+                    <div v-if="active" class="absolute top-0 w-8 h-1 bg-brand-500 rounded-b-full shadow-[0_0_10px_#38bdf8]"></div>
                     <i :class="[item.icon, active ? 'ph-fill' : 'ph-bold', 'text-2xl mb-1']"></i>
-                    <span class="text-[10px] font-bold">{{ item.label }}</span>
+                    <span class="text-[9px] font-bold tracking-wide">{{ item.label }}</span>
                 </button>
             `
         };
 
         const KpiCard = {
-            props: ['icon', 'color', 'value', 'label'],
+            props: ['icon', 'color', 'value', 'label', 'sub'],
             template: `
-                <div class="bg-surface-50 p-4 rounded-2xl border border-surface-100 flex flex-col justify-between h-28 shadow-sm">
-                    <div class="w-8 h-8 rounded-lg flex items-center justify-center text-white" :class="'bg-'+color+'-500'">
-                        <i :class="['ph-bold', icon]"></i>
+                <div class="bg-surface-900 p-5 rounded-2xl border border-surface-100/10 flex flex-col justify-between h-32 shadow-lg relative overflow-hidden group hover:border-surface-100/20 transition">
+                    <div class="absolute right-0 top-0 p-3 opacity-10 group-hover:opacity-20 transition transform group-hover:scale-110">
+                         <i :class="['ph-fill', icon, 'text-6xl text-'+color+'-500']"></i>
+                    </div>
+                    <div class="w-10 h-10 rounded-xl flex items-center justify-center text-white shadow-lg mb-2" :class="'bg-'+color+'-500 shadow-'+color+'-500/30'">
+                        <i :class="['ph-bold', icon, 'text-xl']"></i>
                     </div>
                     <div>
-                        <div class="text-xl font-bold text-white truncate">{{ value }}</div>
-                        <div class="text-[10px] font-bold text-surface-200 uppercase tracking-wide">{{ label }}</div>
+                        <div class="text-2xl font-bold text-white truncate tracking-tight">{{ value }}</div>
+                        <div class="flex items-center gap-2">
+                             <span class="text-[10px] font-bold text-surface-300 uppercase tracking-wider">{{ label }}</span>
+                        </div>
                     </div>
                 </div>
             `
@@ -664,36 +746,50 @@
         const ActionButton = {
             props: ['icon', 'label', 'loading', 'subtext'],
             template: `
-                <button class="w-full flex items-center justify-between p-3.5 rounded-xl bg-surface-100 hover:bg-surface-200 border border-surface-100 transition text-white text-sm font-bold group disabled:opacity-50" :disabled="loading">
-                    <div class="flex items-center gap-3">
-                        <div v-if="loading" class="animate-spin"><i class="ph-bold ph-spinner"></i></div>
-                        <i v-else :class="['ph-bold', icon, 'text-surface-200 group-hover:text-white transition']"></i>
+                <button class="w-full flex items-center justify-between p-4 rounded-xl bg-surface-950/50 hover:bg-brand-900/20 border border-surface-100/10 hover:border-brand-500/30 transition text-white text-sm font-bold group disabled:opacity-50" :disabled="loading">
+                    <div class="flex items-center gap-4">
+                        <div v-if="loading" class="animate-spin text-brand-400"><i class="ph-bold ph-spinner text-xl"></i></div>
+                        <div v-else class="w-8 h-8 rounded-lg bg-surface-800 flex items-center justify-center group-hover:bg-brand-500 group-hover:text-white transition text-surface-300">
+                             <i :class="['ph-bold', icon]"></i>
+                        </div>
                         <div class="text-left">
-                            <div>{{ label }}</div>
-                            <div v-if="subtext" class="text-[10px] text-surface-200 font-normal">{{ subtext }}</div>
+                            <div class="group-hover:text-brand-400 transition">{{ label }}</div>
+                            <div v-if="subtext" class="text-[10px] text-surface-400 font-normal">{{ subtext }}</div>
                         </div>
                     </div>
-                    <i class="ph-bold ph-caret-right text-surface-200 group-hover:translate-x-1 transition"></i>
+                    <i class="ph-bold ph-caret-right text-surface-400 group-hover:text-brand-400 group-hover:translate-x-1 transition"></i>
                 </button>
             `
         };
 
         const ToggleSwitch = {
-            props: ['modelValue', 'label'],
+            props: ['modelValue'],
             emits: ['update:modelValue'],
             template: `
-                <label class="flex items-center justify-between p-3 border border-surface-100 rounded-xl cursor-pointer hover:bg-surface-100 transition bg-surface-900">
-                    <span class="text-sm font-bold text-white">{{ label }}</span>
-                    <div class="relative inline-flex items-center">
-                        <input type="checkbox" :checked="modelValue === 'true'" @change="$emit('update:modelValue', $event.target.checked ? 'true' : 'false')" class="sr-only peer">
-                        <div class="w-11 h-6 bg-surface-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-500"></div>
+                <div class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" :checked="modelValue === 'true'" @change="$emit('update:modelValue', $event.target.checked ? 'true' : 'false')" class="sr-only peer">
+                    <div class="w-11 h-6 bg-surface-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-surface-400 after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-600 peer-checked:after:bg-white border border-surface-100/10"></div>
+                </div>
+            `
+        };
+
+        const SettingItem = {
+            props: ['label', 'description'],
+            template: `
+                <div class="flex items-start justify-between gap-4">
+                    <div class="flex-1">
+                        <div class="text-sm font-bold text-white mb-0.5">{{ label }}</div>
+                        <div class="text-[10px] text-surface-300 leading-relaxed">{{ description }}</div>
                     </div>
-                </label>
+                    <div class="flex-shrink-0 pt-0.5">
+                        <slot></slot>
+                    </div>
+                </div>
             `
         };
 
         createApp({
-            components: { NavButton, NavButtonMobile, KpiCard, ActionButton, ToggleSwitch },
+            components: { NavButton, NavButtonMobile, KpiCard, ActionButton, ToggleSwitch, SettingItem },
             setup() {
                 const authenticated = ref(false);
                 const password = ref('');
@@ -702,10 +798,10 @@
                 
                 const tabs = [
                     { id: 'dashboard', label: 'Dashboard', icon: 'ph-squares-four' },
-                    { id: 'scraper', label: 'Scraper Tool', icon: 'ph-wrench' },
+                    { id: 'scraper', label: 'Tools', icon: 'ph-wrench' },
                     { id: 'routes', label: 'Routes', icon: 'ph-path' },
                     { id: 'data', label: 'Data', icon: 'ph-database' },
-                    { id: 'settings', label: 'Settings', icon: 'ph-gear' },
+                    { id: 'settings', label: 'Config', icon: 'ph-gear' },
                 ];
 
                 const token = ref(localStorage.getItem('adminToken') || '');
@@ -1016,5 +1112,23 @@
         }).mount('#app');
         {% endraw %}
     </script>
+    <style>
+        .input-base {
+            width: 100%;
+            background-color: #020617; /* surface-950 */
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 0.5rem; /* rounded-lg */
+            padding: 0.5rem 0.75rem;
+            color: white;
+            font-size: 0.75rem; /* text-xs */
+            font-family: 'JetBrains Mono', monospace;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .input-base:focus {
+            border-color: #38bdf8; /* brand-500 */
+            ring: 1px solid #38bdf8;
+        }
+    </style>
 </body>
 </html>
