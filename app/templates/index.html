@@ -1501,11 +1501,27 @@
                         </button>
                     </div>
                 </div>
-            </div>
-        </div>
-
-            <div class="text-center py-8 px-6">
-                <p class="text-[10px] text-slate-400 leading-relaxed max-w-2xl mx-auto font-medium">
+                            </div>
+                        </div>
+            
+                        <!-- Install App Banner (Mobile Browser Only) -->
+                        <div v-if="showInstallBanner && !forceDesktop" class="fixed bottom-24 left-4 right-4 z-40 bg-slate-900/95 backdrop-blur-md text-white p-4 rounded-2xl shadow-2xl flex items-center justify-between animate-slide-up border border-slate-700 ring-1 ring-white/10">
+                            <div class="flex items-center gap-3">
+                                <div class="bg-brand-500 rounded-xl p-2 shadow-lg shadow-brand-500/20">
+                                    <i class="ph-fill ph-download-simple text-xl"></i>
+                                </div>
+                                <div>
+                                    <div class="text-brand-200 uppercase tracking-wider text-[10px] font-bold mb-0.5">Get the App</div>
+                                    <div class="text-sm font-bold leading-tight">Add to Home Screen</div>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <button @click="installApp" class="bg-white text-slate-900 px-4 py-2 rounded-xl text-xs font-bold hover:bg-brand-50 transition shadow-md active:scale-95">Install</button>
+                                <button @click="dismissInstallBanner" class="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-white transition bg-white/5 rounded-full"><i class="ph-bold ph-x"></i></button>
+                            </div>
+                        </div>
+            
+                        <div class="text-center py-8 px-6">                <p class="text-[10px] text-slate-400 leading-relaxed max-w-2xl mx-auto font-medium">
                     WildFares is an independent project and is not affiliated with, endorsed by, or connected to Frontier Airlines, Inc. or the GoWild!™ Pass program. All trademarks are property of their respective owners.
                     <br><br>
                     <span class="font-mono text-slate-300">v2.3.1 (Mobile App)</span>
@@ -1568,6 +1584,11 @@
                 const forceDesktop = ref(!isMobileUA);
                 // 'landing' = Hero visible, 'search' = Search form active
                 const appMode = ref(isMobileUA ? 'landing' : 'search'); 
+                
+                // PWA Installation Logic
+                const isStandalone = ref(false);
+                const showInstallBanner = ref(false);
+                const deferredPrompt = ref(null);
 
                 const toggleDesktopMode = () => {
                     forceDesktop.value = !forceDesktop.value;
@@ -1588,6 +1609,26 @@
                 const goHome = () => {
                     if (!forceDesktop.value) appMode.value = 'landing';
                     window.scrollTo(0,0);
+                };
+
+                const installApp = async () => {
+                    if (deferredPrompt.value) {
+                        deferredPrompt.value.prompt();
+                        const { outcome } = await deferredPrompt.value.userChoice;
+                        if (outcome === 'accepted') {
+                            showInstallBanner.value = false;
+                        }
+                        deferredPrompt.value = null;
+                    } else {
+                        // Custom iOS/Manual Instructions Modal
+                        // For simplicity using alert first, can be upgraded to modal
+                        alert("To install WildFares as an App:\n\n1. Tap the Share button (rectangle with arrow)\n2. Scroll down and tap 'Add to Home Screen'\n\nThis will give you a full-screen experience!");
+                    }
+                };
+
+                const dismissInstallBanner = () => {
+                    showInstallBanner.value = false;
+                    localStorage.setItem('installBannerDismissed', 'true');
                 };
                 
                 // Config
@@ -2560,6 +2601,25 @@
 
                 onMounted(() => {
                     isMounted.value = true;
+                    
+                    // PWA Check
+                    if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) {
+                        isStandalone.value = true;
+                    } else {
+                        if (!localStorage.getItem('installBannerDismissed') && isMobileUA) {
+                            showInstallBanner.value = true;
+                        }
+                    }
+                    
+                    // PWA Prompt Listener
+                    window.addEventListener('beforeinstallprompt', (e) => {
+                        e.preventDefault();
+                        deferredPrompt.value = e;
+                        if (!isStandalone.value && !localStorage.getItem('installBannerDismissed')) {
+                            showInstallBanner.value = true;
+                        }
+                    });
+
                     init();
                 });
 
@@ -2579,7 +2639,8 @@
                     showBookingWarning, bookingWarningItem, openBookingModal, isOvernightLayover, getDateDiffLabel,
                     passengers, totalPassengers, showPassengerMenu, showSortDropdown, addAdult, removeAdult, addKid, removeKid,
                     filteredMapCount, showAnnouncement, announcementHtml, dateOptions,
-                    forceDesktop, toggleDesktopMode, appMode, activateAppMode, goHome
+                    forceDesktop, toggleDesktopMode, appMode, activateAppMode, goHome,
+                    isStandalone, showInstallBanner, installApp, dismissInstallBanner
                 };
             }
         }).mount('#app');
