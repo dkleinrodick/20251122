@@ -16,7 +16,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import NullPool
-from sqlalchemy import select
+from sqlalchemy import select, delete
 
 from app.models import SystemSetting, Airport, WeatherData
 from app.airports_data import AIRPORTS_LIST

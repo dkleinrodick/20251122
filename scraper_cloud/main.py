@@ -231,10 +231,11 @@ async def main():
         async with SessionLocal() as update_session:
             res = await update_session.execute(select(SystemSetting).where(SystemSetting.key == "last_auto_scrape"))
             setting = res.scalar_one_or_none()
+            now_iso = datetime.utcnow().isoformat()
             if setting:
-                setting.value = now_utc.isoformat()
+                setting.value = now_iso
             else:
-                update_session.add(SystemSetting(key="last_auto_scrape", value=now_utc.isoformat()))
+                update_session.add(SystemSetting(key="last_auto_scrape", value=now_iso))
             await update_session.commit()
 
     logger.info("Cloud Scraper Cycle Complete.")
