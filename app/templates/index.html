@@ -128,6 +128,7 @@
     </script>
 
     <style>
+        [v-cloak] { display: none !important; }
         html { overflow-x: hidden; }
         body { font-family: 'Inter', sans-serif; background-color: #f8fafc; overflow-x: hidden; }
         h1, h2, h3, h4, h5, h6 { font-family: 'Space Grotesk', sans-serif; }
@@ -238,6 +239,10 @@
 <body class="text-slate-800 antialiased min-h-screen flex flex-col">
 
     <div id="app" class="flex-grow flex flex-col relative">
+        <div v-if="!isMounted" class="fixed inset-0 bg-slate-50 z-50 flex items-center justify-center">
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-600"></div>
+        </div>
+        <div v-else class="contents">
         {% raw %}
 
         <!-- Navbar -->
@@ -261,10 +266,13 @@
             </div>
 
             <!-- Mobile Menu -->
-            <div v-if="mobileMenuOpen" class="absolute top-full left-0 w-full bg-brand-950 border-t border-brand-800 shadow-2xl animate-fade-in md:hidden">
+            <div v-if="mobileMenuOpen" class="absolute top-full left-0 w-full bg-brand-950 border-t border-brand-800 shadow-2xl animate-fade-in md:hidden" style="z-index: 1000;">
                 <div class="flex flex-col p-6 space-y-4">
                     <a href="/features" class="text-brand-100 font-bold text-lg py-2 px-4 rounded-lg hover:bg-white/5">Features</a>
-                    
+                    <button @click="toggleDesktopMode" class="text-left text-brand-100 font-bold text-lg py-2 px-4 rounded-lg hover:bg-white/5 flex items-center gap-2">
+                        <i :class="forceDesktop ? 'ph-device-mobile' : 'ph-desktop'" class="ph"></i>
+                        {{ forceDesktop ? 'Switch to Mobile View' : 'Request Desktop Site' }}
+                    </button>
                 </div>
             </div>
         </nav>
@@ -292,13 +300,13 @@
         </div>
 
         <!-- Main Application Container -->
-        <div class="relative z-20 -mt-32 md:-mt-48 container mx-auto px-4 pb-20">
+        <div class="relative z-20 -mt-32 md:-mt-48 container mx-auto px-4" :class="!forceDesktop ? 'pb-32' : 'pb-20'">
             
             <!-- Search Widget -->
-            <div class="glass-panel rounded-3xl p-1 max-w-7xl mx-auto transition-all duration-500 shadow-2xl">
+            <div class="glass-panel rounded-3xl p-1 max-w-7xl mx-auto transition-all duration-500 shadow-2xl mb-4 md:mb-0">
                 
                 <!-- Tab Navigation -->
-                <div class="flex bg-slate-100/50 rounded-2xl p-1">
+                <div :class="forceDesktop ? 'flex' : 'hidden md:flex'" class="bg-slate-100/50 rounded-2xl p-1">
                     <button v-for="tab in tabs" :key="tab.id" 
                         @click="currentTab = tab.id" 
                         :class="currentTab === tab.id ? 'bg-white text-brand-700 shadow-sm ring-1 ring-black/5' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'"
@@ -1483,7 +1491,7 @@
                 <p class="text-[10px] text-slate-400 leading-relaxed max-w-2xl mx-auto font-medium">
                     WildFares is an independent project and is not affiliated with, endorsed by, or connected to Frontier Airlines, Inc. or the GoWild!™ Pass program. All trademarks are property of their respective owners.
                     <br><br>
-                    <span class="font-mono text-slate-300">v2.1.2</span>
+                    <span class="font-mono text-slate-300">v2.3.1 (Mobile App)</span>
                     <span class="mx-2 text-slate-200">|</span>
                     <a href="/terms" class="hover:text-slate-500 transition">Terms</a>
                     <span class="mx-1 text-slate-200">•</span>
@@ -1492,11 +1500,27 @@
                     <a href="mailto:David@wildfares.com" class="hover:text-slate-500 transition">Questions/Comments? David@wildfares.com</a>
                 </p>
             </div>
+
+            <!-- Bottom Navigation (Mobile Only) - Moved to root level -->
+            <div v-if="!forceDesktop" class="md:hidden fixed bottom-0 left-0 w-full bg-white/90 backdrop-blur-lg border-t border-slate-200 z-[9999] flex justify-around px-2 shadow-[0_-4px_20px_rgba(0,0,0,0.1)] pb-safe" style="padding-bottom: env(safe-area-inset-bottom, 20px); height: calc(60px + env(safe-area-inset-bottom, 20px));">
+                <button v-for="tab in tabs" :key="tab.id" 
+                    @click="currentTab = tab.id; window.scrollTo({top: 0, behavior: 'smooth'})" 
+                    class="flex flex-col items-center justify-start pt-3 flex-1 transition-all duration-200 active:scale-95 h-full"
+                    :class="currentTab === tab.id ? 'text-brand-600' : 'text-slate-400'">
+                    <div class="relative">
+                        <i :class="[tab.icon, currentTab === tab.id ? 'ph-fill' : 'ph-bold', 'text-2xl mb-1']"></i>
+                    </div>
+                    <span class="text-[9px] font-bold mt-0.5">{{ tab.label }}</span>
+                </button>
+            </div>
         {% endraw %}
+        </div>
     </div>
 
     <script>
         const { createApp, ref, computed, watch, onMounted, nextTick } = Vue;
+
+        const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
         const clickOutside = {
             mounted(el, binding) {
@@ -1516,11 +1540,19 @@
             directives: { 'click-outside': clickOutside },
             setup() {
                 // Reactive State
+                const isMounted = ref(false);
                 const loading = ref(false);
                 const error = ref(null);
                 const hasSearched = ref(false);
                 const mobileMenuOpen = ref(false);
                 const scrolled = ref(false);
+                
+                // Mobile Logic
+                const forceDesktop = ref(!isMobileUA);
+                const toggleDesktopMode = () => {
+                    forceDesktop.value = !forceDesktop.value;
+                    mobileMenuOpen.value = false;
+                };
                 
                 // Config
                 const currentTab = ref('explore');
@@ -2488,9 +2520,13 @@
                     }, 200);
                 };
 
-                onMounted(init);
+                onMounted(() => {
+                    isMounted.value = true;
+                    init();
+                });
 
                 return {
+                    isMounted,
                     loading, error, hasSearched, searchExecuted, mobileMenuOpen, scrolled,
                     currentTab, tabs, search, locations,
                     showOriginDropdown, showDestDropdown, showDateDropdown, filteredOrigins, filteredDests,
@@ -2504,7 +2540,8 @@
                     getWeather, dayTripMode, destInput,
                     showBookingWarning, bookingWarningItem, openBookingModal, isOvernightLayover, getDateDiffLabel,
                     passengers, totalPassengers, showPassengerMenu, showSortDropdown, addAdult, removeAdult, addKid, removeKid,
-                    filteredMapCount, showAnnouncement, announcementHtml, dateOptions
+                    filteredMapCount, showAnnouncement, announcementHtml, dateOptions,
+                    forceDesktop, toggleDesktopMode
                 };
             }
         }).mount('#app');
