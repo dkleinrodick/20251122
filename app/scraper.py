@@ -387,7 +387,8 @@ class ScraperEngine:
                 client = FrontierClient(proxy=proxy_url, timeout=timeout, user_agent=ua)
                 try:
                     if attempt > 0:
-                        logger.info(f"Retry attempt {attempt+1}/{max_retries} for {origin}->{dest} using {proxy_url or 'Direct'}")
+                        proxy_info = f"proxy {proxy_url}" if proxy_url else "direct connection"
+                        logger.info(f"Retry attempt {attempt+1}/{max_retries} for {origin}->{dest} using {proxy_info}")
                     
                     raw_data = await client.search(origin, dest, date)
                     await client.close()
@@ -396,9 +397,17 @@ class ScraperEngine:
                     await client.close()
                     last_error = e
                     logger.warning(f"Search attempt {attempt+1} failed for {origin}->{dest}: {e}")
-                    
+
                     if attempt < max_retries - 1:
-                        await asyncio.sleep(1) # Brief pause before retry
+                        # Check if this is a 503 Service Unavailable error
+                        is_503 = False
+                        if isinstance(e, httpx.HTTPStatusError) and e.response.status_code == 503:
+                            is_503 = True
+                            logger.info(f"503 Service Unavailable detected for {origin}->{dest}, will retry with 5s delay")
+
+                        # Use longer delay for 503 errors (API rate limiting)
+                        delay = 5 if is_503 else 1
+                        await asyncio.sleep(delay)
             
             if raw_data is None:
                 stats["errors"] = 1
