@@ -2,9 +2,10 @@ name: Weather Scraper
 
 on:
   schedule:
-    # Run daily at 05:49 UTC (11:49 PM CST during standard time)
-    # Note: During CDT (daylight saving), this will be 12:49 AM CDT
-    - cron: '49 5 * * *'
+    # Run daily at 06:29 UTC (12:29 AM CST during standard time)
+    # Offset by 40 minutes from scraper to avoid system overload
+    # Note: During CDT (daylight saving), this will be 1:29 AM CDT
+    - cron: '29 6 * * *'
   workflow_dispatch:
     # Manual trigger available in GitHub Actions UI
 
