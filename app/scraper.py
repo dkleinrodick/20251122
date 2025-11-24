@@ -377,7 +377,7 @@ class ScraperEngine:
         
         raw_data = None
         last_error = None
-        max_retries = 3
+        max_retries = 5
 
         async with sem:
             for attempt in range(max_retries):
