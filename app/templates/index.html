@@ -35,6 +35,7 @@
     <meta name="apple-mobile-web-app-title" content="WildFares">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="manifest" href="/static/manifest.json">
 
     <!-- JSON-LD Structured Data -->
     <script type="application/ld+json">
@@ -128,7 +129,6 @@
     </script>
 
     <style>
-        [v-cloak] { display: none !important; }
         html { overflow-x: hidden; }
         body { font-family: 'Inter', sans-serif; background-color: #f8fafc; overflow-x: hidden; }
         h1, h2, h3, h4, h5, h6 { font-family: 'Space Grotesk', sans-serif; }
@@ -246,9 +246,9 @@
         {% raw %}
 
         <!-- Navbar -->
-        <nav class="fixed w-full z-50 transition-all duration-300 border-b" :class="scrolled || mobileMenuOpen ? 'glass-nav py-3 shadow-lg border-white/10' : 'bg-transparent py-6 border-transparent'">
+        <nav class="fixed w-full z-50 transition-all duration-300 border-b" :class="scrolled || mobileMenuOpen || (!forceDesktop && appMode === 'search') ? 'glass-nav py-3 shadow-lg border-white/10' : 'bg-transparent py-6 border-transparent'">
             <div class="container mx-auto px-6 flex justify-between items-center relative z-50">
-                <div class="flex items-center gap-3 group cursor-pointer" @click="window.scrollTo(0,0)">
+                <div class="flex items-center gap-3 group cursor-pointer" @click="goHome">
                     <img src="/static/logo.png" alt="WildFares" class="w-10 h-10 rounded-xl shadow-lg shadow-brand-500/30 group-hover:scale-105 transition-transform">
                     <span class="font-display font-bold text-2xl tracking-tight text-white group-hover:text-brand-200 transition-colors">WildFares</span>
                 </div>
@@ -278,7 +278,12 @@
         </nav>
 
         <!-- Hero Header -->
-        <div class="relative w-full transition-all duration-700 ease-out" :class="hasSearched ? 'h-[40vh] min-h-[400px]' : 'h-[85vh] min-h-[600px]'">
+        <div class="relative w-full transition-all duration-700 ease-out" 
+             :class="[
+                 hasSearched ? 'h-[40vh] min-h-[400px]' : 'h-[85vh] min-h-[600px]',
+                 (!forceDesktop && appMode === 'search') ? 'hidden' : '',
+                 (!forceDesktop && appMode === 'landing') ? 'h-screen' : ''
+             ]">
             <div class="hero-bg"></div>
             <div class="hero-overlay"></div>
 
@@ -295,17 +300,29 @@
                     <p class="text-lg md:text-xl text-slate-300 max-w-2xl mx-auto leading-relaxed font-light mb-10">
                         Visual search, multi-hop routing, and real-time availability for Frontier's all-you-can-fly pass.
                     </p>
+                    <!-- Mobile Call to Action (Only visible in landing mode) -->
+                    <div v-if="!forceDesktop && appMode === 'landing'" class="md:hidden animate-bounce mt-8 text-brand-200 text-sm font-bold uppercase tracking-widest">
+                        Select a mode below to start <i class="ph-bold ph-arrow-down"></i>
+                    </div>
                 </div>
             </div>
         </div>
 
         <!-- Main Application Container -->
-        <div class="relative z-20 -mt-32 md:-mt-48 container mx-auto px-4" :class="!forceDesktop ? 'pb-32' : 'pb-20'">
+        <div class="relative z-20 container mx-auto px-4" 
+             :class="[
+                 !forceDesktop ? 'pb-32' : 'pb-20',
+                 (!forceDesktop && appMode === 'search') ? 'mt-20 px-0' : '-mt-32 md:-mt-48'
+             ]">
             
             <!-- Search Widget -->
-            <div class="glass-panel rounded-3xl p-1 max-w-7xl mx-auto transition-all duration-500 shadow-2xl mb-4 md:mb-0">
+            <div v-show="forceDesktop || appMode === 'search'"
+                 class="glass-panel transition-all duration-500 shadow-2xl mb-4 md:mb-0 animate-slide-up"
+                 :class="[
+                     (!forceDesktop && appMode === 'search') ? 'rounded-none min-h-[85vh] border-x-0 border-b-0' : 'rounded-3xl p-1 max-w-7xl mx-auto'
+                 ]">
                 
-                <!-- Tab Navigation -->
+                <!-- Tab Navigation (Desktop or Forced) -->
                 <div :class="forceDesktop ? 'flex' : 'hidden md:flex'" class="bg-slate-100/50 rounded-2xl p-1">
                     <button v-for="tab in tabs" :key="tab.id" 
                         @click="currentTab = tab.id" 
@@ -574,7 +591,7 @@
                                         
                                         <!-- Menu -->
                                         <div v-if="showSortDropdown" class="absolute top-full left-0 w-full bg-white border border-slate-100 rounded-xl shadow-xl mt-2 z-50 py-1 animate-fade-in overflow-hidden">
-                                            <div v-for="opt in ['price', 'duration', 'stops']" :key="opt" 
+                                            <div v-for="opt in ['price', 'duration', 'stops']" :key="'ow-' + opt" 
                                                  @click.stop="oneWay.sortBy = opt; showSortDropdown = false"
                                                  class="px-3 py-2 hover:bg-brand-50 cursor-pointer flex items-center justify-between group transition-colors">
                                                 <span class="text-xs font-bold text-slate-700 capitalize group-hover:text-brand-700">{{ opt }}</span>
@@ -635,7 +652,7 @@
                                         
                                         <!-- Menu -->
                                         <div v-if="showSortDropdown" class="absolute top-full left-0 w-full bg-white border border-slate-100 rounded-xl shadow-xl mt-2 z-50 py-1 animate-fade-in overflow-hidden">
-                                            <div v-for="opt in ['price', 'duration', 'stops']" :key="opt" 
+                                            <div v-for="opt in ['price', 'duration', 'stops']" :key="'rb-' + opt" 
                                                  @click.stop="builder.sortBy = opt; showSortDropdown = false"
                                                  class="px-3 py-2 hover:bg-brand-50 cursor-pointer flex items-center justify-between group transition-colors">
                                                 <span class="text-xs font-bold text-slate-700 capitalize group-hover:text-brand-700">{{ opt }}</span>
@@ -1504,7 +1521,7 @@
             <!-- Bottom Navigation (Mobile Only) - Moved to root level -->
             <div v-if="!forceDesktop" class="md:hidden fixed bottom-0 left-0 w-full bg-white/90 backdrop-blur-lg border-t border-slate-200 z-[9999] flex justify-around px-2 shadow-[0_-4px_20px_rgba(0,0,0,0.1)] pb-safe" style="padding-bottom: env(safe-area-inset-bottom, 20px); height: calc(60px + env(safe-area-inset-bottom, 20px));">
                 <button v-for="tab in tabs" :key="tab.id" 
-                    @click="currentTab = tab.id; window.scrollTo({top: 0, behavior: 'smooth'})" 
+                    @click="activateAppMode(tab.id)" 
                     class="flex flex-col items-center justify-start pt-3 flex-1 transition-all duration-200 active:scale-95 h-full"
                     :class="currentTab === tab.id ? 'text-brand-600' : 'text-slate-400'">
                     <div class="relative">
@@ -1547,11 +1564,30 @@
                 const mobileMenuOpen = ref(false);
                 const scrolled = ref(false);
                 
-                // Mobile Logic
+                // Mobile App Logic
                 const forceDesktop = ref(!isMobileUA);
+                // 'landing' = Hero visible, 'search' = Search form active
+                const appMode = ref(isMobileUA ? 'landing' : 'search'); 
+
                 const toggleDesktopMode = () => {
                     forceDesktop.value = !forceDesktop.value;
                     mobileMenuOpen.value = false;
+                    // Reset to landing if switching back to mobile
+                    if (!forceDesktop.value) appMode.value = 'landing';
+                };
+
+                const activateAppMode = (tabId) => {
+                    if (navigator.vibrate) navigator.vibrate(50);
+                    currentTab.value = tabId;
+                    if (!forceDesktop.value) {
+                        appMode.value = 'search';
+                        window.scrollTo({top: 0, behavior: 'smooth'});
+                    }
+                };
+
+                const goHome = () => {
+                    if (!forceDesktop.value) appMode.value = 'landing';
+                    window.scrollTo(0,0);
                 };
                 
                 // Config
@@ -2542,7 +2578,7 @@
                     showBookingWarning, bookingWarningItem, openBookingModal, isOvernightLayover, getDateDiffLabel,
                     passengers, totalPassengers, showPassengerMenu, showSortDropdown, addAdult, removeAdult, addKid, removeKid,
                     filteredMapCount, showAnnouncement, announcementHtml, dateOptions,
-                    forceDesktop, toggleDesktopMode
+                    forceDesktop, toggleDesktopMode, appMode, activateAppMode, goHome
                 };
             }
         }).mount('#app');
