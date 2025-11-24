@@ -585,7 +585,7 @@
                                         
                                         <!-- Menu -->
                                         <div v-if="showSortDropdown" class="absolute top-full left-0 w-full bg-white border border-slate-100 rounded-xl shadow-xl mt-2 z-50 py-1 animate-fade-in overflow-hidden">
-                                            <div v-for="opt in ['price', 'duration', 'stops']" :key="opt" 
+                                            <div v-for="opt in ['price', 'duration', 'stops']" :key="'ow-' + opt" 
                                                  @click.stop="oneWay.sortBy = opt; showSortDropdown = false"
                                                  class="px-3 py-2 hover:bg-brand-50 cursor-pointer flex items-center justify-between group transition-colors">
                                                 <span class="text-xs font-bold text-slate-700 capitalize group-hover:text-brand-700">{{ opt }}</span>
@@ -646,7 +646,7 @@
                                         
                                         <!-- Menu -->
                                         <div v-if="showSortDropdown" class="absolute top-full left-0 w-full bg-white border border-slate-100 rounded-xl shadow-xl mt-2 z-50 py-1 animate-fade-in overflow-hidden">
-                                            <div v-for="opt in ['price', 'duration', 'stops']" :key="opt" 
+                                            <div v-for="opt in ['price', 'duration', 'stops']" :key="'rb-' + opt" 
                                                  @click.stop="builder.sortBy = opt; showSortDropdown = false"
                                                  class="px-3 py-2 hover:bg-brand-50 cursor-pointer flex items-center justify-between group transition-colors">
                                                 <span class="text-xs font-bold text-slate-700 capitalize group-hover:text-brand-700">{{ opt }}</span>
