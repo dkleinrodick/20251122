@@ -124,12 +124,15 @@ async def main():
                 res = await session.execute(stmt)
                 m_routes = res.scalars().all()
                 
-                # Target date is usually "Tomorrow" relative to the local midnight
-                # But safely, let's just scrape the next 2 days to be sure we catch the GoWild window
-                target_date = (now_utc + timedelta(days=1)).strftime("%Y-%m-%d")
+                # Target "Today" and "Tomorrow" to be safe for Midnight scraper
+                target_dates = [
+                    now_utc.strftime("%Y-%m-%d"), 
+                    (now_utc + timedelta(days=1)).strftime("%Y-%m-%d")
+                ]
                 
                 for r in m_routes:
-                    tasks_to_run.append({"origin": r.origin, "destination": r.destination, "date": target_date, "type": "midnight"})
+                    for d_str in target_dates:
+                        tasks_to_run.append({"origin": r.origin, "destination": r.destination, "date": d_str, "type": "midnight"})
 
         # 4. Build Task List
         if run_full_scrape:

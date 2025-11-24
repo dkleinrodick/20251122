@@ -788,41 +788,62 @@ async def scrape_frontier_routes(db: AsyncSession):
 async def update_weather_task():
     logger.info("Updating Weather Data...")
     async with SessionLocal() as session:
+        # Clear old data first
+        logger.info("Clearing old weather table...")
+        await session.execute(delete(WeatherData))
+        await session.commit()
+
         async with httpx.AsyncClient() as client:
-            for idx, entry in enumerate(AIRPORTS_LIST):
-                code = entry["code"]
-                lat = entry.get("lat")
-                lon = entry.get("lon")
-                
-                if not lat or not lon: continue
-                
-                try:
+            # Process in chunks to avoid hitting API rate limits but faster than sequential
+            chunk_size = 10
+            for i in range(0, len(AIRPORTS_LIST), chunk_size):
+                chunk = AIRPORTS_LIST[i:i + chunk_size]
+                tasks = []
+                for entry in chunk:
+                    code = entry["code"]
+                    lat = entry.get("lat")
+                    lon = entry.get("lon")
+                    if not lat or not lon: continue
+                    
                     url = f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&daily=weathercode,temperature_2m_max&timezone=auto&forecast_days=16"
-                    resp = await client.get(url, timeout=10.0)
+                    tasks.append(client.get(url))
+                
+                # Execute chunk
+                responses = await asyncio.gather(*tasks, return_exceptions=True)
+                
+                for j, resp in enumerate(responses):
+                    if isinstance(resp, Exception):
+                        logger.error(f"Weather fetch error: {resp}")
+                        continue
+                        
                     if resp.status_code == 200:
                         data = resp.json()
                         daily = data.get("daily", {})
-                        
                         times = daily.get("time", [])
                         codes = daily.get("weathercode", [])
                         temps = daily.get("temperature_2m_max", [])
                         
-                        for i, date_str in enumerate(times):
+                        entry = chunk[j]
+                        code = entry["code"]
+                        
+                        for k, date_str in enumerate(times):
+                            # Upsert logic
                             stmt = select(WeatherData).where(WeatherData.airport_code == code, WeatherData.date == date_str)
                             res = await session.execute(stmt)
                             wd = res.scalar_one_or_none()
                             
                             if not wd:
-                                wd = WeatherData(airport_code=code, date=date_str, condition_code=codes[i], temp_high=temps[i])
+                                wd = WeatherData(airport_code=code, date=date_str, condition_code=codes[k], temp_high=temps[k])
                                 session.add(wd)
                             else:
-                                wd.condition_code = codes[i]
-                                wd.temp_high = temps[i]
+                                wd.condition_code = codes[k]
+                                wd.temp_high = temps[k]
                                 wd.updated_at = datetime.utcnow()
-                        
-                        await session.commit()
-                except Exception as e:
-                    logger.error(f"Weather update failed for {code}: {e}")
+                
+                await session.commit()
+                # Rate limit niceness
+                await asyncio.sleep(0.5)
+                
     logger.info("Weather Update Completed")
 
 @app.post("/api/update_routes", dependencies=[Depends(verify_admin)])

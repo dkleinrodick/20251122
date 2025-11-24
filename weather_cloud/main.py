@@ -73,61 +73,63 @@ async def get_setting(session, key, default):
 async def update_weather_data(session):
     """
     Fetches weather for all active destinations using Open-Meteo.
-    Ensures coverage for current day, following day, and next 5-7 days.
+    Clears old data first, then repopulates.
     """
+    logger.info("Clearing old weather data...")
+    await session.execute(delete(WeatherData))
+    await session.commit()
+
     logger.info("Updating Weather Data...")
     async with httpx.AsyncClient() as client:
-        for idx, entry in enumerate(AIRPORTS_LIST):
-            code = entry["code"]
-            lat = entry.get("lat")
-            lon = entry.get("lon")
+        chunk_size = 10
+        for i in range(0, len(AIRPORTS_LIST), chunk_size):
+            chunk = AIRPORTS_LIST[i:i + chunk_size]
+            tasks = []
+            for entry in chunk:
+                code = entry["code"]
+                lat = entry.get("lat")
+                lon = entry.get("lon")
+                if not lat or not lon: continue
 
-            if not lat or not lon: continue
-
-            try:
-                url = f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&daily=weathercode,temperature_2m_max&timezone=auto"
-                resp = await client.get(url)
+                # forecast_days=16 covers the user's 10-day requirement safely
+                url = f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&daily=weathercode,temperature_2m_max&timezone=auto&forecast_days=16"
+                tasks.append(client.get(url))
+            
+            # Execute chunk
+            responses = await asyncio.gather(*tasks, return_exceptions=True)
+            
+            for j, resp in enumerate(responses):
+                if isinstance(resp, Exception):
+                    logger.error(f"Weather fetch error: {resp}")
+                    continue
+                
                 if resp.status_code == 200:
                     data = resp.json()
                     daily = data.get("daily", {})
-
                     times = daily.get("time", [])
                     codes = daily.get("weathercode", [])
                     temps = daily.get("temperature_2m_max", [])
-
-                    if idx == 0:
-                        logger.info(f"Weather Sample ({code}): Covering {len(times)} days from {times[0]} to {times[-1]}")
-
-                    for i, date_str in enumerate(times):
-                        # Store in DB
-                        stmt = select(WeatherData).where(
-                            WeatherData.airport_code == code,
-                            WeatherData.date == date_str
-                        )
+                    
+                    entry = chunk[j]
+                    code = entry["code"]
+                    
+                    for k, date_str in enumerate(times):
+                        # Upsert logic
+                        stmt = select(WeatherData).where(WeatherData.airport_code == code, WeatherData.date == date_str)
                         res = await session.execute(stmt)
-                        existing = res.scalar_one_or_none()
-
-                        if existing:
-                            existing.temp_high = temps[i]
-                            existing.condition_code = codes[i]
-                            existing.updated_at = datetime.now(pytz.UTC)
+                        wd = res.scalar_one_or_none()
+                        
+                        if not wd:
+                            wd = WeatherData(airport_code=code, date=date_str, condition_code=codes[k], temp_high=temps[k])
+                            session.add(wd)
                         else:
-                            session.add(WeatherData(
-                                airport_code=code,
-                                date=date_str,
-                                temp_high=temps[i],
-                                condition_code=codes[i],
-                                updated_at=datetime.now(pytz.UTC)
-                            ))
+                            wd.condition_code = codes[k]
+                            wd.temp_high = temps[k]
+                            wd.updated_at = datetime.utcnow()
+            
+            await session.commit()
+            await asyncio.sleep(0.2) # Brief pause to respect rate limits
 
-                    if idx % 20 == 0:
-                        await session.commit()
-                else:
-                    logger.warning(f"Weather fetch for {code} failed with status {resp.status_code}")
-            except Exception as e:
-                logger.error(f"Weather fetch error for {code}: {e}")
-
-        await session.commit()
     logger.info("Weather data update complete.")
 
 async def main():

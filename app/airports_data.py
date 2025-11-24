@@ -122,6 +122,7 @@ AIRPORTS_LIST = [
     {"code": "SMF", "name": "Sacramento International Airport", "city": "Sacramento", "timezone": "America/Los_Angeles", "lat": 38.6954, "lon": -121.5907},
     {"code": "SNA", "name": "John Wayne Airport", "city": "Santa Ana", "timezone": "America/Los_Angeles", "lat": 33.6761, "lon": -117.8674},
     {"code": "SRQ", "name": "Sarasota-Bradenton International Airport", "city": "Sarasota", "timezone": "America/New_York", "lat": 27.3954, "lon": -82.5544},
+    {"code": "STI", "name": "Cibao International Airport", "city": "Santiago de los Caballeros", "timezone": "America/Santo_Domingo", "lat": 19.4069, "lon": -70.6047, "is_international": True},
     {"code": "STL", "name": "St. Louis Lambert International Airport", "city": "St. Louis", "timezone": "America/Chicago", "lat": 38.7472, "lon": -90.3614},
     {"code": "STT", "name": "Cyril E. King Airport", "city": "St. Thomas", "timezone": "America/St_Thomas", "lat": 18.3372, "lon": -64.9722},
     {"code": "STX", "name": "Henry E. Rohlsen Airport", "city": "St. Croix", "timezone": "America/St_Thomas", "lat": 17.7018, "lon": -64.7985},

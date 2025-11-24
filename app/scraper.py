@@ -253,21 +253,7 @@ class ScraperEngine:
         return asyncio.Semaphore(max_conn)
 
     async def is_cache_valid(self, session: AsyncSession, entry: FlightCache) -> bool:
-        # 1. Check Midnight Rule
-        airport_res = await session.execute(select(Airport).where(Airport.code == entry.origin))
-        airport = airport_res.scalar_one_or_none()
-        
-        tz_name = airport.timezone if airport else "UTC"
-        tz = pytz.timezone(tz_name)
-        
-        # Local time at origin
-        now_local = datetime.now(tz)
-        created_local = entry.created_at.astimezone(tz)
-        
-        if now_local.date() > created_local.date():
-            return False # Expired due to day change
-
-        # 2. Check Duration Rule
+        # Check 1: Absolute Age (Settings)
         setting = await session.execute(select(SystemSetting).where(SystemSetting.key == "cache_duration_minutes"))
         setting = setting.scalar_one_or_none()
         duration_mins = int(setting.value) if setting else 60
@@ -275,9 +261,38 @@ class ScraperEngine:
         created_at = entry.created_at
         if created_at.tzinfo is None:
             created_at = pytz.UTC.localize(created_at)
-
-        if (datetime.now(pytz.UTC) - created_at) > timedelta(minutes=duration_mins):
+            
+        age = datetime.now(pytz.UTC) - created_at
+        if age > timedelta(minutes=duration_mins):
             return False
+
+        # Check 2: "Same Day" Logic (Relaxed)
+        # Instead of strict calendar day, just ensure the flight date is still valid (not in the past)
+        # The "midnight scraper" might run at 23:55 UTC (Yesterday) for a flight on Today (UTC).
+        # Strict calendar matching kills this valid cache.
+        # So we trust the 'cache_duration_minutes' to handle staleness, 
+        # and only check if the flight itself is in the past.
+        
+        try:
+            flight_date = datetime.strptime(entry.travel_date, "%Y-%m-%d").date()
+            
+            # Get Origin Timezone
+            airport_res = await session.execute(select(Airport).where(Airport.code == entry.origin))
+            airport = airport_res.scalar_one_or_none()
+            tz_name = airport.timezone if airport else "UTC"
+            tz = pytz.timezone(tz_name)
+            
+            # Current date at origin
+            now_origin = datetime.now(tz).date()
+            
+            # If flight date is in the past relative to origin, it's invalid
+            if flight_date < now_origin:
+                return False
+                
+        except Exception as e:
+            logger.warning(f"Date validation error: {e}")
+            # Fallback: If we can't parse dates, rely strictly on age
+            pass
 
         return True
 
