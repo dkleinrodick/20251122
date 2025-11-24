@@ -151,8 +151,38 @@ async def cleanup_old_runs(session):
         await session.commit()
         logger.info(f"Cleaned up {len(runs_to_delete)} old scraper runs")
 
+async def handle_stale_run(session):
+    """Check for a stale 'running' status from a previous run and mark it as failed."""
+    # Get the most recent scraper run
+    stmt = select(ScraperRun).order_by(ScraperRun.started_at.desc()).limit(1)
+    res = await session.execute(stmt)
+    last_run = res.scalar_one_or_none()
+
+    if last_run and last_run.status == "running":
+        logger.warning(f"Found stale scraper run #{last_run.id} (started at {last_run.started_at}). Marking as failed.")
+        last_run.status = "failed"
+        last_run.completed_at = datetime.now(pytz.utc)
+        last_run.error_message = "Scraper run did not complete cleanly and was marked as failed by a subsequent run."
+        
+        # Calculate duration if possible
+        if last_run.started_at:
+            try:
+                duration = last_run.completed_at - last_run.started_at
+                last_run.duration_seconds = duration.total_seconds()
+            except TypeError:
+                # This can happen if one of the datetimes is naive.
+                # The timezone fix should prevent this, but as a fallback, we can't calculate duration.
+                last_run.duration_seconds = 0
+
+        await session.commit()
+
 async def main():
     logger.info("Starting Cloud Scraper...")
+
+    # Check for stale runs before starting a new one
+    async with SessionLocal() as session:
+        await handle_stale_run(session)
+
     start_time = datetime.now(pytz.utc)
     scraper_run_id = None
 
