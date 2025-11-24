@@ -29,6 +29,7 @@
             backdrop-filter: blur(12px);
             border: 1px solid rgba(255, 255, 255, 0.05);
         }
+        [v-cloak] { display: none !important; }
     </style>
     <script>
         tailwind.config = {
@@ -52,7 +53,7 @@
     </script>
 </head>
 <body class="h-screen flex flex-col overflow-hidden selection:bg-brand-500 selection:text-white">
-    <div id="app" class="h-full flex flex-col relative">
+    <div id="app" class="h-full flex flex-col relative" v-cloak>
         {% raw %}
 
         <!-- LOGIN OVERLAY -->
