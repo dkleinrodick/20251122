@@ -389,6 +389,21 @@
                                                 <input v-model="settings.scraper_user_agent" type="text" class="w-full bg-surface-900 border border-surface-100 rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-brand-500">
                                             </div>
                                             <toggle-switch v-model="settings.scraper_popup_enabled" label="Show Scraper Popup"></toggle-switch>
+                                            <div class="border-t border-surface-100 pt-4 mt-4">
+                                                <h5 class="text-xs font-bold text-surface-200 uppercase mb-3">Smart Cache Settings</h5>
+                                                <div class="grid grid-cols-2 gap-4">
+                                                    <div>
+                                                        <label class="block text-xs font-bold text-surface-200 uppercase mb-2">Near-Term Cache (Min)</label>
+                                                        <input v-model="settings.scraper_cache_domestic_minutes" type="number" class="w-full bg-surface-900 border border-surface-100 rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-brand-500">
+                                                        <p class="text-[10px] text-surface-200 mt-1">Days 1-2: Skip if scraped within X minutes (same day)</p>
+                                                    </div>
+                                                    <div>
+                                                        <label class="block text-xs font-bold text-surface-200 uppercase mb-2">Far-Term Cache (Hours)</label>
+                                                        <input v-model="settings.scraper_cache_international_hours" type="number" class="w-full bg-surface-900 border border-surface-100 rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-brand-500">
+                                                        <p class="text-[10px] text-surface-200 mt-1">Days 3-10: Skip if scraped within X hours</p>
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
 

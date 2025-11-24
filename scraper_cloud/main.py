@@ -17,7 +17,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import NullPool
 from sqlalchemy import select
 
-from app.models import RoutePair, SystemSetting, Airport
+from app.models import RoutePair, SystemSetting, Airport, FlightCache
 from app.scraper import ScraperEngine
 from app.airports_data import AIRPORTS_LIST
 
@@ -69,6 +69,72 @@ async def get_setting(session, key, default):
     s = res.scalar_one_or_none()
     return s.value if s else default
 
+async def should_skip_route(session, origin, destination, date_str, days_out, cache_domestic_min, cache_intl_hours):
+    """
+    Check if a route should be skipped based on cache age and timezone-aware same-day logic.
+
+    Args:
+        session: Database session
+        origin: Origin airport code
+        destination: Destination airport code
+        date_str: Travel date (YYYY-MM-DD)
+        days_out: Days from now to travel date
+        cache_domestic_min: Cache duration for domestic/near-term routes (minutes)
+        cache_intl_hours: Cache duration for international far-term routes (hours)
+
+    Returns:
+        True if route should be skipped, False if it needs scraping
+    """
+    # Check if we have cached data for this route+date
+    stmt = select(FlightCache).where(
+        FlightCache.origin == origin,
+        FlightCache.destination == destination,
+        FlightCache.travel_date == date_str
+    ).order_by(FlightCache.created_at.desc()).limit(1)
+
+    res = await session.execute(stmt)
+    cache_entry = res.scalar_one_or_none()
+
+    if not cache_entry:
+        return False  # No cache, must scrape
+
+    # Get origin airport timezone
+    airport_res = await session.execute(select(Airport).where(Airport.code == origin))
+    airport = airport_res.scalar_one_or_none()
+    origin_tz = pytz.timezone(airport.timezone if airport and airport.timezone else "UTC")
+
+    # Get current time in origin's timezone
+    now_origin_tz = datetime.now(origin_tz)
+
+    # Get cache time in origin's timezone
+    cache_time_utc = cache_entry.created_at
+    if cache_time_utc.tzinfo is None:
+        cache_time_utc = pytz.utc.localize(cache_time_utc)
+    cache_time_origin_tz = cache_time_utc.astimezone(origin_tz)
+
+    # Determine if we're looking at 1-2 days out (near-term) or 3-10 days out (far-term)
+    is_near_term = days_out <= 2
+
+    if is_near_term:
+        # Near-term logic: Skip if cached within last X minutes AND same day in origin timezone
+        time_diff_minutes = (now_origin_tz - cache_time_origin_tz).total_seconds() / 60
+
+        # Check if it's the same calendar day in origin timezone
+        same_day = (now_origin_tz.date() == cache_time_origin_tz.date())
+
+        if same_day and time_diff_minutes < cache_domestic_min:
+            logger.debug(f"Skipping {origin}->{destination} on {date_str}: Cached {time_diff_minutes:.0f}min ago (same day in {origin_tz})")
+            return True
+    else:
+        # Far-term logic (3-10 days): Skip if cached within last X hours
+        time_diff_hours = (now_origin_tz - cache_time_origin_tz).total_seconds() / 3600
+
+        if time_diff_hours < cache_intl_hours:
+            logger.debug(f"Skipping {origin}->{destination} on {date_str}: Cached {time_diff_hours:.1f}h ago (far-term)")
+            return True
+
+    return False  # Cache is stale, needs scraping
+
 async def main():
     logger.info("Starting Cloud Scraper...")
     
@@ -77,9 +143,13 @@ async def main():
         auto_enabled = (await get_setting(session, "auto_scrape_enabled", "true")).lower() == "true"
         auto_interval = int(await get_setting(session, "auto_scrape_interval", "60"))
         last_auto_str = await get_setting(session, "last_auto_scrape", "2000-01-01T00:00:00")
-        
+
         midnight_enabled = (await get_setting(session, "midnight_scrape_enabled", "true")).lower() == "true"
         midnight_window = int(await get_setting(session, "midnight_scrape_window", "15"))
+
+        # Cache duration settings
+        cache_domestic_min = int(await get_setting(session, "scraper_cache_domestic_minutes", "60"))
+        cache_intl_hours = int(await get_setting(session, "scraper_cache_international_hours", "12"))
         
         # Use US/Pacific time to determine "Today" to ensure we don't skip the current day 
         # during late-night hours when UTC has already rolled over.
@@ -141,19 +211,33 @@ async def main():
         if run_full_scrape:
             res = await session.execute(select(RoutePair).where(RoutePair.is_active == True))
             all_routes = res.scalars().all()
-            
+
             # Identify International Airports
             intl_codes = {a['code'] for a in AIRPORTS_LIST if a.get('is_international')}
-            
+
+            skipped_count = 0
             for r in all_routes:
                 # Determine window size
                 window = 2
                 if r.origin in intl_codes or r.destination in intl_codes:
                     window = 10
-                
+
                 for i in range(window):
                     d_str = (now_ref + timedelta(days=i)).strftime("%Y-%m-%d")
-                    tasks_to_run.append({"origin": r.origin, "destination": r.destination, "date": d_str, "type": "full"})
+
+                    # Check if we should skip this route based on cache age
+                    should_skip = await should_skip_route(
+                        session, r.origin, r.destination, d_str, i,
+                        cache_domestic_min, cache_intl_hours
+                    )
+
+                    if should_skip:
+                        skipped_count += 1
+                    else:
+                        tasks_to_run.append({"origin": r.origin, "destination": r.destination, "date": d_str, "type": "full"})
+
+            if skipped_count > 0:
+                logger.info(f"Skipped {skipped_count} routes with fresh cache data")
 
         # If invoked manually (workflow_dispatch), force full scrape?
         # For now, let's assume manual invocation via GitHub Actions implies "Run Full Scrape" 
@@ -172,19 +256,33 @@ async def main():
              tasks_to_run = [] # Clear potential partials
              res = await session.execute(select(RoutePair).where(RoutePair.is_active == True))
              all_routes = res.scalars().all()
-             
+
              # Identify International Airports (Redundant but safe if scope changes)
              intl_codes = {a['code'] for a in AIRPORTS_LIST if a.get('is_international')}
 
+             skipped_count = 0
              for r in all_routes:
                 # Determine window size
                 window = 2
                 if r.origin in intl_codes or r.destination in intl_codes:
                     window = 10
-                
+
                 for i in range(window):
                     d_str = (now_ref + timedelta(days=i)).strftime("%Y-%m-%d")
-                    tasks_to_run.append({"origin": r.origin, "destination": r.destination, "date": d_str, "type": "full"})
+
+                    # Check if we should skip this route based on cache age
+                    should_skip = await should_skip_route(
+                        session, r.origin, r.destination, d_str, i,
+                        cache_domestic_min, cache_intl_hours
+                    )
+
+                    if should_skip:
+                        skipped_count += 1
+                    else:
+                        tasks_to_run.append({"origin": r.origin, "destination": r.destination, "date": d_str, "type": "full"})
+
+             if skipped_count > 0:
+                 logger.info(f"Skipped {skipped_count} routes with fresh cache data")
 
         if not tasks_to_run:
             logger.info("No scrape tasks required at this time.")
@@ -212,7 +310,8 @@ async def main():
                 async with sem:
                     async with SessionLocal() as task_session:
                         # Each task gets its own session to avoid conflicts
-                        await engine_scraper.perform_search(origin, destination, date, task_session, force_refresh=True)
+                        # Note: force_refresh is False since we already filtered stale routes
+                        await engine_scraper.perform_search(origin, destination, date, task_session, force_refresh=False)
             except Exception as e:
                 logger.error(f"Scrape failed for {origin}->{destination} on {date}: {e}")
             finally:
