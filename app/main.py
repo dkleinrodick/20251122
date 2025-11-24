@@ -157,23 +157,6 @@ async def verify_admin(
 async def read_root(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
 
-@app.get("/robots.txt", response_class=HTMLResponse)
-async def get_robots():
-    with open("robots.txt", "r") as f:
-        content = f.read()
-    return HTMLResponse(content=content, media_type="text/plain")
-
-@app.get("/v2", response_class=HTMLResponse)
-async def read_root_v2(request: Request):
-    user_agent = request.headers.get('user-agent', '').lower()
-    is_mobile = any(x in user_agent for x in ['mobile', 'android', 'iphone', 'ipad', 'ipod'])
-    
-    # "Keep website how it was previously if not a mobile device"
-    if not is_mobile:
-        return templates.TemplateResponse("index.html", {"request": request})
-        
-    return templates.TemplateResponse("index2.html", {"request": request})
-
 @app.get("/features", response_class=HTMLResponse)
 async def read_features(request: Request):
     return templates.TemplateResponse("marketing.html", {"request": request})
