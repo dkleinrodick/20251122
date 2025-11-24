@@ -533,6 +533,8 @@ async def get_proxies(db: AsyncSession = Depends(get_db)):
 async def add_proxies(request: Request, background_tasks: BackgroundTasks, db: AsyncSession = Depends(get_db)):
     data = await request.json()
     raw_proxies = data.get("proxies", "").splitlines()
+    new_ids = []
+    
     for p in raw_proxies:
         p = p.strip()
         if not p: continue
@@ -545,24 +547,40 @@ async def add_proxies(request: Request, background_tasks: BackgroundTasks, db: A
             parts = p.split("://")
             if len(parts) == 2: proto, url_body = parts
             else: proto, url_body = "http", parts[0]
+            
+        # Check existing
         res = await db.execute(select(Proxy).where(Proxy.url == url_body))
         if not res.scalar_one_or_none():
-            db.add(Proxy(url=url_body, protocol=proto, is_active=False))
+            proxy_obj = Proxy(url=url_body, protocol=proto, is_active=False)
+            db.add(proxy_obj)
+            await db.flush() # Populate ID
+            new_ids.append(proxy_obj.id)
+            
     await db.commit()
-    background_tasks.add_task(check_all_proxies)
-    return {"status": "added"}
+    
+    if new_ids:
+        background_tasks.add_task(check_proxies_task, new_ids)
+        
+    return {"status": "added", "count": len(new_ids)}
 
-async def check_all_proxies():
-    # 1. Get all IDs first
+@app.post("/api/proxies/recheck", dependencies=[Depends(verify_admin)])
+async def recheck_proxies(background_tasks: BackgroundTasks):
+    background_tasks.add_task(check_proxies_task)
+    return {"status": "queued"}
+
+async def check_proxies_task(target_ids: List[int] = None):
+    # 1. Get IDs
     async with AsyncSession(engine) as db:
-        res = await db.execute(select(Proxy.id, Proxy.url, Proxy.protocol))
+        stmt = select(Proxy.id, Proxy.url, Proxy.protocol)
+        if target_ids:
+            stmt = stmt.where(Proxy.id.in_(target_ids))
+        res = await db.execute(stmt)
         proxies_data = res.all()
 
-    # 2. Define worker for parallel execution
+    # 2. Define worker
     async def check_single(pid, url, protocol):
         try:
             is_valid = await verify_proxy(url, protocol)
-            # New session for update to avoid conflicts
             async with AsyncSession(engine) as db:
                 stmt = select(Proxy).where(Proxy.id == pid)
                 res = await db.execute(stmt)
@@ -574,11 +592,10 @@ async def check_all_proxies():
         except Exception as e:
             logger.error(f"Error checking proxy {pid}: {e}")
 
-    # 3. Run in parallel (capped if needed, but for <50 proxies gathering is fine)
+    # 3. Run
     if proxies_data:
-        logger.info(f"Checking {len(proxies_data)} proxies in parallel...")
+        logger.info(f"Checking {len(proxies_data)} proxies...")
         await asyncio.gather(*[check_single(p.id, p.url, p.protocol) for p in proxies_data])
-        logger.info("Proxy check complete.")
 
 @app.delete("/api/proxies/{proxy_id}", dependencies=[Depends(verify_admin)])
 async def delete_proxy(proxy_id: int, db: AsyncSession = Depends(get_db)):
