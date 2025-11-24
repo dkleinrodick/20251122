@@ -54,3 +54,16 @@ class WeatherData(Base):
     temp_high = Column(Float)
     condition_code = Column(Integer) # OpenMeteo WMO code
     updated_at = Column(DateTime(timezone=True), server_default=func.now())
+
+class ScraperRun(Base):
+    __tablename__ = "scraper_runs"
+    id = Column(Integer, primary_key=True, index=True)
+    started_at = Column(DateTime(timezone=True), server_default=func.now())
+    completed_at = Column(DateTime(timezone=True), nullable=True)
+    duration_seconds = Column(Float, nullable=True)
+    status = Column(String, default="running") # running, completed, failed
+    total_routes = Column(Integer, default=0)
+    routes_scraped = Column(Integer, default=0)
+    routes_skipped = Column(Integer, default=0)
+    routes_failed = Column(Integer, default=0)
+    error_message = Column(Text, nullable=True)

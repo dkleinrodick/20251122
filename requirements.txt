@@ -23,3 +23,6 @@ pytz==2023.3
 
 # Environment
 python-dotenv
+
+# JWT Authentication
+pyjwt==2.8.0

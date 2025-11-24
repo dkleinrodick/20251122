@@ -20,13 +20,15 @@ import httpx
 import re
 
 from app.database import init_db, get_db, engine, Base, SessionLocal
-from app.models import SystemSetting, Proxy, FlightCache, RoutePair, Airport, WeatherData
+from app.models import SystemSetting, Proxy, FlightCache, RoutePair, Airport, WeatherData, ScraperRun
 from app.scraper import ScraperEngine, verify_proxy
 from app.airports_data import AIRPORT_MAPPING, AIRPORTS_LIST
 # Scheduler disabled
 SCRAPER_STATUS = {"status": "disabled"}
 from app.search_logic import find_round_trip_same_day, build_multi_hop_route, get_map_data
 from app.compression import decompress_data
+import jwt
+import os
 
 # Setup logging
 logging.basicConfig(
@@ -38,6 +40,30 @@ logging.getLogger("httpx").setLevel(logging.WARNING)
 logging.getLogger("tzlocal").setLevel(logging.WARNING)
 
 logger = logging.getLogger(__name__)
+
+# JWT Configuration
+JWT_SECRET = os.environ.get("JWT_SECRET", "wildfares-secret-change-in-production")
+JWT_ALGORITHM = "HS256"
+JWT_EXPIRATION_DAYS = 7
+
+def create_access_token(data: dict) -> str:
+    """Create JWT token with expiration"""
+    to_encode = data.copy()
+    expire = datetime.utcnow() + timedelta(days=JWT_EXPIRATION_DAYS)
+    to_encode.update({"exp": expire})
+    return jwt.encode(to_encode, JWT_SECRET, algorithm=JWT_ALGORITHM)
+
+def verify_token(token: str) -> Optional[dict]:
+    """Verify JWT token and return payload"""
+    try:
+        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+        return payload
+    except jwt.ExpiredSignatureError:
+        logger.warning("JWT token expired")
+        return None
+    except jwt.InvalidTokenError:
+        logger.warning("Invalid JWT token")
+        return None
 
 app = FastAPI(title="WildFares")
 
@@ -84,23 +110,39 @@ async def startup_event():
 
     logger.info("Background scheduler disabled for Vercel - using GitHub Actions instead")
 
-async def verify_admin(x_admin_pass: str = Header(None), db: AsyncSession = Depends(get_db)):
+async def verify_admin(
+    authorization: str = Header(None),
+    x_admin_pass: str = Header(None),
+    db: AsyncSession = Depends(get_db)
+):
+    """Verify admin access via JWT token (Authorization header) or password (X-Admin-Pass header)"""
+
+    # Try JWT first (Authorization: Bearer <token>)
+    if authorization and authorization.startswith("Bearer "):
+        token = authorization.replace("Bearer ", "")
+        payload = verify_token(token)
+        if payload and payload.get("admin") is True:
+            return True
+        else:
+            logger.warning("Invalid or expired JWT token")
+            raise HTTPException(status_code=401, detail="Invalid or expired token")
+
+    # Fall back to password auth
     if not x_admin_pass:
-        logger.warning("Verify Admin: Missing Header")
-        raise HTTPException(status_code=401, detail="Missing Admin Password")
-    
+        logger.warning("Verify Admin: Missing credentials")
+        raise HTTPException(status_code=401, detail="Missing Admin Credentials")
+
     try:
         res = await db.execute(select(SystemSetting).where(SystemSetting.key == "admin_password"))
         setting = res.scalar_one_or_none()
-        
+
         # Secure fallback: Use ENV var or fail closed (no access)
-        import os
         stored_pass = setting.value if setting else os.environ.get("ADMIN_PASSWORD")
-        
+
         if not stored_pass:
             logger.warning("Admin password not configured!")
             raise HTTPException(status_code=403, detail="Admin access not configured")
-        
+
         if x_admin_pass != stored_pass:
             logger.warning(f"Verify Admin: Failed. Provided: '{x_admin_pass}' vs Stored: '{stored_pass}'")
             raise HTTPException(status_code=401, detail="Invalid Admin Password")
@@ -477,6 +519,56 @@ async def get_public_config(db: AsyncSession = Depends(get_db)):
     return settings
 
 # Admin API
+@app.post("/api/admin/login")
+async def admin_login(request: Request, db: AsyncSession = Depends(get_db)):
+    """Admin login endpoint - returns JWT token"""
+    data = await request.json()
+    password = data.get("password")
+
+    if not password:
+        raise HTTPException(status_code=400, detail="Password required")
+
+    try:
+        res = await db.execute(select(SystemSetting).where(SystemSetting.key == "admin_password"))
+        setting = res.scalar_one_or_none()
+        stored_pass = setting.value if setting else os.environ.get("ADMIN_PASSWORD")
+
+        if not stored_pass:
+            raise HTTPException(status_code=403, detail="Admin access not configured")
+
+        if password != stored_pass:
+            raise HTTPException(status_code=401, detail="Invalid password")
+
+        # Generate JWT token
+        token = create_access_token({"admin": True})
+        return {"token": token, "expires_in_days": JWT_EXPIRATION_DAYS}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Login error: {e}")
+        raise HTTPException(status_code=500, detail="Login failed")
+
+@app.get("/api/admin/scraper_runs", dependencies=[Depends(verify_admin)])
+async def get_scraper_runs(db: AsyncSession = Depends(get_db)):
+    """Get last 20 scraper runs"""
+    stmt = select(ScraperRun).order_by(ScraperRun.started_at.desc()).limit(20)
+    res = await db.execute(stmt)
+    runs = res.scalars().all()
+
+    return [{
+        "id": run.id,
+        "started_at": run.started_at.isoformat() if run.started_at else None,
+        "completed_at": run.completed_at.isoformat() if run.completed_at else None,
+        "duration_seconds": run.duration_seconds,
+        "status": run.status,
+        "total_routes": run.total_routes,
+        "routes_scraped": run.routes_scraped,
+        "routes_skipped": run.routes_skipped,
+        "routes_failed": run.routes_failed,
+        "error_message": run.error_message
+    } for run in runs]
+
 @app.get("/api/settings", dependencies=[Depends(verify_admin)])
 async def get_settings(db: AsyncSession = Depends(get_db)):
     res = await db.execute(select(SystemSetting))

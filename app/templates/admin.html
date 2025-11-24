@@ -89,7 +89,7 @@
                         <span class="text-xs font-bold text-surface-200 uppercase tracking-wide">Online</span>
                     </div>
                     <div class="text-[10px] text-surface-200 font-mono mb-1">UPTIME: {{ uptimeString }}</div>
-                    <div class="text-[10px] text-surface-400 font-mono mb-3">VERSION: v2.3.0</div>
+                    <div class="text-[10px] text-surface-400 font-mono mb-3">VERSION: v2.4.0</div>
                     <button @click="logout" class="w-full py-2 rounded-lg bg-surface-100 hover:bg-surface-200 text-xs font-bold text-surface-200 hover:text-white transition">Logout</button>
                 </div>
             </div>
@@ -149,6 +149,61 @@
                                     <toggle-switch v-model="settings.scraper_jitter_enabled" label="Scraper Jitter (Stealth)"></toggle-switch>
                                     <div class="pt-4 mt-4 border-t border-surface-100">
                                         <button @click="saveSettings" class="w-full bg-white text-surface-900 font-bold py-3 rounded-xl hover:bg-brand-500 hover:text-white transition">Save Changes</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Scraper Run History -->
+                        <div class="bg-surface-50 rounded-2xl border border-surface-100 p-6">
+                            <div class="flex justify-between items-center mb-4">
+                                <h3 class="text-sm font-bold text-surface-200 uppercase tracking-wider">Scraper Run History</h3>
+                                <button @click="fetchScraperRuns" class="text-xs text-brand-400 hover:text-brand-300 transition"><i class="ph-bold ph-arrows-clockwise"></i> Refresh</button>
+                            </div>
+                            <div class="space-y-2">
+                                <div v-if="scraperRuns.length === 0" class="text-center py-8 text-surface-200 text-sm">
+                                    No scraper runs yet
+                                </div>
+                                <div v-for="run in scraperRuns" :key="run.id" class="bg-surface-900 rounded-xl border border-surface-100 p-4 hover:border-brand-500/30 transition">
+                                    <div class="flex items-start justify-between mb-2">
+                                        <div class="flex items-center gap-2">
+                                            <div class="w-2 h-2 rounded-full" :class="{
+                                                'bg-emerald-500': run.status === 'completed',
+                                                'bg-rose-500': run.status === 'failed',
+                                                'bg-blue-500 animate-pulse': run.status === 'running'
+                                            }"></div>
+                                            <span class="text-xs font-bold text-white">Run #{{ run.id }}</span>
+                                            <span class="text-[10px] text-surface-200 font-mono">{{ formatSmartTime(run.started_at) }}</span>
+                                        </div>
+                                        <div class="flex items-center gap-2">
+                                            <span class="text-xs font-bold px-2 py-1 rounded-lg" :class="{
+                                                'bg-emerald-500/20 text-emerald-400': run.status === 'completed',
+                                                'bg-rose-500/20 text-rose-400': run.status === 'failed',
+                                                'bg-blue-500/20 text-blue-400': run.status === 'running'
+                                            }">{{ run.status.toUpperCase() }}</span>
+                                            <span class="text-[10px] text-surface-200 font-mono">{{ formatDuration(run.duration_seconds) }}</span>
+                                        </div>
+                                    </div>
+                                    <div class="grid grid-cols-4 gap-3 mt-3">
+                                        <div class="text-center">
+                                            <div class="text-xs font-bold text-white">{{ run.total_routes || 0 }}</div>
+                                            <div class="text-[10px] text-surface-200 uppercase">Total</div>
+                                        </div>
+                                        <div class="text-center">
+                                            <div class="text-xs font-bold text-emerald-400">{{ run.routes_scraped || 0 }}</div>
+                                            <div class="text-[10px] text-surface-200 uppercase">Scraped</div>
+                                        </div>
+                                        <div class="text-center">
+                                            <div class="text-xs font-bold text-blue-400">{{ run.routes_skipped || 0 }}</div>
+                                            <div class="text-[10px] text-surface-200 uppercase">Skipped</div>
+                                        </div>
+                                        <div class="text-center">
+                                            <div class="text-xs font-bold text-rose-400">{{ run.routes_failed || 0 }}</div>
+                                            <div class="text-[10px] text-surface-200 uppercase">Failed</div>
+                                        </div>
+                                    </div>
+                                    <div v-if="run.error_message" class="mt-3 text-[10px] text-rose-400 font-mono bg-rose-500/10 rounded-lg p-2 border border-rose-500/20">
+                                        {{ run.error_message }}
                                     </div>
                                 </div>
                             </div>
@@ -653,12 +708,14 @@
                     { id: 'settings', label: 'Settings', icon: 'ph-gear' },
                 ];
 
+                const token = ref(localStorage.getItem('adminToken') || '');
                 const settings = ref({});
                 const proxies = ref([]);
                 const newProxies = ref('');
                 const cacheCount = ref(0);
                 const uptimeSeconds = ref(0);
                 const seatInventory = ref([]);
+                const scraperRuns = ref([]);
                 
                 // Jobs
                 const routeJob = ref({ status: 'idle', message: '' });
@@ -706,12 +763,20 @@
                 });
 
                 // Methods
-                const getHeaders = () => ({ 'X-Admin-Pass': password.value });
-                
+                const getHeaders = () => {
+                    if (token.value) {
+                        return { 'Authorization': `Bearer ${token.value}` };
+                    }
+                    return { 'X-Admin-Pass': password.value };
+                };
+
                 const login = async () => {
                     try {
-                        await axios.get('/api/settings', { headers: { 'X-Admin-Pass': password.value } });
+                        const res = await axios.post('/api/admin/login', { password: password.value });
+                        token.value = res.data.token;
+                        localStorage.setItem('adminToken', token.value);
                         authenticated.value = true;
+                        password.value = ''; // Clear password after successful login
                         fetchData();
                         // Start Loop
                         setInterval(fetchUptime, 30000);
@@ -722,18 +787,47 @@
                     }
                 };
 
-                const logout = () => { authenticated.value = false; password.value = ''; };
+                const checkAuth = async () => {
+                    if (!token.value) return;
+                    try {
+                        await axios.get('/api/settings', { headers: getHeaders() });
+                        authenticated.value = true;
+                        fetchData();
+                        setInterval(fetchUptime, 30000);
+                        fetchUptime();
+                    } catch (e) {
+                        // Token expired or invalid
+                        localStorage.removeItem('adminToken');
+                        token.value = '';
+                    }
+                };
+
+                const logout = () => {
+                    authenticated.value = false;
+                    password.value = '';
+                    token.value = '';
+                    localStorage.removeItem('adminToken');
+                };
 
                 const fetchData = async () => {
                     try {
-                        const [sRes, cRes, pRes] = await Promise.all([
+                        const [sRes, cRes, pRes, rRes] = await Promise.all([
                             axios.get('/api/settings', { headers: getHeaders() }),
                             axios.get('/api/admin/cache_stats', { headers: getHeaders() }),
-                            axios.get('/api/proxies', { headers: getHeaders() })
+                            axios.get('/api/proxies', { headers: getHeaders() }),
+                            axios.get('/api/admin/scraper_runs', { headers: getHeaders() })
                         ]);
                         settings.value = sRes.data;
                         cacheCount.value = cRes.data.total_flights;
                         proxies.value = pRes.data;
+                        scraperRuns.value = rRes.data;
+                    } catch(e) { console.error(e); }
+                };
+
+                const fetchScraperRuns = async () => {
+                    try {
+                        const res = await axios.get('/api/admin/scraper_runs', { headers: getHeaders() });
+                        scraperRuns.value = res.data;
                     } catch(e) { console.error(e); }
                 };
 
@@ -891,6 +985,18 @@
                     return new Date(iso).toLocaleString();
                 };
 
+                const formatDuration = (seconds) => {
+                    if (!seconds) return '-';
+                    const mins = Math.floor(seconds / 60);
+                    const secs = Math.floor(seconds % 60);
+                    return `${mins}m ${secs}s`;
+                };
+
+                // Auto-login on mount
+                onMounted(() => {
+                    checkAuth();
+                });
+
                 return {
                     authenticated, password, login, loginError, logout,
                     activeTab, tabs, currentTabLabel,
@@ -903,7 +1009,8 @@
                     saveSettings,
                     runAutoScraper, updateRoutes, triggerWeatherUpdate, rebootBackend, clearCache, fetchData,
                     newProxies, addProxies, recheckProxies, deleteAllProxies, deleteProxy,
-                    formatSmartTime
+                    formatSmartTime, formatDuration,
+                    scraperRuns, fetchScraperRuns
                 };
             }
         }).mount('#app');
