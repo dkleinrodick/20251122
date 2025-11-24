@@ -979,6 +979,21 @@ async def run_manual_scrape_task(job_id: str):
         JOBS[job_id]["status"] = "failed"
         JOBS[job_id]["message"] = str(e)
 
+@app.post("/api/admin/scrape_route", dependencies=[Depends(verify_admin)])
+async def admin_scrape_route(request: Request, db: AsyncSession = Depends(get_db)):
+    data = await request.json()
+    origin = data.get("origin")
+    destination = data.get("destination")
+    date = data.get("date")
+    
+    if not origin or not destination or not date:
+        raise HTTPException(status_code=400, detail="Missing origin, destination, or date")
+
+    engine = ScraperEngine()
+    # Force refresh ensures we actually hit the airline API
+    result = await engine.perform_search(origin.upper(), destination.upper(), date, db, force_refresh=True)
+    return result
+
 @app.post("/api/admin/run_scraper", dependencies=[Depends(verify_admin)])
 async def trigger_auto_scraper(background_tasks: BackgroundTasks):
     job_id = str(uuid.uuid4())
