@@ -1519,7 +1519,7 @@
             </div>
 
             <!-- Bottom Navigation (Mobile Only) - Moved to root level -->
-            <div v-if="!forceDesktop" class="md:hidden fixed bottom-0 left-0 w-full bg-white/90 backdrop-blur-lg border-t border-slate-200 z-[9999] flex justify-around px-2 shadow-[0_-4px_20px_rgba(0,0,0,0.1)] pb-safe" style="padding-bottom: env(safe-area-inset-bottom, 20px); height: calc(60px + env(safe-area-inset-bottom, 20px));">
+            <div v-if="!forceDesktop" class="md:hidden fixed bottom-0 left-0 w-full bg-white/90 backdrop-blur-lg border-t border-slate-200 z-[9999] flex justify-around px-2 shadow-[0_-4px_20px_rgba(0,0,0,0.1)] pb-safe" style="padding-bottom: env(safe-area-inset-bottom, 32px); height: calc(60px + env(safe-area-inset-bottom, 32px));">
                 <button v-for="tab in tabs" :key="tab.id" 
                     @click="activateAppMode(tab.id)" 
                     class="flex flex-col items-center justify-start pt-3 flex-1 transition-all duration-200 active:scale-95 h-full"
@@ -1591,6 +1591,8 @@
                 };
                 
                 // Config
+                // Default to List view on Mobile, Map on Desktop
+                const exploreView = ref(isMobileUA ? 'list' : 'map');
                 const currentTab = ref('explore');
                 const tabs = [
                     { id: 'explore', label: 'Explore', icon: 'ph-compass', desc: 'Visual Map of Network' },
@@ -1629,7 +1631,6 @@
                 // Results
                 const results = ref([]);
                 const searchExecuted = ref(false);
-                const exploreView = ref('map');
                 const exploreMode = ref('origin'); // 'origin' or 'destination'
                 const allExploreFlights = ref([]);
                 const weatherData = ref({});
