@@ -27,22 +27,20 @@
     <!-- Content Container -->
     <g transform="translate(600, 315)" text-anchor="middle">
         
-        <!-- Logo Icon (Scaled Up) -->
-        <g transform="translate(-80, -140) scale(1.5)">
-            <!-- Plane Path from logo.svg -->
-            <path d="M25 45 L 37.5 70 L 50 45 L 62.5 70 L 75 45" stroke="white" stroke-width="8" fill="none" stroke-linecap="round" stroke-linejoin="round" filter="url(#dropShadow)" />
-            <path d="M75 45 L 90 25" stroke="white" stroke-width="5" stroke-linecap="round" filter="url(#dropShadow)" />
-            <polygon points="90,25 82,28 88,33" fill="white" />
+        <!-- Logo Icon (Scaled Up New Design) -->
+        <g transform="translate(-80, -160) scale(2.5)">
+            <!-- Modern Plane Path -->
+            <path d="M50 24 L82 78 L50 64 L18 78 Z" fill="white" filter="url(#dropShadow)" transform="rotate(45, 50, 50) translate(-2, -2)" />
         </g>
 
         <!-- Main Title -->
-        <text x="0" y="40" font-family="'Inter', sans-serif" font-weight="800" font-size="90" fill="white" filter="url(#dropShadow)">WildFares</text>
+        <text x="0" y="60" font-family="'Inter', sans-serif" font-weight="800" font-size="90" fill="white" filter="url(#dropShadow)">WildFares</text>
         
         <!-- Tagline -->
-        <text x="0" y="110" font-family="'Inter', sans-serif" font-weight="500" font-size="32" fill="#bae6fd" letter-spacing="2">THE UNOFFICIAL GOWILD! COMPANION</text>
+        <text x="0" y="130" font-family="'Inter', sans-serif" font-weight="500" font-size="32" fill="#bae6fd" letter-spacing="2">THE UNOFFICIAL GOWILD! COMPANION</text>
         
         <!-- Badge -->
-        <rect x="-100" y="150" width="200" height="50" rx="25" fill="white" fill-opacity="0.2" stroke="white" stroke-width="2" />
-        <text x="0" y="183" font-family="monospace" font-weight="bold" font-size="24" fill="white">100% FREE</text>
+        <rect x="-100" y="170" width="200" height="50" rx="25" fill="white" fill-opacity="0.2" stroke="white" stroke-width="2" />
+        <text x="0" y="203" font-family="monospace" font-weight="bold" font-size="24" fill="white">100% FREE</text>
     </g>
 </svg>
