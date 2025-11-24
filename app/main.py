@@ -161,6 +161,10 @@ async def read_root(request: Request):
 async def redirect_v2():
     return RedirectResponse(url="/")
 
+@app.get("/v3", response_class=HTMLResponse)
+async def read_v3(request: Request):
+    return templates.TemplateResponse("index_v3.html", {"request": request})
+
 @app.get("/features", response_class=HTMLResponse)
 async def read_features(request: Request):
     return templates.TemplateResponse("marketing.html", {"request": request})
