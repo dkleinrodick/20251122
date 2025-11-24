@@ -153,7 +153,7 @@ async def cleanup_old_runs(session):
 
 async def main():
     logger.info("Starting Cloud Scraper...")
-    start_time = datetime.utcnow()
+    start_time = datetime.now(pytz.utc)
     scraper_run_id = None
 
     # Stats tracking
@@ -199,7 +199,7 @@ async def main():
                 try:
                     last_run = datetime.fromisoformat(last_auto_str)
                     # Use UTC for interval comparison to keep it consistent
-                    if (datetime.utcnow() - last_run).total_seconds() / 60 >= auto_interval:
+                    if (datetime.now(pytz.utc) - last_run).total_seconds() / 60 >= auto_interval:
                         logger.info("Auto Scrape interval reached. Queueing full scrape.")
                         run_full_scrape = True
                 except:
@@ -322,7 +322,7 @@ async def main():
                     res = await update_session.execute(stmt)
                     run = res.scalar_one_or_none()
                     if run:
-                        run.completed_at = datetime.utcnow()
+                        run.completed_at = datetime.now(pytz.utc)
                         run.duration_seconds = (run.completed_at - run.started_at).total_seconds()
                         run.status = "completed"
                         run.total_routes = 0
@@ -378,7 +378,7 @@ async def main():
             async with SessionLocal() as update_session:
                 res = await update_session.execute(select(SystemSetting).where(SystemSetting.key == "last_auto_scrape"))
                 setting = res.scalar_one_or_none()
-                now_iso = datetime.utcnow().isoformat()
+                now_iso = datetime.now(pytz.utc).isoformat()
                 if setting:
                     setting.value = now_iso
                 else:
@@ -393,7 +393,7 @@ async def main():
             res = await update_session.execute(stmt)
             run = res.scalar_one_or_none()
             if run:
-                run.completed_at = datetime.utcnow()
+                run.completed_at = datetime.now(pytz.utc)
                 run.duration_seconds = (run.completed_at - run.started_at).total_seconds()
                 run.status = "completed"
                 run.total_routes = stats["total_routes"]
@@ -414,7 +414,7 @@ async def main():
             res = await update_session.execute(stmt)
             run = res.scalar_one_or_none()
             if run:
-                run.completed_at = datetime.utcnow()
+                run.completed_at = datetime.now(pytz.utc)
                 run.duration_seconds = (run.completed_at - run.started_at).total_seconds()
                 run.status = "failed"
                 run.error_message = str(e)[:500]  # Truncate error message
