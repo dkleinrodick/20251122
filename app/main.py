@@ -161,6 +161,10 @@ async def read_root(request: Request):
 async def read_root_v2(request: Request):
     return templates.TemplateResponse("index_v2.html", {"request": request})
 
+@app.get("/v2", response_class=HTMLResponse)
+async def read_root_v2(request: Request):
+    return templates.TemplateResponse("index_v2.html", {"request": request})
+
 @app.get("/features", response_class=HTMLResponse)
 async def read_features(request: Request):
     return templates.TemplateResponse("marketing.html", {"request": request})
