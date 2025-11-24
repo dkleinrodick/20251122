@@ -238,8 +238,11 @@
 </head>
 <body class="text-slate-800 antialiased min-h-screen flex flex-col">
 
-    <!-- Aggressive Inline Style to hide immediately -->
-    <div id="app" class="flex-grow flex flex-col relative" style="display: none;" :style="{ display: 'flex' }">
+    <div id="app" class="flex-grow flex flex-col relative">
+        <div v-if="!isMounted" class="fixed inset-0 bg-slate-50 z-50 flex items-center justify-center">
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-600"></div>
+        </div>
+        <div v-else class="contents">
         {% raw %}
 
         <!-- Navbar -->
@@ -1512,6 +1515,7 @@
                 </button>
             </div>
         {% endraw %}
+        </div>
     </div>
 
     <script>
@@ -1537,6 +1541,7 @@
             directives: { 'click-outside': clickOutside },
             setup() {
                 // Reactive State
+                const isMounted = ref(false);
                 const loading = ref(false);
                 const error = ref(null);
                 const hasSearched = ref(false);
@@ -2516,9 +2521,13 @@
                     }, 200);
                 };
 
-                onMounted(init);
+                onMounted(() => {
+                    isMounted.value = true;
+                    init();
+                });
 
                 return {
+                    isMounted,
                     loading, error, hasSearched, searchExecuted, mobileMenuOpen, scrolled,
                     currentTab, tabs, search, locations,
                     showOriginDropdown, showDestDropdown, showDateDropdown, filteredOrigins, filteredDests,
