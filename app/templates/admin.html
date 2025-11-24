@@ -390,17 +390,17 @@
                                 <h3 class="text-lg font-bold text-white">Proxies</h3>
                                 <button @click="deleteAllProxies" class="text-xs font-bold text-rose-400 hover:text-rose-300">Delete All</button>
                             </div>
-                            <div class="flex gap-3 mb-4">
-                                <input v-model="newProxies" type="text" placeholder="host:port:user:pass" class="flex-1 bg-surface-900 border border-surface-100 rounded-lg px-3 py-2.5 text-white text-xs font-mono outline-none focus:border-brand-500">
-                                <button @click="addProxies" class="bg-brand-600 text-white font-bold px-4 rounded-lg hover:bg-brand-500 transition">Add</button>
+                            <div class="flex flex-col md:flex-row gap-3 mb-4">
+                                <textarea v-model="newProxies" placeholder="host:port:user:pass (one per line)" class="flex-1 bg-surface-900 border border-surface-100 rounded-lg px-3 py-2.5 text-white text-xs font-mono outline-none focus:border-brand-500 min-h-[80px]"></textarea>
+                                <button @click="addProxies" class="bg-brand-600 text-white font-bold px-6 py-2 rounded-lg hover:bg-brand-500 transition flex items-center justify-center shadow-lg shadow-brand-500/20">Add</button>
                             </div>
-                            <div class="space-y-2 max-h-64 overflow-y-auto custom-scrollbar">
-                                <div v-for="p in proxies" :key="p.id" class="flex justify-between items-center bg-surface-900 p-3 rounded-lg border border-surface-100">
-                                    <div class="flex items-center gap-3">
-                                        <div class="w-2 h-2 rounded-full" :class="p.is_active ? 'bg-emerald-500' : 'bg-rose-500'"></div>
-                                        <span class="text-xs font-mono text-surface-200 truncate max-w-[200px]">{{ p.url }}</span>
+                            <div class="space-y-2 max-h-96 overflow-y-auto custom-scrollbar">
+                                <div v-for="p in proxies" :key="p.id" class="flex justify-between items-start bg-surface-900 p-3 rounded-lg border border-surface-100">
+                                    <div class="flex items-start gap-3 overflow-hidden">
+                                        <div class="w-2 h-2 rounded-full flex-shrink-0 mt-1" :class="p.is_active ? 'bg-emerald-500' : 'bg-rose-500'"></div>
+                                        <span class="text-xs font-mono text-surface-200 break-all">{{ p.url }}</span>
                                     </div>
-                                    <button @click="deleteProxy(p.id)" class="text-surface-200 hover:text-rose-400"><i class="ph-bold ph-trash"></i></button>
+                                    <button @click="deleteProxy(p.id)" class="text-surface-200 hover:text-rose-400 ml-2"><i class="ph-bold ph-trash"></i></button>
                                 </div>
                                 <div v-if="proxies.length === 0" class="text-center text-xs text-surface-200 py-4">No proxies defined.</div>
                             </div>
