@@ -312,21 +312,49 @@ class AsyncScraperEngine:
                         # Let's restrict to '3week' or explicit flag to avoid DB bloat from frequent AutoScraper runs.
                         
                         if mode == '3week':
-                            # Extract summary metrics
+                            # Extract summary metrics for all fare types
+                            lowest_standard = None
                             lowest_gowild = None
+                            lowest_discountden = None
+                            seats_standard = None
                             seats_gowild = None
+                            seats_discountden = None
+
                             for f in flights:
-                                if 'gowild' in f['fares']:
-                                    p = f['fares']['gowild']['price']
-                                    s = f['fares']['gowild']['seats']
-                                    if lowest_gowild is None or (p is not None and p < lowest_gowild):
+                                fares = f.get('fares', {})
+
+                                # Standard fare
+                                if 'standard' in fares:
+                                    p = fares['standard']['price']
+                                    s = fares['standard']['seats']
+                                    if p is not None and (lowest_standard is None or p < lowest_standard):
+                                        lowest_standard = p
+                                        seats_standard = s
+
+                                # GoWild fare
+                                if 'gowild' in fares:
+                                    p = fares['gowild']['price']
+                                    s = fares['gowild']['seats']
+                                    if p is not None and (lowest_gowild is None or p < lowest_gowild):
                                         lowest_gowild = p
-                                        seats_gowild = s # Take seats of cheapest flight
-                            
+                                        seats_gowild = s
+
+                                # Discount Den fare
+                                if 'den' in fares:
+                                    p = fares['den']['price']
+                                    s = fares['den']['seats']
+                                    if p is not None and (lowest_discountden is None or p < lowest_discountden):
+                                        lowest_discountden = p
+                                        seats_discountden = s
+
                             db.add(FareSnapshot(
                                 origin=origin, destination=dest, travel_date=date_str,
+                                min_price_standard=lowest_standard,
                                 min_price_gowild=lowest_gowild,
+                                min_price_discountden=lowest_discountden,
+                                seats_standard=seats_standard,
                                 seats_gowild=seats_gowild,
+                                seats_discountden=seats_discountden,
                                 data=compress_data(flights) # Full blob
                             ))
 

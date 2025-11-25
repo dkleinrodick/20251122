@@ -61,7 +61,10 @@ class FareSnapshot(Base):
     # Summary Metrics (extracted from JSON for easier SQL querying)
     min_price_standard = Column(Float, nullable=True)
     min_price_gowild = Column(Float, nullable=True)
+    min_price_discountden = Column(Float, nullable=True)
+    seats_standard = Column(Integer, nullable=True)
     seats_gowild = Column(Integer, nullable=True)
+    seats_discountden = Column(Integer, nullable=True)
     
     # Full Data Blob
     data = Column(JSON) 
