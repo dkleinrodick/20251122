@@ -62,13 +62,13 @@
     <script src="https://cdn.tailwindcss.com"></script>
     
     <!-- Vue 3 -->
-    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js" crossorigin="anonymous"></script>
     
     <!-- Axios -->
-    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js" crossorigin="anonymous"></script>
     
     <!-- Phosphor Icons -->
-    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web" crossorigin="anonymous"></script>
 
     <!-- Leaflet (Map) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
@@ -471,9 +471,11 @@
                             <div @click="showDateDropdown = !showDateDropdown" 
                                 class="bg-white border border-slate-200 hover:border-brand-300 rounded-2xl flex items-center px-4 py-3.5 relative cursor-pointer transition-all shadow-sm group">
                                 <i class="ph ph-calendar-blank text-slate-400 text-xl mr-3 group-hover:text-brand-500"></i>
-                                <div class="font-bold text-slate-800 flex-1 truncate">
-                                    {{ dateOptions.find(o => o.value === search.date)?.label || 'Select Date' }}<span v-if="search.origin" class="text-brand-500">*</span>
-                                    <span v-if="dateOptions.find(o => o.value === search.date)?.short" class="font-mono font-normal text-slate-400 ml-1">({{ dateOptions.find(o => o.value === search.date)?.short }})</span>
+                                <div class="font-bold text-slate-800 flex-1 truncate"
+                                     :class="blackoutEnabled && blackoutDates.has(search.date) ? 'text-red-700' : ''">
+                                    {{ getDateLabel(search.date) }}<span v-if="search.origin" class="text-brand-500">*</span>
+                                    <span v-if="getDateShort(search.date)" class="font-mono font-normal text-slate-400 ml-1">({{ getDateShort(search.date) }})</span>
+                                    <span v-if="blackoutEnabled && blackoutDates.has(search.date)" class="ml-2 text-[10px] uppercase font-bold bg-red-200 text-red-800 px-1.5 py-0.5 rounded">Blackout</span>
                                 </div>
                                 <i class="ph ph-caret-down text-slate-400 transition-transform duration-300" :class="showDateDropdown ? 'rotate-180' : ''"></i>
                             </div>
@@ -2674,6 +2676,18 @@
                     }
                 });
 
+                const getDateLabel = (val) => {
+                    if (!val || !dateOptions.value) return 'Select Date';
+                    const opt = dateOptions.value.find(o => o.value === val);
+                    return opt ? opt.label : 'Select Date';
+                };
+                
+                const getDateShort = (val) => {
+                    if (!val || !dateOptions.value) return '';
+                    const opt = dateOptions.value.find(o => o.value === val);
+                    return opt ? opt.short : '';
+                };
+
                 const validateInput = (type) => {
                     setTimeout(() => {
                         const val = type === 'origin' ? search.value.origin : search.value.dest;
@@ -2738,6 +2752,7 @@
                     selectedDayTripCity, groupedDayTrips, sortedDayTrips, allExploreFlights, selectedExploreCode, groupedExploreDestinations, 
                     chunkedExploreDestinations, rowHasSelected, getSelectedGroupInRow, sortedBuilderResults, sortedOneWayResults, oneWay,
                     filterAirports, selectAirport, swapAirports, focusDest, validateInput,
+                    getDateLabel, getDateShort,
                     performSearch, performExplore, getLink, formatTime, getDestCode, getDestName,
                     formatDateShort, formatDurationMain, formatDurationSub, bookFlight, getLayoverSummary, formatDecimalHours, formatSliderTime,
                     toFahrenheit, getWeatherIcon: (c) => c >= 50 ? 'ph-cloud-rain' : 'ph-sun',
