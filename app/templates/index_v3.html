@@ -278,16 +278,16 @@
         </nav>
 
         <!-- Hero Header -->
-        <div class="relative w-full transition-all duration-700 ease-out" 
+        <div class="relative w-full transition-all duration-700 ease-out flex flex-col" 
              :class="[
-                 hasSearched ? 'h-[40vh] min-h-[400px]' : 'h-[85vh] min-h-[600px]',
-                 (!forceDesktop && appMode === 'search') ? 'hidden' : '',
-                 (!forceDesktop && appMode === 'landing') ? 'h-screen' : ''
+                 hasSearched ? 'h-[40vh] min-h-[400px]' : 'min-h-screen',
+                 (!forceDesktop && appMode === 'search') ? 'hidden' : ''
              ]">
             <div class="hero-bg"></div>
             <div class="hero-overlay"></div>
 
-            <div class="relative z-10 container mx-auto px-6 h-full flex flex-col justify-center items-center text-center text-white pb-20 md:pb-32">
+            <!-- Hero Content -->
+            <div class="relative z-10 container mx-auto px-6 flex-grow flex flex-col justify-center items-center text-center text-white pt-20">
                 <div v-if="!hasSearched" class="animate-slide-up max-w-4xl">
                     <div class="hidden md:inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/10 border border-white/20 backdrop-blur-md text-brand-200 text-xs font-bold uppercase tracking-widest mb-8 shadow-2xl">
                         <span class="w-2 h-2 rounded-full bg-brand-400 animate-pulse"></span>
@@ -300,11 +300,26 @@
                     <p class="text-lg md:text-xl text-slate-300 max-w-2xl mx-auto leading-relaxed font-light mb-10">
                         Visual search, multi-hop routing, and real-time availability for Frontier's all-you-can-fly pass.
                     </p>
-                    <!-- Mobile Call to Action (Only visible in landing mode) -->
+                    <!-- Mobile Call to Action -->
                     <div v-if="!forceDesktop && appMode === 'landing'" class="md:hidden animate-bounce mt-8 text-brand-200 text-sm font-bold uppercase tracking-widest">
                         Select a mode below to start <i class="ph-bold ph-arrow-down"></i>
                     </div>
                 </div>
+            </div>
+
+            <!-- Landing Footer -->
+            <div v-if="!hasSearched" class="relative z-10 w-full text-center py-8 px-6 pb-32 md:pb-8">
+                <p class="text-[10px] text-slate-400 leading-relaxed max-w-2xl mx-auto font-medium">
+                    WildFares is an independent project and is not affiliated with, endorsed by, or connected to Frontier Airlines, Inc. or the GoWild!™ Pass program. All trademarks are property of their respective owners.
+                    <br><br>
+                    <span class="font-mono text-slate-300">v3.0.4 (Polish)</span>
+                    <span class="mx-2 text-slate-200">|</span>
+                    <a href="/terms" class="hover:text-slate-500 transition">Terms</a>
+                    <span class="mx-1 text-slate-200">•</span>
+                    <a href="/privacy" class="hover:text-slate-500 transition">Privacy</a>
+                    <span class="mx-1 text-slate-200">•</span>
+                    <a href="mailto:David@wildfares.com" class="hover:text-slate-500 transition">Questions/Comments? David@wildfares.com</a>
+                </p>
             </div>
         </div>
 
@@ -317,9 +332,9 @@
             
             <!-- Search Widget -->
             <div v-show="forceDesktop || appMode === 'search'"
-                 class="glass-panel transition-all duration-500 shadow-2xl mb-4 md:mb-0 animate-slide-up"
+                 class="glass-panel shadow-2xl mb-4 md:mb-0 animate-slide-up"
                  :class="[
-                     (!forceDesktop && appMode === 'search') ? 'rounded-none border-x-0 border-b-0' : 'rounded-3xl p-1 max-w-7xl mx-auto',
+                     (!forceDesktop && appMode === 'search') ? 'rounded-none border-x-0 border-b-0' : 'rounded-3xl p-1 max-w-7xl mx-auto transition-all duration-500',
                      (!forceDesktop && appMode === 'search' && !hasSearched) ? 'min-h-0 h-auto' : '',
                      (!forceDesktop && appMode === 'search' && hasSearched) ? 'min-h-[40vh]' : ''
                  ]">
@@ -1520,42 +1535,29 @@
                         </button>
                     </div>
                 </div>
-                            </div>
-                        </div>
-            
-                        <!-- Install App Banner (Mobile Browser Only) -->
-                        <div v-if="showInstallBanner && !forceDesktop" class="fixed bottom-24 left-4 right-4 z-40 bg-slate-900/95 backdrop-blur-md text-white p-4 rounded-2xl shadow-2xl flex items-center justify-between animate-slide-up border border-slate-700 ring-1 ring-white/10">
-                            <div class="flex items-center gap-3">
-                                <div class="bg-brand-500 rounded-xl p-2 shadow-lg shadow-brand-500/20">
-                                    <i class="ph-fill ph-download-simple text-xl"></i>
-                                </div>
-                                <div>
-                                    <div class="text-brand-200 uppercase tracking-wider text-[10px] font-bold mb-0.5">Get the App</div>
-                                    <div class="text-sm font-bold leading-tight">Add to Home Screen</div>
-                                </div>
-                            </div>
-                            <div class="flex items-center gap-3">
-                                <button @click="installApp" class="bg-white text-slate-900 px-4 py-2 rounded-xl text-xs font-bold hover:bg-brand-50 transition shadow-md active:scale-95">Install</button>
-                                <button @click="dismissInstallBanner" class="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-white transition bg-white/5 rounded-full"><i class="ph-bold ph-x"></i></button>
                                             </div>
                                         </div>
                             
-                                        <div v-if="forceDesktop || appMode === 'landing'" class="text-center py-8 px-6">
-                                            <p class="text-[10px] text-slate-400 leading-relaxed max-w-2xl mx-auto font-medium">
-                                                                                                            WildFares is an independent project and is not affiliated with, endorsed by, or connected to Frontier Airlines, Inc. or the GoWild!™ Pass program. All trademarks are property of their respective owners.
-                                                                                                            <br><br>
-                                                                                                            <span class="font-mono text-slate-300" @click="alert('Blackout Debug:\nEnabled: ' + blackoutEnabled + '\nSize: ' + blackoutDates.size + '\nMessage: ' + blackoutMessage + '\nPopup: ' + showBlackoutPopup)">v3.0.2 (Debug)</span>
-                                                                                                            <span class="mx-2 text-slate-200">|</span>
-                                                                                                            <a href="/terms" class="hover:text-slate-500 transition">Terms</a>                                                <span class="mx-1 text-slate-200">•</span>
-                                                <a href="/privacy" class="hover:text-slate-500 transition">Privacy</a>
-                                                <span class="mx-1 text-slate-200">•</span>
-                                                <a href="mailto:David@wildfares.com" class="hover:text-slate-500 transition">Questions/Comments? David@wildfares.com</a>
-                                            </p>
+                                        <!-- Install App Banner (Mobile Browser Only) -->
+                                        <div v-if="showInstallBanner && !forceDesktop" class="fixed bottom-24 left-4 right-4 z-40 bg-slate-900/95 backdrop-blur-md text-white p-4 rounded-2xl shadow-2xl flex items-center justify-between animate-slide-up border border-slate-700 ring-1 ring-white/10">
+                                            <div class="flex items-center gap-3">
+                                                <div class="bg-brand-500 rounded-xl p-2 shadow-lg shadow-brand-500/20">
+                                                    <i class="ph-fill ph-download-simple text-xl"></i>
+                                                </div>
+                                                <div>
+                                                    <div class="text-brand-200 uppercase tracking-wider text-[10px] font-bold mb-0.5">Get the App</div>
+                                                    <div class="text-sm font-bold leading-tight">Add to Home Screen</div>
+                                                </div>
+                                            </div>
+                                            <div class="flex items-center gap-3">
+                                                <button @click="installApp" class="bg-white text-slate-900 px-4 py-2 rounded-xl text-xs font-bold hover:bg-brand-50 transition shadow-md active:scale-95">Install</button>
+                                                <button @click="dismissInstallBanner" class="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-white transition bg-white/5 rounded-full"><i class="ph-bold ph-x"></i></button>
+                                            </div>
                                         </div>
-
-            <!-- Bottom Navigation (Mobile Only) - Moved to root level -->
-            <div v-if="!forceDesktop" class="md:hidden fixed bottom-0 left-0 w-full bg-white/90 backdrop-blur-lg border-t border-slate-200 z-[9999] flex justify-around px-2 shadow-[0_-4px_20px_rgba(0,0,0,0.1)] pb-safe" style="padding-bottom: max(env(safe-area-inset-bottom), 20px); height: auto; min-height: 80px;">
-                <button v-for="tab in tabs" :key="tab.id" 
+                            
+                                        <!-- Bottom Navigation (Mobile Only) - Moved to root level -->
+                                        <div v-if="!forceDesktop" class="md:hidden fixed bottom-0 left-0 w-full bg-white/90 backdrop-blur-lg border-t border-slate-200 z-[9999] flex justify-around px-2 shadow-[0_-4px_20px_rgba(0,0,0,0.1)] pb-safe" style="padding-bottom: max(env(safe-area-inset-bottom), 20px); height: auto; min-height: 80px;">
+                                            <button v-for="tab in tabs" :key="tab.id" 
                     @click="activateAppMode(tab.id)" 
                     class="flex flex-col items-center justify-start pt-3 flex-1 transition-all duration-200 active:scale-95"
                     :class="currentTab === tab.id ? 'text-brand-600' : 'text-slate-400'">
