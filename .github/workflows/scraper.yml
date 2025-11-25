@@ -2,8 +2,10 @@ name: WildFares Auto Scraper
 
 on:
   schedule:
-    # Run every 15 minutes to catch midnight windows and check auto-scrape interval
-    - cron: '*/15 * * * *'
+    # High Frequency (Every 5 mins) during US Midnight hours (approx 03:00 - 09:00 UTC)
+    - cron: '*/5 3-9 * * *'
+    # Standard Frequency (Every 15 mins) for the rest of the day
+    - cron: '*/15 0-2,10-23 * * *'
   workflow_dispatch:
     # Manual trigger available in GitHub Actions UI
 
