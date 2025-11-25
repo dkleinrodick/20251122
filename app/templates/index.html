@@ -307,10 +307,10 @@
                 </div>
             </div>
 
-            <!-- Landing Footer -->
-            <div v-if="!hasSearched" class="relative z-10 w-full text-center py-8 px-6 pb-32 md:pb-8">
+            <!-- Landing Footer (Mobile Only) -->
+            <div v-if="!forceDesktop && appMode === 'landing' && !hasSearched" class="relative z-10 w-full text-center py-8 px-6 pb-32 md:pb-8">
                 <p class="text-[10px] text-slate-400 leading-relaxed max-w-2xl mx-auto font-medium">
-                    WildFares is an independent project and is not affiliated with, endorsed by, or connected to Frontier Airlines, Inc. or the GoWild!™ Pass program. All trademarks are property of their respective owners.
+                    WildFares is an independent project and is not affiliated with, endorsed by, or connected to Frontier Airlines, Inc. or the GoWild!™ Pass program. All trademarks are property of their respective owners. Use at your own risk.
                     <br><br>
                     <span class="font-mono text-slate-300">v3.0.5</span>
                     <span class="mx-2 text-slate-200">|</span>
@@ -1532,7 +1532,22 @@
                                             </div>
                                         </div>
                             
-                                        <!-- Install App Banner (Mobile Browser Only) -->
+                                        <!-- Page Footer (Desktop / Results) -->
+            <div v-if="forceDesktop || hasSearched" class="text-center py-8 px-6">
+                <p class="text-[10px] text-slate-400 leading-relaxed max-w-2xl mx-auto font-medium">
+                    WildFares is an independent project and is not affiliated with, endorsed by, or connected to Frontier Airlines, Inc. or the GoWild!™ Pass program. All trademarks are property of their respective owners. Use at your own risk.
+                    <br><br>
+                    <span class="font-mono text-slate-300">v3.0.5</span>
+                    <span class="mx-2 text-slate-200">|</span>
+                    <a href="/terms" class="hover:text-slate-500 transition">Terms</a>
+                    <span class="mx-1 text-slate-200">•</span>
+                    <a href="/privacy" class="hover:text-slate-500 transition">Privacy</a>
+                    <span class="mx-1 text-slate-200">•</span>
+                    <a href="mailto:David@wildfares.com" class="hover:text-slate-500 transition">Questions/Comments? David@wildfares.com</a>
+                </p>
+            </div>
+
+            <!-- Install App Banner (Mobile Browser Only) -->
                                         <div v-if="showInstallBanner && !forceDesktop" class="fixed bottom-24 left-4 right-4 z-40 bg-slate-900/95 backdrop-blur-md text-white p-4 rounded-2xl shadow-2xl flex items-center justify-between animate-slide-up border border-slate-700 ring-1 ring-white/10">
                                             <div class="flex items-center gap-3">
                                                 <div class="bg-brand-500 rounded-xl p-2 shadow-lg shadow-brand-500/20">
