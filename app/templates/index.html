@@ -254,9 +254,10 @@
                 </div>
                 
                 <!-- Desktop Links -->
-                <div class="hidden md:flex items-center gap-8 text-sm font-semibold text-white/90">
-                    <a href="/features" class="hover:text-brand-300 transition">Features</a>
-                    
+                <div class="hidden md:flex items-center gap-6 text-sm font-semibold text-white/90">
+                    <a href="/" class="hover:text-brand-300 transition">Home</a>
+                    <a href="/settings" class="hover:text-brand-300 transition">Settings</a>
+                    <button onclick="logout()" class="bg-white/10 hover:bg-white/20 px-4 py-2 rounded-lg transition backdrop-blur-md">Logout</button>
                 </div>
 
                 <!-- Mobile Toggle -->
@@ -268,7 +269,9 @@
             <!-- Mobile Menu -->
             <div v-if="mobileMenuOpen" class="absolute top-full left-0 w-full bg-brand-950 border-t border-brand-800 shadow-2xl animate-fade-in md:hidden" style="z-index: 1000;">
                 <div class="flex flex-col p-6 space-y-4">
-                    <a href="/features" class="text-brand-100 font-bold text-lg py-2 px-4 rounded-lg hover:bg-white/5">Features</a>
+                    <a href="/" class="text-brand-100 font-bold text-lg py-2 px-4 rounded-lg hover:bg-white/5">Home</a>
+                    <a href="/settings" class="text-brand-100 font-bold text-lg py-2 px-4 rounded-lg hover:bg-white/5">Settings</a>
+                    <button onclick="logout()" class="text-left text-red-400 font-bold text-lg py-2 px-4 rounded-lg hover:bg-white/5">Logout</button>
                     <button @click="toggleDesktopMode" class="text-left text-brand-100 font-bold text-lg py-2 px-4 rounded-lg hover:bg-white/5 flex items-center gap-2">
                         <i :class="forceDesktop ? 'ph-device-mobile' : 'ph-desktop'" class="ph"></i>
                         {{ forceDesktop ? 'Switch to Mobile View' : 'Request Desktop Site' }}
@@ -1581,6 +1584,7 @@
     </div>
 
     <script>
+        const fallbackBlackout = ["2025-01-01", "2025-01-04", "2025-01-05", "2025-01-16", "2025-01-17", "2025-01-20", "2025-02-13", "2025-02-14", "2025-02-17", "2025-03-14", "2025-03-15", "2025-03-16", "2025-03-21", "2025-03-22", "2025-03-23", "2025-03-28", "2025-03-29", "2025-03-30", "2025-04-04", "2025-04-05", "2025-04-06", "2025-04-11", "2025-04-12", "2025-04-13", "2025-04-18", "2025-04-19", "2025-04-20", "2025-04-21", "2025-05-22", "2025-05-23", "2025-05-26", "2025-06-22", "2025-06-26", "2025-06-27", "2025-06-28", "2025-06-29", "2025-07-03", "2025-07-04", "2025-07-05", "2025-07-06", "2025-07-07", "2025-08-28", "2025-08-29", "2025-09-01", "2025-10-09", "2025-10-10", "2025-10-12", "2025-10-13", "2025-11-25", "2025-11-26", "2025-11-29", "2025-11-30", "2025-12-01", "2025-12-20", "2025-12-21", "2025-12-22", "2025-12-23", "2025-12-26", "2025-12-27", "2025-12-28", "2025-12-29", "2025-12-30", "2025-12-31"];
         const { createApp, ref, computed, watch, onMounted, nextTick } = Vue;
 
         const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
@@ -2775,6 +2779,14 @@
                 };
             }
         }).mount('#app');
+    </script>
+    <script>
+        async function logout() {
+            try {
+                const response = await fetch('/auth/jwt/logout', { method: 'POST' });
+                if (response.ok) window.location.href = '/';
+            } catch (error) { console.error('Logout failed', error); }
+        }
     </script>
 </body>
 </html>

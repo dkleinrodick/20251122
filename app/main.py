@@ -30,6 +30,13 @@ from app.compression import decompress_data
 import jwt
 import os
 
+from app.auth import fastapi_users, current_active_user, get_user_manager, auth_backend, User # Import User for type hinting
+from app.schemas import UserRead, UserCreate, UserUpdate # Will define app.schemas later
+from app.jobs import AutoScraper, MidnightScraper, ThreeWeekScraper
+from app.route_scraper import RouteScraper
+from app.weather_scraper import WeatherScraper
+from app.scheduler_logic import SchedulerLogic
+
 # Setup logging
 logging.basicConfig(
     level=logging.INFO,
@@ -41,7 +48,7 @@ logging.getLogger("tzlocal").setLevel(logging.WARNING)
 
 logger = logging.getLogger(__name__)
 
-# JWT Configuration
+# JWT Configuration (for Admin) - will coexist with FastAPI Users
 JWT_SECRET = os.environ.get("JWT_SECRET", "wildfares-secret-change-in-production")
 JWT_ALGORITHM = "HS256"
 JWT_EXPIRATION_DAYS = 7
@@ -67,6 +74,33 @@ def verify_token(token: str) -> Optional[dict]:
 
 app = FastAPI(title="WildFares")
 
+# Mount FastAPI Users authentication and management routers
+app.include_router(
+    fastapi_users.get_auth_router(auth_backend),
+    prefix="/auth/jwt",
+    tags=["auth"],
+)
+app.include_router(
+    fastapi_users.get_register_router(UserRead, UserCreate),
+    prefix="/auth",
+    tags=["auth"],
+)
+app.include_router(
+    fastapi_users.get_verify_router(UserRead),
+    prefix="/auth",
+    tags=["auth"],
+)
+app.include_router(
+    fastapi_users.get_reset_password_router(),
+    prefix="/auth",
+    tags=["auth"],
+)
+app.include_router(
+    fastapi_users.get_users_router(UserRead, UserUpdate),
+    prefix="/users",
+    tags=["users"],
+)
+
 # Static files disabled for serverless - use CDN or public folder instead
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 templates = Jinja2Templates(directory="app/templates")
@@ -80,6 +114,9 @@ async def startup_event():
     """Lightweight startup for serverless - with essential seeding."""
     global STARTUP_TIME
     STARTUP_TIME = datetime.utcnow()
+
+    # Ensure all tables are created, including the new 'users' table.
+    await init_db()
 
     try:
         async with SessionLocal() as session:
@@ -164,12 +201,24 @@ async def verify_admin(
         raise HTTPException(status_code=500, detail=f"Database Auth Error: {str(e)}")
 
 @app.get("/", response_class=HTMLResponse)
-async def read_root(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
-
-@app.get("/features", response_class=HTMLResponse)
-async def read_features(request: Request):
+async def read_marketing_root(request: Request):
     return templates.TemplateResponse("marketing.html", {"request": request})
+
+@app.get("/app", response_class=HTMLResponse)
+async def read_app_homepage(request: Request, user: User = Depends(current_active_user)):
+    return templates.TemplateResponse("index.html", {"request": request, "user": user})
+
+@app.get("/login", response_class=HTMLResponse)
+async def login_page(request: Request):
+    return templates.TemplateResponse("login.html", {"request": request})
+
+@app.get("/register", response_class=HTMLResponse)
+async def register_page(request: Request):
+    return templates.TemplateResponse("register.html", {"request": request})
+
+@app.get("/settings", response_class=HTMLResponse)
+async def settings_page(request: Request, user: User = Depends(current_active_user)):
+    return templates.TemplateResponse("settings.html", {"request": request, "user": user})
 
 @app.get("/terms", response_class=HTMLResponse)
 async def read_terms(request: Request):
@@ -181,7 +230,7 @@ async def read_privacy(request: Request):
 
 @app.get("/admin", response_class=HTMLResponse)
 async def read_admin(request: Request):
-    return templates.TemplateResponse("admin.html", {"request": request})
+    return templates.TemplateResponse("admin_v2.html", {"request": request})
 
 @app.get("/sitemap.xml", response_class=HTMLResponse)
 async def get_sitemap():
@@ -372,7 +421,18 @@ async def get_routes(db: AsyncSession = Depends(get_db)):
     return routes
 
 @app.get("/api/search")
-async def search_route(origin: str, destination: str, date: str, force_refresh: bool = False, db: AsyncSession = Depends(get_db)):
+async def search_route(origin: str, destination: str, date: str, force_refresh: bool = False, db: AsyncSession = Depends(get_db), user: User = Depends(current_active_user)):
+    # Check if the user is the demo user
+    if user.email == "demo@example.com":
+        with open("app/dummy_data.json", "r") as f:
+            dummy_flights = json.load(f)
+        # Filter dummy data if needed, or return all
+        filtered_dummy_flights = [
+            f for f in dummy_flights
+            if f["origin"] == origin.upper() and f["destination"] == destination.upper()
+        ]
+        return filtered_dummy_flights
+
     engine = ScraperEngine()
     
     # Check mode
@@ -1257,6 +1317,30 @@ async def delete_weather_data_date(date_str: str, db: AsyncSession = Depends(get
     await db.execute(delete(WeatherData).where(WeatherData.date == date_str))
     await db.commit()
     return {"status": "deleted"}
+
+@app.post("/api/admin/heartbeat", dependencies=[Depends(verify_admin)])
+async def trigger_heartbeat(background_tasks: BackgroundTasks):
+    scheduler = SchedulerLogic()
+    await scheduler.run_heartbeat(background_tasks)
+    return {"status": "heartbeat_processed"}
+
+@app.post("/api/admin/jobs/{job_name}", dependencies=[Depends(verify_admin)])
+async def trigger_job(job_name: str, background_tasks: BackgroundTasks):
+    if job_name == "auto":
+        job = AutoScraper()
+    elif job_name == "midnight":
+        job = MidnightScraper()
+    elif job_name == "3week":
+        job = ThreeWeekScraper()
+    elif job_name == "route_sync":
+        job = RouteScraper()
+    elif job_name == "weather":
+        job = WeatherScraper()
+    else:
+        raise HTTPException(404, "Job not found")
+        
+    background_tasks.add_task(job.run)
+    return {"status": "started", "job": job_name}
 
 @app.get("/api/admin/seat_inventory", dependencies=[Depends(verify_admin)])
 async def get_seat_inventory(db: AsyncSession = Depends(get_db)):

@@ -1,0 +1,418 @@
+{% extends "base.html" %}
+
+{% block title %}Admin V2 - WildFares{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-slate-50 pt-20 pb-12" id="admin-app">
+    <div class="px-6">
+        <div class="flex justify-between items-center mb-8">
+            <h1 class="text-3xl font-bold text-slate-900 font-display">Admin Control Center</h1>
+            <div class="flex items-center gap-4">
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-400" v-if="lastHeartbeat">Heartbeat: [[ formatTime(lastHeartbeat) ]]</span>
+                <button @click="fetchData" class="bg-white border border-slate-200 text-slate-600 hover:text-brand-600 px-4 py-2 rounded-lg shadow-sm font-bold text-sm transition flex items-center gap-2">
+                    <i class="ph-bold ph-arrows-clockwise" :class="{'animate-spin': loading}"></i> Refresh
+                </button>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="flex gap-2 mb-8 border-b border-slate-200 overflow-x-auto">
+            <button v-for="tab in tabs" :key="tab.id" @click="currentTab = tab.id"
+                :class="currentTab === tab.id ? 'border-brand-500 text-brand-700 bg-brand-50/50' : 'border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-100'"
+                class="px-6 py-3 border-b-2 font-bold text-sm transition whitespace-nowrap flex items-center gap-2">
+                <i :class="['ph-bold', tab.icon]"></i> [[ tab.name ]]
+            </button>
+        </div>
+
+        <!-- DASHBOARD TAB -->
+        <div v-if="currentTab === 'dashboard'" class="animate-fade-in">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                    <div class="text-slate-400 text-xs font-bold uppercase mb-1">Active Proxies</div>
+                    <div class="text-3xl font-bold text-slate-900">[[ stats.proxies || 0 ]]</div>
+                </div>
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                    <div class="text-slate-400 text-xs font-bold uppercase mb-1">Cached Flights</div>
+                    <div class="text-3xl font-bold text-slate-900">[[ stats.flights || 0 ]]</div>
+                </div>
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                    <div class="text-slate-400 text-xs font-bold uppercase mb-1">Active Routes</div>
+                    <div class="text-3xl font-bold text-slate-900">[[ stats.routes || 0 ]]</div>
+                </div>
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                    <div class="text-slate-400 text-xs font-bold uppercase mb-1">Total Users</div>
+                    <div class="text-3xl font-bold text-slate-900">[[ stats.users || 0 ]]</div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+                <div class="p-6 border-b border-slate-50 bg-slate-50/30 flex justify-between items-center">
+                    <h3 class="font-bold text-slate-800">Recent Scraper Runs</h3>
+                    <button @click="fetchRuns" class="text-xs font-bold text-brand-600 hover:underline">Reload Logs</button>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm">
+                        <thead class="bg-slate-50 text-slate-500 font-bold uppercase text-xs">
+                            <tr>
+                                <th class="px-6 py-3">Job</th>
+                                <th class="px-6 py-3">Status</th>
+                                <th class="px-6 py-3">Duration</th>
+                                <th class="px-6 py-3">Scraped</th>
+                                <th class="px-6 py-3">Started</th>
+                                <th class="px-6 py-3">Message</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                            <tr v-for="run in recentRuns" :key="run.id" class="hover:bg-slate-50/50 transition">
+                                <td class="px-6 py-3 font-bold text-slate-700">[[ run.error_message && run.error_message.includes('Scraper') ? run.error_message : 'Unknown' ]]</td>
+                                <td class="px-6 py-3">
+                                    <span :class="getStatusColor(run.status)" class="px-2 py-1 rounded text-[10px] font-bold uppercase">[[ run.status ]]</span>
+                                </td>
+                                <td class="px-6 py-3 font-mono text-slate-500">[[ run.duration_seconds ? run.duration_seconds.toFixed(1) + 's' : '-' ]]</td>
+                                <td class="px-6 py-3 font-mono">
+                                    <span class="text-green-600">[[ run.routes_scraped ]]</span> / <span class="text-slate-400">[[ run.total_routes ]]</span>
+                                </td>
+                                <td class="px-6 py-3 text-slate-500">[[ formatTime(run.started_at) ]]</td>
+                                <td class="px-6 py-3 text-slate-400 italic truncate max-w-xs">[[ run.error_message ]]</td>
+                            </tr>
+                            <tr v-if="recentRuns.length === 0">
+                                <td colspan="6" class="px-6 py-8 text-center text-slate-400 italic">No logs found.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- SCRAPERS TAB -->
+        <div v-if="currentTab === 'scrapers'" class="animate-fade-in grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+            <div v-for="job in jobs" :key="job.key" class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
+                <div class="flex justify-between items-start mb-4">
+                    <div>
+                        <h3 class="font-bold text-lg text-slate-900">[[ job.name ]]</h3>
+                        <p class="text-xs text-slate-400">[[ job.desc ]]</p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <div :class="job.enabled ? 'bg-green-500' : 'bg-slate-300'" class="w-3 h-3 rounded-full"></div>
+                    </div>
+                </div>
+                
+                <div class="space-y-3 mb-6">
+                    <div class="flex justify-between text-sm">
+                        <span class="text-slate-500">Schedule</span>
+                        <span class="font-mono font-bold text-slate-700">[[ job.schedule ]]</span>
+                    </div>
+                    <div class="flex justify-between text-sm">
+                        <span class="text-slate-500">Last Run</span>
+                        <span class="font-mono text-xs text-slate-600">[[ formatTime(job.lastRun) || 'Never' ]]</span>
+                    </div>
+                </div>
+
+                <div class="flex gap-3">
+                    <button @click="triggerJob(job.key)" :disabled="job.loading" 
+                        class="flex-1 bg-brand-600 hover:bg-brand-700 text-white font-bold py-2 rounded-lg text-sm transition shadow-md active:scale-95 disabled:opacity-50 flex justify-center items-center gap-2">
+                        <i class="ph-bold ph-play" v-if="!job.loading"></i>
+                        <i class="ph-bold ph-spinner animate-spin" v-else></i>
+                        Run Now
+                    </button>
+                    <!-- Toggle Config logic could go here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- PROXIES TAB -->
+        <div v-if="currentTab === 'proxies'" class="animate-fade-in">
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 mb-6">
+                <h3 class="font-bold text-lg text-slate-900 mb-4">Add Proxies</h3>
+                <textarea v-model="proxyInput" placeholder="protocol://user:pass@host:port (one per line)" class="w-full h-32 bg-slate-50 border border-slate-200 rounded-xl p-4 font-mono text-xs mb-4 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none"></textarea>
+                <div class="flex justify-end gap-3">
+                    <button @click="recheckProxies" class="px-4 py-2 border border-slate-200 text-slate-600 font-bold text-sm rounded-lg hover:bg-slate-50 transition">Recheck All</button>
+                    <button @click="deleteAllProxies" class="px-4 py-2 border border-red-100 text-red-600 font-bold text-sm rounded-lg hover:bg-red-50 transition">Delete All</button>
+                    <button @click="addProxies" class="px-6 py-2 bg-brand-600 text-white font-bold text-sm rounded-lg hover:bg-brand-700 transition shadow-md">Add Proxies</button>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+                <table class="w-full text-left text-sm">
+                    <thead class="bg-slate-50 text-slate-500 font-bold uppercase text-xs">
+                        <tr>
+                            <th class="px-6 py-3">ID</th>
+                            <th class="px-6 py-3">URL</th>
+                            <th class="px-6 py-3">Status</th>
+                            <th class="px-6 py-3">Last Checked</th>
+                            <th class="px-6 py-3">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        <tr v-for="p in proxies" :key="p.id" class="hover:bg-slate-50/50">
+                            <td class="px-6 py-3 font-mono text-xs text-slate-400">#[[ p.id ]]</td>
+                            <td class="px-6 py-3 font-mono text-xs text-slate-700 truncate max-w-md">[[ p.url ]]</td>
+                            <td class="px-6 py-3">
+                                <span v-if="p.is_active" class="text-green-600 font-bold text-xs bg-green-50 px-2 py-1 rounded">Active</span>
+                                <span v-else class="text-red-600 font-bold text-xs bg-red-50 px-2 py-1 rounded">Dead</span>
+                            </td>
+                            <td class="px-6 py-3 text-xs text-slate-500">[[ formatTime(p.last_checked) ]]</td>
+                            <td class="px-6 py-3">
+                                <button @click="deleteProxy(p.id)" class="text-red-400 hover:text-red-600"><i class="ph-bold ph-trash"></i></button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- SETTINGS TAB -->
+        <div v-if="currentTab === 'settings'" class="animate-fade-in max-w-4xl mx-auto">
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+                <div class="p-8 space-y-8">
+                    
+                    <!-- Scraper Config -->
+                    <div>
+                        <h3 class="font-bold text-lg text-slate-900 mb-4 border-b border-slate-100 pb-2">Scraper Configuration</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Worker Count</label>
+                                <input type="number" v-model="settings.scraper_worker_count" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Timeout (sec)</label>
+                                <input type="number" v-model="settings.scraper_timeout" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Jitter Min (sec)</label>
+                                <input type="number" step="0.1" v-model="settings.scraper_jitter_min" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Jitter Max (sec)</label>
+                                <input type="number" step="0.1" v-model="settings.scraper_jitter_max" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2">
+                            </div>
+                            <div class="md:col-span-2">
+                                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">User Agent</label>
+                                <input type="text" v-model="settings.scraper_user_agent" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 font-mono text-xs">
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <input type="checkbox" id="proxy_enabled" v-model="settings.scraper_proxy_enabled" class="w-5 h-5 text-brand-600 rounded">
+                                <label for="proxy_enabled" class="font-bold text-slate-700">Enable Proxies</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Scheduling -->
+                    <div>
+                        <h3 class="font-bold text-lg text-slate-900 mb-4 border-b border-slate-100 pb-2">Scheduling</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Auto Scraper Interval (mins)</label>
+                                <input type="number" v-model="settings.schedule_auto_interval" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Stale Threshold (mins)</label>
+                                <input type="number" v-model="settings.scraper_stale_minutes" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Weather Run Time (UTC)</label>
+                                <input type="time" v-model="settings.schedule_weather_time" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">3-Week Run Time (UTC)</label>
+                                <input type="time" v-model="settings.schedule_3week_time" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Frontend -->
+                    <div>
+                        <h3 class="font-bold text-lg text-slate-900 mb-4 border-b border-slate-100 pb-2">Frontend</h3>
+                        <div class="space-y-4">
+                            <div class="flex items-center gap-3">
+                                <input type="checkbox" id="blackout_enabled" v-model="settings.blackout_dates_enabled" class="w-5 h-5 text-brand-600 rounded">
+                                <label for="blackout_enabled" class="font-bold text-slate-700">Show Blackout Warnings</label>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Blackout Dates (JSON List)</label>
+                                <textarea v-model="settings.blackout_dates" class="w-full h-24 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 font-mono text-xs"></textarea>
+                            </div>
+                             <div class="flex items-center gap-3">
+                                <input type="checkbox" id="announcement_enabled" v-model="settings.announcement_enabled" class="w-5 h-5 text-brand-600 rounded">
+                                <label for="announcement_enabled" class="font-bold text-slate-700">Enable Announcement Popup</label>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Announcement HTML</label>
+                                <textarea v-model="settings.announcement_html" class="w-full h-24 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 font-mono text-xs"></textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-end pt-4 border-t border-slate-100">
+                        <button @click="saveSettings" class="bg-brand-600 hover:bg-brand-700 text-white font-bold py-3 px-8 rounded-xl shadow-lg shadow-brand-600/20 transition transform active:scale-95 flex items-center gap-2">
+                            <i class="ph-bold ph-floppy-disk"></i> Save Configuration
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+const { createApp, ref, onMounted } = Vue;
+
+createApp({
+    delimiters: ['[[', ']]'],
+    setup() {
+        const tabs = [
+            { id: 'dashboard', name: 'Dashboard', icon: 'ph-gauge' },
+            { id: 'scrapers', name: 'Scraper Jobs', icon: 'ph-robot' },
+            { id: 'proxies', name: 'Proxies', icon: 'ph-shield-check' },
+            { id: 'data', name: 'Data Explorer', icon: 'ph-database' },
+            { id: 'settings', name: 'Settings', icon: 'ph-gear' },
+        ];
+        const currentTab = ref('dashboard');
+        const loading = ref(false);
+        const stats = ref({});
+        const recentRuns = ref([]);
+        const proxies = ref([]);
+        const proxyInput = ref('');
+        const settings = ref({});
+        const lastHeartbeat = ref(null); // Placeholder
+        
+        const jobs = ref([
+            { key: 'auto', name: 'AutoScraper', desc: 'Maintains cache for near-term flights.', schedule: 'Every 30m', enabled: true, lastRun: null, loading: false },
+            { key: 'midnight', name: 'MidnightScraper', desc: 'Catches inventory drops at midnight.', schedule: 'Every 15m', enabled: true, lastRun: null, loading: false },
+            { key: '3week', name: '3-Week Scraper', desc: 'Deep scan for analytics.', schedule: 'Daily', enabled: true, lastRun: null, loading: false },
+            { key: 'route_sync', name: 'Route Sync', desc: 'Discovers new routes.', schedule: 'Weekly', enabled: true, lastRun: null, loading: false },
+            { key: 'weather', name: 'Weather Scraper', desc: 'Updates forecasts.', schedule: 'Daily', enabled: true, lastRun: null, loading: false },
+        ]);
+
+        // -- API Helpers --
+        const getHeaders = () => {
+            // Rely on Cookie Auth via Base HTML flow
+            return { 'Content-Type': 'application/json' };
+        };
+
+        const fetchData = async () => {
+            loading.value = true;
+            try {
+                // 1. Dashboard Stats (Needs new endpoint or aggregate)
+                // For now, we mock or reuse existing if available.
+                // We'll implement a specific /api/admin/stats endpoint next.
+                const s = await (await fetch('/api/admin/cache_stats')).json();
+                stats.value.flights = s.total_flights; 
+                // We need more stats in backend
+                
+                await fetchRuns();
+                if (currentTab.value === 'proxies') await fetchProxies();
+                if (currentTab.value === 'settings') await fetchSettings();
+            } catch (e) { console.error(e); }
+            finally { loading.value = false; }
+        };
+
+        const fetchRuns = async () => {
+            try {
+                const res = await fetch('/api/admin/scraper_runs');
+                recentRuns.value = await res.json();
+            } catch (e) {}
+        };
+
+        const fetchProxies = async () => {
+            try {
+                const res = await fetch('/api/proxies');
+                proxies.value = await res.json();
+            } catch (e) {}
+        };
+        
+        const addProxies = async () => {
+            if(!proxyInput.value) return;
+            try {
+                await fetch('/api/proxies', {
+                    method: 'POST',
+                    headers: getHeaders(),
+                    body: JSON.stringify({ proxies: proxyInput.value })
+                });
+                proxyInput.value = '';
+                await fetchProxies();
+            } catch (e) { alert('Failed'); }
+        };
+        
+        const deleteProxy = async (id) => {
+            if(!confirm('Delete?')) return;
+            await fetch(`/api/proxies/${id}`, { method: 'DELETE' });
+            await fetchProxies();
+        };
+        
+        const deleteAllProxies = async () => {
+            if(!confirm('Delete ALL proxies?')) return;
+            await fetch(`/api/proxies`, { method: 'DELETE' });
+            await fetchProxies();
+        };
+
+        const recheckProxies = async () => {
+            await fetch('/api/proxies/recheck', { method: 'POST' });
+            alert('Recheck queued.');
+        };
+
+        const fetchSettings = async () => {
+            try {
+                const res = await fetch('/api/settings');
+                const data = await res.json();
+                // Convert bool strings to bools for checkboxes
+                if(data.scraper_proxy_enabled) data.scraper_proxy_enabled = data.scraper_proxy_enabled === 'true';
+                if(data.blackout_dates_enabled) data.blackout_dates_enabled = data.blackout_dates_enabled === 'true';
+                if(data.announcement_enabled) data.announcement_enabled = data.announcement_enabled === 'true';
+                settings.value = data;
+            } catch (e) {}
+        };
+
+        const saveSettings = async () => {
+            try {
+                const payload = { ...settings.value };
+                // Convert bools back to strings
+                payload.scraper_proxy_enabled = String(payload.scraper_proxy_enabled);
+                payload.blackout_dates_enabled = String(payload.blackout_dates_enabled);
+                payload.announcement_enabled = String(payload.announcement_enabled);
+                
+                await fetch('/api/settings', {
+                    method: 'POST',
+                    headers: getHeaders(),
+                    body: JSON.stringify(payload)
+                });
+                alert('Settings Saved');
+            } catch (e) { alert('Error saving settings'); }
+        };
+
+        const triggerJob = async (key) => {
+            const j = jobs.value.find(x => x.key === key);
+            if(j) j.loading = true;
+            try {
+                await fetch(`/api/admin/jobs/${key}`, { method: 'POST' });
+                setTimeout(fetchRuns, 1000); // Refresh logs after a sec
+            } catch (e) { alert('Failed to trigger'); }
+            if(j) j.loading = false;
+        };
+        
+        const formatTime = (iso) => {
+            if(!iso) return '';
+            return new Date(iso).toLocaleString();
+        };
+        
+        const getStatusColor = (s) => {
+            if(s === 'completed') return 'bg-green-100 text-green-700';
+            if(s === 'failed') return 'bg-red-100 text-red-700';
+            if(s === 'running') return 'bg-blue-100 text-blue-700 animate-pulse';
+            return 'bg-slate-100 text-slate-600';
+        };
+
+        onMounted(() => {
+            fetchData();
+        });
+
+        return {
+            tabs, currentTab, loading, stats, recentRuns, proxies, proxyInput, settings, jobs, lastHeartbeat,
+            fetchData, fetchRuns, addProxies, deleteProxy, deleteAllProxies, recheckProxies, saveSettings, triggerJob,
+            formatTime, getStatusColor
+        };
+    }
+}).mount('#admin-app');
+</script>
+{% endblock %}

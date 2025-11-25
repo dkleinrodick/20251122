@@ -1,0 +1,194 @@
+{% extends "base.html" %}
+
+{% block title %}Register - WildFares{% endblock %}
+
+{% block content %}
+<div class="min-h-screen flex items-center justify-center relative overflow-hidden pt-20 pb-12">
+    <!-- Background -->
+    <div class="absolute inset-0 z-0">
+        <div class="absolute inset-0 bg-gradient-to-br from-brand-900 via-slate-900 to-brand-950"></div>
+        <div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
+    </div>
+
+    <div class="relative z-10 w-full max-w-md px-4">
+        <div class="bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/20 overflow-hidden p-8 animate-slide-up">
+            
+            <div class="text-center mb-8">
+                <h2 class="text-3xl font-bold text-slate-900 font-display mb-2">Create Account</h2>
+                <p class="text-slate-500 text-sm">Join the WildFares community</p>
+            </div>
+
+            <form id="register-form" class="space-y-5">
+                <div>
+                    <label for="email" class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Email Address</label>
+                    <input type="email" id="email" name="email" required 
+                        class="w-full bg-slate-50 border border-slate-200 text-slate-900 font-bold rounded-xl px-4 py-3 focus:outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 transition">
+                </div>
+
+                <div>
+                    <label for="password" class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Password</label>
+                    <input type="password" id="password" name="password" required 
+                        class="w-full bg-slate-50 border border-slate-200 text-slate-900 font-bold rounded-xl px-4 py-3 focus:outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 transition">
+                </div>
+
+                <div class="grid grid-cols-2 gap-4 relative">
+                    <div class="relative">
+                        <label for="city" class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">City</label>
+                        <input type="text" id="city" name="city" placeholder="Start typing..." autocomplete="off"
+                            class="w-full bg-slate-50 border border-slate-200 text-slate-900 font-bold rounded-xl px-4 py-3 focus:outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 transition">
+                        <!-- Autocomplete Dropdown -->
+                        <div id="city-results" class="absolute top-full left-0 w-full bg-white border border-slate-100 rounded-xl shadow-xl mt-1 max-h-60 overflow-y-auto z-50 hidden"></div>
+                    </div>
+                    <div>
+                        <label for="state" class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">State/Region</label>
+                        <input type="text" id="state" name="state" placeholder="Auto-filled"
+                            class="w-full bg-slate-50 border border-slate-200 text-slate-900 font-bold rounded-xl px-4 py-3 focus:outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 transition">
+                    </div>
+                </div>
+
+                <div class="flex items-start gap-3 p-3 bg-brand-50 rounded-xl border border-brand-100">
+                    <div class="flex items-center h-5">
+                        <input id="marketingOptIn" name="marketingOptIn" type="checkbox" checked class="w-4 h-4 text-brand-600 border-slate-300 rounded focus:ring-brand-500">
+                    </div>
+                    <div class="ml-1 text-sm">
+                        <label for="marketingOptIn" class="font-bold text-slate-700">Stay Updated</label>
+                        <p class="text-slate-500 text-xs">Receive emails about new features and flight deals.</p>
+                    </div>
+                </div>
+
+                <div id="error-message" class="hidden bg-red-50 text-red-600 text-sm p-3 rounded-xl border border-red-100 text-center font-bold"></div>
+                <div id="success-message" class="hidden bg-green-50 text-green-700 text-sm p-3 rounded-xl border border-green-100 text-center font-bold">
+                    Registration successful! Redirecting...
+                </div>
+
+                <button type="submit" id="submit-btn"
+                    class="w-full bg-brand-600 hover:bg-brand-700 text-white font-bold py-4 rounded-xl shadow-lg shadow-brand-600/30 transition transform active:scale-95 flex justify-center items-center gap-2">
+                    <span>Create Account</span>
+                    <i class="ph-bold ph-arrow-right"></i>
+                </button>
+            </form>
+
+            <div class="mt-8 text-center">
+                <p class="text-slate-500 text-sm">
+                    Already have an account? 
+                    <a href="/login" class="text-brand-600 font-bold hover:text-brand-800 transition">Log In</a>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// --- City Autocomplete Logic ---
+const cityInput = document.getElementById('city');
+const stateInput = document.getElementById('state');
+const resultsDiv = document.getElementById('city-results');
+let debounceTimer;
+
+const FRONTIER_COUNTRY_CODES = ["US", "MX", "CA", "BB", "GT", "JM", "BS", "TT", "TC", "DO", "PR", "HN", "SV", "SX", "VI"]; // Expanded list
+const COUNTRY_CODES_PARAM = FRONTIER_COUNTRY_CODES.join(',');
+
+cityInput.addEventListener('input', (e) => {
+    clearTimeout(debounceTimer);
+    const query = e.target.value;
+    
+    if (query.length < 3) {
+        resultsDiv.classList.add('hidden');
+        return;
+    }
+
+    debounceTimer = setTimeout(async () => {
+        try {
+            const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=5&language=en&format=json&country_code=${COUNTRY_CODES_PARAM}`);
+            const data = await res.json();
+            
+            resultsDiv.innerHTML = '';
+            
+            if (data.results && data.results.length > 0) {
+                data.results.forEach(place => {
+                    const div = document.createElement('div');
+                    // admin1 is typically State/Province
+                    const locationStr = `${place.name}, ${place.admin1 || ''} ${place.country_code || ''}`;
+                    
+                    div.className = "px-4 py-3 hover:bg-brand-50 cursor-pointer border-b border-slate-50 last:border-0 text-sm font-bold text-slate-700";
+                    div.textContent = locationStr;
+                    
+                    div.addEventListener('click', () => {
+                        cityInput.value = place.name;
+                        // Auto-fill state if available
+                        if (place.admin1) {
+                            stateInput.value = place.admin1;
+                        }
+                        resultsDiv.classList.add('hidden');
+                    });
+                    resultsDiv.appendChild(div);
+                });
+                resultsDiv.classList.remove('hidden');
+            } else {
+                resultsDiv.classList.add('hidden');
+            }
+        } catch (err) {
+            console.error("Geocoding error", err);
+        }
+    }, 300); // 300ms debounce
+});
+
+// Close dropdown on outside click
+document.addEventListener('click', (e) => {
+    if (!cityInput.contains(e.target) && !resultsDiv.contains(e.target)) {
+        resultsDiv.classList.add('hidden');
+    }
+});
+
+document.getElementById('register-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('submit-btn');
+    const err = document.getElementById('error-message');
+    const succ = document.getElementById('success-message');
+    
+    btn.disabled = true;
+    btn.classList.add('opacity-75');
+    err.classList.add('hidden');
+    
+    const formData = new FormData(e.target);
+    const data = Object.fromEntries(formData.entries());
+    
+    // Convert checkbox to boolean
+    data.marketingOptIn = !!data.marketingOptIn;
+
+    try {
+        const response = await fetch('/auth/register', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data),
+        });
+
+        if (response.ok) {
+            succ.classList.remove('hidden');
+            // Auto login or redirect to login
+            setTimeout(() => {
+                window.location.href = '/login?registered=true';
+            }, 1500);
+        } else {
+            const result = await response.json();
+            let msg = "Registration failed.";
+            if (result.detail) {
+                msg = typeof result.detail === 'string' ? result.detail : "Invalid data provided.";
+            }
+            err.textContent = msg;
+            err.classList.remove('hidden');
+            btn.disabled = false;
+            btn.classList.remove('opacity-75');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        err.textContent = "An unexpected error occurred.";
+        err.classList.remove('hidden');
+        btn.disabled = false;
+        btn.classList.remove('opacity-75');
+    }
+});
+</script>
+{% endblock %}

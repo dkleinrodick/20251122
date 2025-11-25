@@ -1,0 +1,38 @@
+[
+  {
+    "origin": "DEN",
+    "destination": "MCO",
+    "departure": "2025-12-01T08:00:00",
+    "arrival": "2025-12-01T12:00:00",
+    "duration": "4h 0m",
+    "price": 49.00,
+    "stops": 0,
+    "flightNumber": "F9 1234",
+    "layover_airports": [],
+    "seats_available": 5
+  },
+  {
+    "origin": "DEN",
+    "destination": "LAX",
+    "departure": "2025-12-01T09:30:00",
+    "arrival": "2025-12-01T11:30:00",
+    "duration": "2h 0m",
+    "price": 55.00,
+    "stops": 0,
+    "flightNumber": "F9 5678",
+    "layover_airports": [],
+    "seats_available": 3
+  },
+  {
+    "origin": "DEN",
+    "destination": "ATL",
+    "departure": "2025-12-01T10:00:00",
+    "arrival": "2025-12-01T15:00:00",
+    "duration": "5h 0m",
+    "price": 62.00,
+    "stops": 1,
+    "layover_airports": ["ORD"],
+    "flightNumber": "F9 9012",
+    "seats_available": 2
+  }
+]

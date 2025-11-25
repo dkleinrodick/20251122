@@ -1,0 +1,222 @@
+{% extends "base.html" %}
+
+{% block title %}Account Settings - WildFares{% endblock %}
+
+{% block content %}
+<div class="min-h-screen pt-24 pb-12 bg-slate-50">
+    <div class="container mx-auto px-4 max-w-3xl">
+        
+        <h1 class="text-3xl font-bold text-slate-900 mb-8 font-display">Account Settings</h1>
+
+        <!-- Profile Settings -->
+        <div class="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden mb-8">
+            <div class="p-6 border-b border-slate-100 bg-slate-50/50">
+                <h2 class="text-xl font-bold text-slate-800">Profile Information</h2>
+                <p class="text-slate-500 text-sm">Update your personal details and preferences.</p>
+            </div>
+            <div class="p-8">
+                <form id="profile-form" class="space-y-6">
+                    <!-- Email (Read Only) -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Email Address</label>
+                        <input type="email" id="email" disabled class="w-full bg-slate-100 border border-slate-200 text-slate-500 font-bold rounded-xl px-4 py-3 cursor-not-allowed">
+                        <p class="text-xs text-slate-400 mt-1">Email cannot be changed.</p>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="relative">
+                            <label for="city" class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Home City</label>
+                            <input type="text" id="city" name="city" autocomplete="off" class="w-full bg-white border border-slate-200 text-slate-900 font-bold rounded-xl px-4 py-3 focus:outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 transition">
+                            <!-- Autocomplete Dropdown -->
+                            <div id="city-results" class="absolute top-full left-0 w-full bg-white border border-slate-100 rounded-xl shadow-xl mt-1 max-h-60 overflow-y-auto z-50 hidden"></div>
+                        </div>
+                        <div>
+                            <label for="state" class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">State</label>
+                            <input type="text" id="state" name="state" class="w-full bg-white border border-slate-200 text-slate-900 font-bold rounded-xl px-4 py-3 focus:outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 transition">
+                        </div>
+                    </div>
+
+                    <div class="flex items-start gap-3 p-4 bg-brand-50 rounded-xl border border-brand-100">
+                        <div class="flex items-center h-5">
+                            <input id="marketingOptIn" name="marketingOptIn" type="checkbox" class="w-4 h-4 text-brand-600 border-slate-300 rounded focus:ring-brand-500">
+                        </div>
+                        <div class="ml-1 text-sm">
+                            <label for="marketingOptIn" class="font-bold text-slate-700">Marketing Emails</label>
+                            <p class="text-slate-500 text-xs">Receive updates about new features and flight deals.</p>
+                        </div>
+                    </div>
+
+                    <div id="profile-message" class="hidden p-3 rounded-xl text-sm font-bold text-center"></div>
+
+                    <div class="flex justify-end">
+                        <button type="submit" id="save-profile-btn" class="bg-brand-600 hover:bg-brand-700 text-white font-bold py-3 px-6 rounded-xl shadow-lg shadow-brand-600/20 transition transform active:scale-95 flex items-center gap-2">
+                            <i class="ph-bold ph-floppy-disk"></i> Save Changes
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Danger Zone -->
+        <div class="bg-white rounded-3xl shadow-sm border border-red-100 overflow-hidden">
+            <div class="p-6 border-b border-red-50 bg-red-50/30">
+                <h2 class="text-xl font-bold text-red-800">Danger Zone</h2>
+                <p class="text-red-600/70 text-sm">Irreversible actions for your account.</p>
+            </div>
+            <div class="p-8">
+                <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                    <div>
+                        <h3 class="font-bold text-slate-800">Delete Account</h3>
+                        <p class="text-slate-500 text-sm">Permanently remove your account and all data. This cannot be undone.</p>
+                    </div>
+                    <button onclick="confirmDelete()" class="bg-white border-2 border-red-100 text-red-600 hover:bg-red-50 hover:border-red-200 font-bold py-2.5 px-5 rounded-xl transition flex items-center gap-2 whitespace-nowrap">
+                        <i class="ph-bold ph-trash"></i> Delete Account
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+// --- City Autocomplete Logic ---
+const cityInput = document.getElementById('city');
+const stateInput = document.getElementById('state');
+const resultsDiv = document.getElementById('city-results');
+let debounceTimer;
+
+const FRONTIER_COUNTRY_CODES = ["US", "MX", "CA", "BB", "GT", "JM", "BS", "TT", "TC", "DO", "PR", "HN", "SV", "SX", "VI"]; // Expanded list
+const COUNTRY_CODES_PARAM = FRONTIER_COUNTRY_CODES.join(',');
+
+cityInput.addEventListener('input', (e) => {
+    clearTimeout(debounceTimer);
+    const query = e.target.value;
+    
+    if (query.length < 3) {
+        resultsDiv.classList.add('hidden');
+        return;
+    }
+
+    debounceTimer = setTimeout(async () => {
+        try {
+            const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=5&language=en&format=json&country_code=${COUNTRY_CODES_PARAM}`);
+            const data = await res.json();
+            
+            resultsDiv.innerHTML = '';
+            
+            if (data.results && data.results.length > 0) {
+                data.results.forEach(place => {
+                    const div = document.createElement('div');
+                    const locationStr = `${place.name}, ${place.admin1 || ''} ${place.country_code || ''}`;
+                    
+                    div.className = "px-4 py-3 hover:bg-brand-50 cursor-pointer border-b border-slate-50 last:border-0 text-sm font-bold text-slate-700";
+                    div.textContent = locationStr;
+                    
+                    div.addEventListener('click', () => {
+                        cityInput.value = place.name;
+                        if (place.admin1) {
+                            stateInput.value = place.admin1;
+                        }
+                        resultsDiv.classList.add('hidden');
+                    });
+                    resultsDiv.appendChild(div);
+                });
+                resultsDiv.classList.remove('hidden');
+            } else {
+                resultsDiv.classList.add('hidden');
+            }
+        } catch (err) {
+            console.error("Geocoding error", err);
+        }
+    }, 300);
+});
+
+// Close dropdown on outside click
+document.addEventListener('click', (e) => {
+    if (!cityInput.contains(e.target) && !resultsDiv.contains(e.target)) {
+        resultsDiv.classList.add('hidden');
+    }
+});
+
+document.addEventListener('DOMContentLoaded', async () => {
+    // 1. Load User Data
+    try {
+        const response = await fetch('/users/me');
+        if (response.ok) {
+            const user = await response.json();
+            document.getElementById('email').value = user.email;
+            document.getElementById('city').value = user.city || '';
+            document.getElementById('state').value = user.state || '';
+            document.getElementById('marketingOptIn').checked = user.marketing_opt_in;
+        } else {
+            window.location.href = '/login';
+        }
+    } catch (error) {
+        console.error('Error loading user:', error);
+    }
+
+    // 2. Handle Profile Update
+    document.getElementById('profile-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const btn = document.getElementById('save-profile-btn');
+        const msg = document.getElementById('profile-message');
+        
+        btn.disabled = true;
+        btn.classList.add('opacity-75');
+        msg.classList.add('hidden');
+        msg.className = 'hidden p-3 rounded-xl text-sm font-bold text-center'; // Reset classes
+
+        const formData = new FormData(e.target);
+        const data = {
+            city: formData.get('city'),
+            state: formData.get('state'),
+            marketingOptIn: !!formData.get('marketingOptIn')
+        };
+
+        try {
+            const response = await fetch('/users/me', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+
+            if (response.ok) {
+                msg.textContent = "Profile updated successfully!";
+                msg.classList.add('bg-green-50', 'text-green-700', 'border', 'border-green-100');
+                msg.classList.remove('hidden');
+            } else {
+                msg.textContent = "Failed to update profile.";
+                msg.classList.add('bg-red-50', 'text-red-600', 'border', 'border-red-100');
+                msg.classList.remove('hidden');
+            }
+        } catch (error) {
+            console.error('Error updating:', error);
+            msg.textContent = "An error occurred.";
+            msg.classList.add('bg-red-50', 'text-red-600');
+            msg.classList.remove('hidden');
+        } finally {
+            btn.disabled = false;
+            btn.classList.remove('opacity-75');
+        }
+    });
+});
+
+async function confirmDelete() {
+    if (confirm("Are you sure you want to delete your account? This action cannot be undone.")) {
+        try {
+            const response = await fetch('/users/me', { method: 'DELETE' });
+            if (response.ok) {
+                alert("Account deleted.");
+                window.location.href = '/';
+            } else {
+                alert("Failed to delete account.");
+            }
+        } catch (error) {
+            console.error('Error deleting:', error);
+            alert("An error occurred.");
+        }
+    }
+}
+</script>
+{% endblock %}
