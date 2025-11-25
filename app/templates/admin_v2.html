@@ -301,10 +301,10 @@ createApp({
                 // 1. Dashboard Stats (Needs new endpoint or aggregate)
                 // For now, we mock or reuse existing if available.
                 // We'll implement a specific /api/admin/stats endpoint next.
-                const s = await (await fetch('/api/admin/cache_stats')).json();
-                stats.value.flights = s.total_flights; 
+                const s = await (await fetch('/api/admin/cache_stats', { headers: getHeaders() })).json();
+                stats.value.flights = s.total_flights;
                 // We need more stats in backend
-                
+
                 await fetchRuns();
                 if (currentTab.value === 'proxies') await fetchProxies();
                 if (currentTab.value === 'settings') await fetchSettings();
@@ -314,14 +314,14 @@ createApp({
 
         const fetchRuns = async () => {
             try {
-                const res = await fetch('/api/admin/scraper_runs');
+                const res = await fetch('/api/admin/scraper_runs', { headers: getHeaders() });
                 recentRuns.value = await res.json();
             } catch (e) {}
         };
 
         const fetchProxies = async () => {
             try {
-                const res = await fetch('/api/proxies');
+                const res = await fetch('/api/proxies', { headers: getHeaders() });
                 proxies.value = await res.json();
             } catch (e) {}
         };
@@ -341,24 +341,24 @@ createApp({
         
         const deleteProxy = async (id) => {
             if(!confirm('Delete?')) return;
-            await fetch(`/api/proxies/${id}`, { method: 'DELETE' });
+            await fetch(`/api/proxies/${id}`, { method: 'DELETE', headers: getHeaders() });
             await fetchProxies();
         };
-        
+
         const deleteAllProxies = async () => {
             if(!confirm('Delete ALL proxies?')) return;
-            await fetch(`/api/proxies`, { method: 'DELETE' });
+            await fetch(`/api/proxies`, { method: 'DELETE', headers: getHeaders() });
             await fetchProxies();
         };
 
         const recheckProxies = async () => {
-            await fetch('/api/proxies/recheck', { method: 'POST' });
+            await fetch('/api/proxies/recheck', { method: 'POST', headers: getHeaders() });
             alert('Recheck queued.');
         };
 
         const fetchSettings = async () => {
             try {
-                const res = await fetch('/api/settings');
+                const res = await fetch('/api/settings', { headers: getHeaders() });
                 const data = await res.json();
                 // Convert bool strings to bools for checkboxes
                 if(data.scraper_proxy_enabled) data.scraper_proxy_enabled = data.scraper_proxy_enabled === 'true';
@@ -389,7 +389,7 @@ createApp({
             const j = jobs.value.find(x => x.key === key);
             if(j) j.loading = true;
             try {
-                await fetch(`/api/admin/jobs/${key}`, { method: 'POST' });
+                await fetch(`/api/admin/jobs/${key}`, { method: 'POST', headers: getHeaders() });
                 setTimeout(fetchRuns, 1000); // Refresh logs after a sec
             } catch (e) { alert('Failed to trigger'); }
             if(j) j.loading = false;
