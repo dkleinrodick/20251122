@@ -1520,21 +1520,22 @@
                             <div class="flex items-center gap-3">
                                 <button @click="installApp" class="bg-white text-slate-900 px-4 py-2 rounded-xl text-xs font-bold hover:bg-brand-50 transition shadow-md active:scale-95">Install</button>
                                 <button @click="dismissInstallBanner" class="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-white transition bg-white/5 rounded-full"><i class="ph-bold ph-x"></i></button>
-                            </div>
-                        </div>
-            
-                        <div class="text-center py-8 px-6">                <p class="text-[10px] text-slate-400 leading-relaxed max-w-2xl mx-auto font-medium">
-                    WildFares is an independent project and is not affiliated with, endorsed by, or connected to Frontier Airlines, Inc. or the GoWild!™ Pass program. All trademarks are property of their respective owners.
-                    <br><br>
-                    <span class="font-mono text-slate-300">v2.3.1 (Mobile App)</span>
-                    <span class="mx-2 text-slate-200">|</span>
-                    <a href="/terms" class="hover:text-slate-500 transition">Terms</a>
-                    <span class="mx-1 text-slate-200">•</span>
-                    <a href="/privacy" class="hover:text-slate-500 transition">Privacy</a>
-                    <span class="mx-1 text-slate-200">•</span>
-                    <a href="mailto:David@wildfares.com" class="hover:text-slate-500 transition">Questions/Comments? David@wildfares.com</a>
-                </p>
-            </div>
+                                            </div>
+                                        </div>
+                            
+                                        <div v-if="forceDesktop || appMode === 'landing'" class="text-center py-8 px-6">
+                                            <p class="text-[10px] text-slate-400 leading-relaxed max-w-2xl mx-auto font-medium">
+                                                WildFares is an independent project and is not affiliated with, endorsed by, or connected to Frontier Airlines, Inc. or the GoWild!™ Pass program. All trademarks are property of their respective owners.
+                                                <br><br>
+                                                <span class="font-mono text-slate-300">v2.3.1 (Mobile App)</span>
+                                                <span class="mx-2 text-slate-200">|</span>
+                                                <a href="/terms" class="hover:text-slate-500 transition">Terms</a>
+                                                <span class="mx-1 text-slate-200">•</span>
+                                                <a href="/privacy" class="hover:text-slate-500 transition">Privacy</a>
+                                                <span class="mx-1 text-slate-200">•</span>
+                                                <a href="mailto:David@wildfares.com" class="hover:text-slate-500 transition">Questions/Comments? David@wildfares.com</a>
+                                            </p>
+                                        </div>
 
             <!-- Bottom Navigation (Mobile Only) - Moved to root level -->
             <div v-if="!forceDesktop" class="md:hidden fixed bottom-0 left-0 w-full bg-white/90 backdrop-blur-lg border-t border-slate-200 z-[9999] flex justify-around px-2 shadow-[0_-4px_20px_rgba(0,0,0,0.1)] pb-safe" style="padding-bottom: max(env(safe-area-inset-bottom), 20px); height: auto; min-height: 80px;">
@@ -1635,7 +1636,7 @@
                         if (browser === 'ios-chrome') {
                             msg += "1. Tap the Share icon (box with arrow) in the top right address bar area.\n2. Scroll down and tap 'Add to Home Screen'.";
                         } else if (browser === 'ios-safari') {
-                            msg += "1. Tap the Share button (box with arrow) at the bottom center of the screen.\n2. Scroll down and tap 'Add to Home Screen'.";
+                            msg += "1. Tap the Share button (box with arrow) or the Menu button (three dots) at the bottom.\n2. Scroll down and tap 'Add to Home Screen'.";
                         } else {
                             msg += "Open your browser menu and look for 'Add to Home Screen' or 'Install App'.";
                         }
