@@ -108,14 +108,22 @@
                     </div>
                 </div>
 
-                <div class="flex gap-3">
-                    <button @click="triggerJob(job.key)" :disabled="job.loading" 
-                        class="flex-1 bg-brand-600 hover:bg-brand-700 text-white font-bold py-2 rounded-lg text-sm transition shadow-md active:scale-95 disabled:opacity-50 flex justify-center items-center gap-2">
+                <div class="space-y-3">
+                    <button @click="triggerJob(job.key)" :disabled="job.loading"
+                        class="w-full bg-brand-600 hover:bg-brand-700 text-white font-bold py-2 rounded-lg text-sm transition shadow-md active:scale-95 disabled:opacity-50 flex justify-center items-center gap-2">
                         <i class="ph-bold ph-play" v-if="!job.loading"></i>
                         <i class="ph-bold ph-spinner animate-spin" v-else></i>
                         Run Now
                     </button>
-                    <!-- Toggle Config logic could go here -->
+                    <div class="flex items-center justify-between bg-slate-50 rounded-lg px-3 py-2">
+                        <span class="text-xs font-bold text-slate-600">Auto-run Enabled</span>
+                        <button @click="toggleJobEnabled(job.key)"
+                            :class="job.enabled ? 'bg-green-500' : 'bg-slate-300'"
+                            class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors">
+                            <span :class="job.enabled ? 'translate-x-6' : 'translate-x-1'"
+                                class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform"></span>
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -304,14 +312,20 @@ createApp({
                 // 1. Dashboard Stats (Needs new endpoint or aggregate)
                 // For now, we mock or reuse existing if available.
                 // We'll implement a specific /api/admin/stats endpoint next.
-                const s = await (await fetch('/api/admin/cache_stats', { headers: getHeaders() })).json();
-                stats.value.flights = s.total_flights;
-                // We need more stats in backend
+                const statsRes = await fetch('/api/admin/cache_stats', { headers: getHeaders() });
+                if (!statsRes.ok) {
+                    const errorText = await statsRes.text();
+                    console.error('Cache stats error:', statsRes.status, errorText);
+                } else {
+                    const s = await statsRes.json();
+                    stats.value.flights = s.total_flights;
+                }
 
                 await fetchRuns();
                 if (currentTab.value === 'proxies') await fetchProxies();
                 if (currentTab.value === 'settings') await fetchSettings();
-            } catch (e) { console.error(e); }
+                if (currentTab.value === 'scrapers') await loadJobStates();
+            } catch (e) { console.error('fetchData error:', e); }
             finally { loading.value = false; }
         };
 
@@ -397,6 +411,67 @@ createApp({
             } catch (e) { alert('Error saving settings'); }
         };
 
+        const loadJobStates = async () => {
+            try {
+                const res = await fetch('/api/settings', { headers: getHeaders() });
+                if (!res.ok) return;
+                const data = await res.json();
+
+                // Map settings to jobs
+                const jobKeyMap = {
+                    'auto': 'schedule_auto_enabled',
+                    'midnight': 'schedule_midnight_enabled',
+                    '3week': 'schedule_3week_enabled',
+                    'route_sync': 'schedule_route_sync_enabled',
+                    'weather': 'schedule_weather_enabled'
+                };
+
+                jobs.value.forEach(job => {
+                    const settingKey = jobKeyMap[job.key];
+                    if (settingKey && data[settingKey]) {
+                        job.enabled = data[settingKey] === 'true';
+                    }
+                });
+
+                console.log('Job states loaded:', jobs.value);
+            } catch (e) {
+                console.error('Failed to load job states:', e);
+            }
+        };
+
+        const toggleJobEnabled = async (key) => {
+            const job = jobs.value.find(x => x.key === key);
+            if (!job) return;
+
+            // Toggle locally
+            job.enabled = !job.enabled;
+
+            // Map job key to setting key
+            const jobKeyMap = {
+                'auto': 'schedule_auto_enabled',
+                'midnight': 'schedule_midnight_enabled',
+                '3week': 'schedule_3week_enabled',
+                'route_sync': 'schedule_route_sync_enabled',
+                'weather': 'schedule_weather_enabled'
+            };
+
+            const settingKey = jobKeyMap[key];
+            if (!settingKey) return;
+
+            try {
+                await fetch('/api/settings', {
+                    method: 'POST',
+                    headers: getHeaders(),
+                    body: JSON.stringify({ [settingKey]: String(job.enabled) })
+                });
+                console.log(`${settingKey} set to ${job.enabled}`);
+            } catch (e) {
+                console.error('Failed to save job state:', e);
+                // Revert on error
+                job.enabled = !job.enabled;
+            }
+        };
+
         const triggerJob = async (key) => {
             const j = jobs.value.find(x => x.key === key);
             if(j) j.loading = true;
@@ -433,7 +508,7 @@ createApp({
         return {
             tabs, currentTab, loading, stats, recentRuns, proxies, proxyInput, settings, jobs, lastHeartbeat,
             fetchData, fetchRuns, addProxies, deleteProxy, deleteAllProxies, recheckProxies, saveSettings, triggerJob,
-            formatTime, getStatusColor
+            loadJobStates, toggleJobEnabled, formatTime, getStatusColor
         };
     }
 }).mount('#admin-app');
