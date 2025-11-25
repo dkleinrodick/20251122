@@ -1715,6 +1715,48 @@
                 
                 const showAnnouncement = ref(false);
                 const announcementHtml = ref('');
+
+                // Blackout Popup Logic
+                const showBlackoutPopup = ref(false);
+                const blackoutMessage = ref('');
+
+                const checkBlackoutStatus = () => {
+                    if (!blackoutEnabled.value) return;
+                    
+                    // Simple YYYY-MM-DD from local time
+                    const getLocalYMD = (d) => {
+                         const year = d.getFullYear();
+                         const month = String(d.getMonth() + 1).padStart(2, '0');
+                         const day = String(d.getDate()).padStart(2, '0');
+                         return `${year}-${month}-${day}`;
+                    };
+
+                    const today = new Date();
+                    const tomorrow = new Date(today);
+                    tomorrow.setDate(today.getDate() + 1);
+                    
+                    const tStr = getLocalYMD(today);
+                    const tomStr = getLocalYMD(tomorrow);
+                    
+                    const isToday = blackoutDates.value.has(tStr);
+                    const isTom = blackoutDates.value.has(tomStr);
+                    
+                    // Debug for user verification (remove in prod later if desired)
+                    console.log("Checking Blackout:", { tStr, isToday, tomStr, isTom, dates: Array.from(blackoutDates.value) });
+
+                    if ((isToday || isTom) && !sessionStorage.getItem('blackoutDismissed')) {
+                        if (isToday && isTom) blackoutMessage.value = "Heads up! Today and Tomorrow are GoWild! Blackout Dates.";
+                        else if (isToday) blackoutMessage.value = "Heads up! Today is a GoWild! Blackout Date.";
+                        else if (isTom) blackoutMessage.value = "Heads up! Tomorrow is a GoWild! Blackout Date.";
+                        
+                        showBlackoutPopup.value = true;
+                    }
+                };
+                
+                const dismissBlackoutPopup = () => {
+                    showBlackoutPopup.value = false;
+                    sessionStorage.setItem('blackoutDismissed', 'true');
+                };
                 
                 const showBookingWarning = ref(false);
                 const bookingWarningItem = ref(null);
@@ -2061,6 +2103,7 @@
 
                     // 1. Fetch Config immediately
                     await fetchConfig();
+                    checkBlackoutStatus();
 
                     try {
                         const [locs, routes] = await Promise.all([
@@ -2673,7 +2716,8 @@
                     passengers, totalPassengers, showPassengerMenu, showSortDropdown, addAdult, removeAdult, addKid, removeKid,
                     filteredMapCount, showAnnouncement, announcementHtml, dateOptions,
                     forceDesktop, toggleDesktopMode, appMode, activateAppMode, goHome,
-                    isStandalone, showInstallBanner, installApp, dismissInstallBanner
+                    isStandalone, showInstallBanner, installApp, dismissInstallBanner,
+                    showBlackoutPopup, blackoutMessage, dismissBlackoutPopup
                 };
             }
         }).mount('#app');
