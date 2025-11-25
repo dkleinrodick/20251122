@@ -204,8 +204,8 @@ async def main():
         logger.info(f"Created scraper run record #{scraper_run_id}")
 
     try:
+        # 1. Load Settings (Short-lived session)
         async with SessionLocal() as session:
-            # 1. Load Settings
             auto_enabled = (await get_setting(session, "auto_scrape_enabled", "true")).lower() == "true"
             auto_interval = int(await get_setting(session, "auto_scrape_interval", "60"))
             last_auto_str = await get_setting(session, "last_auto_scrape", "2000-01-01T00:00:00")
@@ -216,89 +216,91 @@ async def main():
             # Cache duration settings
             cache_domestic_min = int(await get_setting(session, "scraper_cache_domestic_minutes", "60"))
             cache_intl_hours = int(await get_setting(session, "scraper_cache_international_hours", "12"))
+            
+            # Get max concurrent requests
+            max_concurrent = int(await get_setting(session, "max_concurrent_requests", "5"))
 
-            # Use US/Pacific time to determine "Today" to ensure we don't skip the current day
-            # during late-night hours when UTC has already rolled over.
-            now_ref = datetime.now(pytz.timezone('America/Los_Angeles'))
+        # Use US/Pacific time to determine "Today"
+        now_ref = datetime.now(pytz.timezone('America/Los_Angeles'))
 
-            tasks_to_run = []
-            run_full_scrape = False
+        tasks_to_run = []
+        run_full_scrape = False
 
-            # 2. Check Full Scrape Eligibility
-            if auto_enabled:
-                try:
-                    last_run = datetime.fromisoformat(last_auto_str)
-                    # Use UTC for interval comparison to keep it consistent
-                    if (datetime.now(pytz.utc) - last_run).total_seconds() / 60 >= auto_interval:
-                        logger.info("Auto Scrape interval reached. Queueing full scrape.")
-                        run_full_scrape = True
-                except:
+        # 2. Check Full Scrape Eligibility
+        if auto_enabled:
+            try:
+                last_run = datetime.fromisoformat(last_auto_str)
+                if (datetime.now(pytz.utc) - last_run).total_seconds() / 60 >= auto_interval:
+                    logger.info("Auto Scrape interval reached. Queueing full scrape.")
                     run_full_scrape = True
+            except:
+                run_full_scrape = True
 
-            # 3. Check Midnight Scrape Eligibility
-            if midnight_enabled:
-                # Group airports by timezone
-                tz_map = {}
-                for ap in AIRPORTS_LIST:
-                    tz = ap.get("timezone")
-                    if tz:
-                        if tz not in tz_map: tz_map[tz] = []
-                        tz_map[tz].append(ap["code"])
+        # 3. Check Midnight Scrape Eligibility
+        if midnight_enabled:
+            # Group airports by timezone
+            tz_map = {}
+            for ap in AIRPORTS_LIST:
+                tz = ap.get("timezone")
+                if tz:
+                    if tz not in tz_map: tz_map[tz] = []
+                    tz_map[tz].append(ap["code"])
 
-                midnight_targets = []
-                for tz_name, codes in tz_map.items():
-                    try:
-                        tz_obj = pytz.timezone(tz_name)
-                        now_loc = datetime.now(tz_obj)
-                        # Check if time is 00:00 - 00:WINDOW
-                        if 0 <= now_loc.hour < 1 and 0 <= now_loc.minute < midnight_window:
-                            logger.info(f"Midnight window active for {tz_name} ({now_loc.strftime('%H:%M')}). Adding {len(codes)} airports.")
-                            midnight_targets.extend(codes)
-                    except:
-                        pass
+            midnight_targets = []
+            for tz_name, codes in tz_map.items():
+                try:
+                    tz_obj = pytz.timezone(tz_name)
+                    now_loc = datetime.now(tz_obj)
+                    if 0 <= now_loc.hour < 1 and 0 <= now_loc.minute < midnight_window:
+                        logger.info(f"Midnight window active for {tz_name} ({now_loc.strftime('%H:%M')}). Adding {len(codes)} airports.")
+                        midnight_targets.extend(codes)
+                except:
+                    pass
 
-                if midnight_targets:
-                    # Find routes originating from these airports
+            if midnight_targets:
+                async with SessionLocal() as session:
                     stmt = select(RoutePair).where(RoutePair.origin.in_(midnight_targets), RoutePair.is_active == True)
                     res = await session.execute(stmt)
                     m_routes = res.scalars().all()
 
-                    # Target "Today" and "Tomorrow" to be safe for Midnight scraper
-                    target_dates = [
-                        now_ref.strftime("%Y-%m-%d"),
-                        (now_ref + timedelta(days=1)).strftime("%Y-%m-%d")
-                    ]
+                target_dates = [
+                    now_ref.strftime("%Y-%m-%d"),
+                    (now_ref + timedelta(days=1)).strftime("%Y-%m-%d")
+                ]
 
-                    for r in m_routes:
-                        for d_str in target_dates:
-                            tasks_to_run.append({"origin": r.origin, "destination": r.destination, "date": d_str, "type": "midnight"})
+                for r in m_routes:
+                    for d_str in target_dates:
+                        tasks_to_run.append({"origin": r.origin, "destination": r.destination, "date": d_str, "type": "midnight"})
 
-            # 4. Build Task List
-            if run_full_scrape or os.environ.get("GITHUB_EVENT_NAME") == "workflow_dispatch":
-                if os.environ.get("GITHUB_EVENT_NAME") == "workflow_dispatch":
-                    logger.info("Manual trigger detected. Forcing full scrape check.")
-                
+        # 4. Build Task List (Short-lived session for route fetching)
+        if run_full_scrape or os.environ.get("GITHUB_EVENT_NAME") == "workflow_dispatch":
+            if os.environ.get("GITHUB_EVENT_NAME") == "workflow_dispatch":
+                logger.info("Manual trigger detected. Forcing full scrape check.")
+            
+            async with SessionLocal() as session:
                 res = await session.execute(select(RoutePair).where(RoutePair.is_active == True))
                 all_routes = res.scalars().all()
-
-                # Identify International Airports
+                
+                # Pre-fetch skipped checks to avoid holding session open during loop
+                # Actually, we need to check cache for each route. 
+                # Best approach: batch the cache checks or open/close session inside loop? 
+                # Opening/closing session 1000 times is slow. 
+                # Better: Keep session open for building task list (usually fast enough), 
+                # BUT if it fails, we retry.
+                # Let's stick to one session for building the list, it shouldn't take > 10 mins unless cache logic is slow.
+                
                 intl_codes = {a['code'] for a in AIRPORTS_LIST if a.get('is_international')}
-
-                # Clear tasks to prevent duplicates if both auto and manual are true
                 tasks_to_run = []
                 stats["routes_skipped"] = 0
-
                 skipped_count = 0
+
                 for r in all_routes:
-                    # Determine window size
                     window = 2
                     if r.origin in intl_codes or r.destination in intl_codes:
                         window = 10
 
                     for i in range(window):
                         d_str = (now_ref + timedelta(days=i)).strftime("%Y-%m-%d")
-
-                        # Check if we should skip this route based on cache age
                         should_skip = await should_skip_route(
                             session, r.origin, r.destination, d_str, i,
                             cache_domestic_min, cache_intl_hours
@@ -310,69 +312,69 @@ async def main():
                         else:
                             tasks_to_run.append({"origin": r.origin, "destination": r.destination, "date": d_str, "type": "full"})
 
-                if skipped_count > 0:
-                    logger.info(f"Skipped {skipped_count} routes with fresh cache data")
+            if skipped_count > 0:
+                logger.info(f"Skipped {skipped_count} routes with fresh cache data")
 
-            if not tasks_to_run:
-                logger.info("No scrape tasks required at this time.")
-                # Update run record
-                async with SessionLocal() as update_session:
-                    stmt = select(ScraperRun).where(ScraperRun.id == scraper_run_id)
-                    res = await update_session.execute(stmt)
-                    run = res.scalar_one_or_none()
-                    if run:
-                        run.completed_at = datetime.now(pytz.utc)
-                        run.duration_seconds = (run.completed_at - run.started_at).total_seconds()
-                        run.status = "completed"
-                        run.total_routes = 0
-                        run.routes_scraped = 0
-                        run.routes_skipped = stats["routes_skipped"] # Save skipped count
-                        run.routes_failed = 0
-                        await update_session.commit()
+        if not tasks_to_run:
+            logger.info("No scrape tasks required at this time.")
+            async with SessionLocal() as update_session:
+                stmt = select(ScraperRun).where(ScraperRun.id == scraper_run_id)
+                res = await update_session.execute(stmt)
+                run = res.scalar_one_or_none()
+                if run:
+                    run.completed_at = datetime.now(pytz.utc)
+                    run.duration_seconds = (run.completed_at - run.started_at).total_seconds()
+                    run.status = "completed"
+                    run.total_routes = 0
+                    run.routes_scraped = 0
+                    run.routes_skipped = stats["routes_skipped"]
+                    run.routes_failed = 0
+                    await update_session.commit()
                 await cleanup_old_runs(update_session)
-                return
+            return
 
-            stats["total_routes"] = len(tasks_to_run)
-            logger.info(f"Executing {len(tasks_to_run)} flight search tasks...")
+        stats["total_routes"] = len(tasks_to_run)
+        logger.info(f"Executing {len(tasks_to_run)} flight search tasks...")
 
-            # 5. Execute with configured concurrency
-            engine_scraper = ScraperEngine()
+        # 5. Execute Scrape (Batch Processing)
+        engine_scraper = ScraperEngine()
+        logger.info(f"Using concurrency level: {max_concurrent}")
+        
+        # Create semaphore (not bound to a DB session)
+        sem = asyncio.Semaphore(max_concurrent)
 
-            # Get max concurrent requests from database settings
-            max_concurrent = int(await get_setting(session, "max_concurrent_requests", "5"))
-            logger.info(f"Using concurrency level: {max_concurrent}")
+        completed_count = 0
+        total_tasks = len(tasks_to_run)
 
-            # Create a semaphore to control concurrency
-            async with SessionLocal() as tmp_session:
-                sem = await engine_scraper.get_semaphore(tmp_session)
+        async def scrape_single(origin, destination, date):
+            nonlocal completed_count
+            try:
+                async with sem:
+                    # Create a FRESH, SHORT-LIVED session for each task
+                    async with SessionLocal() as task_session:
+                        await engine_scraper.perform_search(origin, destination, date, task_session, force_refresh=False)
+                        stats["routes_scraped"] += 1
+            except Exception as e:
+                logger.error(f"Scrape failed for {origin}->{destination} on {date}: {e}")
+                stats["routes_failed"] += 1
+            finally:
+                completed_count += 1
+                if completed_count % 20 == 0:
+                    logger.info(f"Progress: {completed_count}/{total_tasks} tasks completed")
 
-            completed_count = 0
-            total_tasks = len(tasks_to_run)
+        # Process in batches to allow garbage collection and prevent task queue explosions
+        batch_size = 100
+        for i in range(0, total_tasks, batch_size):
+            batch = tasks_to_run[i : i + batch_size]
+            batch_tasks = []
+            for item in batch:
+                batch_tasks.append(scrape_single(item['origin'], item['destination'], item['date']))
+            
+            # Run batch and wait for completion
+            await asyncio.gather(*batch_tasks)
+            logger.info(f"Batch {i // batch_size + 1} completed.")
 
-            async def scrape_single(origin, destination, date):
-                nonlocal completed_count
-                try:
-                    async with sem:
-                        async with SessionLocal() as task_session:
-                            # Each task gets its own session to avoid conflicts
-                            # Note: force_refresh is False since we already filtered stale routes
-                            await engine_scraper.perform_search(origin, destination, date, task_session, force_refresh=False)
-                            stats["routes_scraped"] += 1
-                except Exception as e:
-                    logger.error(f"Scrape failed for {origin}->{destination} on {date}: {e}")
-                    stats["routes_failed"] += 1
-                finally:
-                    completed_count += 1
-                    if completed_count % 10 == 0:
-                        logger.info(f"Progress: {completed_count}/{total_tasks} tasks completed")
-
-            tasks = []
-            for item in tasks_to_run:
-                tasks.append(scrape_single(item['origin'], item['destination'], item['date']))
-
-            await asyncio.gather(*tasks)
-
-        # 6. Update Timestamp (only if full scrape ran) - use fresh session
+        # 6. Update Timestamp (only if full scrape ran)
         if run_full_scrape:
             async with SessionLocal() as update_session:
                 res = await update_session.execute(select(SystemSetting).where(SystemSetting.key == "last_auto_scrape"))
@@ -402,12 +404,10 @@ async def main():
                 await update_session.commit()
                 logger.info(f"Scraper run #{scraper_run_id} completed: {stats['routes_scraped']}/{stats['total_routes']} successful, {stats['routes_skipped']} skipped, {stats['routes_failed']} failed")
 
-            # Clean up old runs
             await cleanup_old_runs(update_session)
 
     except Exception as e:
         logger.error(f"Scraper run failed: {e}", exc_info=True)
-        # Update run record with failure
         async with SessionLocal() as update_session:
             stmt = select(ScraperRun).where(ScraperRun.id == scraper_run_id)
             res = await update_session.execute(stmt)
@@ -416,7 +416,7 @@ async def main():
                 run.completed_at = datetime.now(pytz.utc)
                 run.duration_seconds = (run.completed_at - run.started_at).total_seconds()
                 run.status = "failed"
-                run.error_message = str(e)[:500]  # Truncate error message
+                run.error_message = str(e)[:500]
                 run.total_routes = stats["total_routes"]
                 run.routes_scraped = stats["routes_scraped"]
                 run.routes_skipped = stats["routes_skipped"]
