@@ -276,6 +276,7 @@ createApp({
         const proxyInput = ref('');
         const settings = ref({});
         const lastHeartbeat = ref(null); // Placeholder
+        const adminPassword = ref(localStorage.getItem('adminPass') || '')
         
         const jobs = ref([
             { key: 'auto', name: 'AutoScraper', desc: 'Maintains cache for near-term flights.', schedule: 'Every 30m', enabled: true, lastRun: null, loading: false },
@@ -287,8 +288,11 @@ createApp({
 
         // -- API Helpers --
         const getHeaders = () => {
-            // Rely on Cookie Auth via Base HTML flow
-            return { 'Content-Type': 'application/json' };
+            const headers = { 'Content-Type': 'application/json' };
+            if (adminPassword.value) {
+                headers['X-Admin-Pass'] = adminPassword.value;
+            }
+            return headers;
         };
 
         const fetchData = async () => {
@@ -404,6 +408,13 @@ createApp({
         };
 
         onMounted(() => {
+            if (!adminPassword.value) {
+                const pass = prompt('Enter admin password:');
+                if (pass) {
+                    adminPassword.value = pass;
+                    localStorage.setItem('adminPass', pass);
+                }
+            }
             fetchData();
         });
 
