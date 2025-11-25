@@ -260,6 +260,70 @@
             </div>
         </div>
 
+        <!-- DATA EXPLORER TAB -->
+        <div v-if="currentTab === 'data'" class="animate-fade-in space-y-6">
+            <!-- Cached Routes -->
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+                <div class="p-6 border-b border-slate-50 bg-slate-50/30 flex justify-between items-center">
+                    <h3 class="font-bold text-slate-800">Cached Routes by Date</h3>
+                    <button @click="loadCachedRoutes" class="text-xs font-bold text-brand-600 hover:underline">Reload</button>
+                </div>
+                <div class="p-6">
+                    <div v-if="!cachedRoutes || Object.keys(cachedRoutes).length === 0" class="text-center text-slate-400 italic py-8">
+                        No cached routes found.
+                    </div>
+                    <div v-else class="space-y-4">
+                        <div v-for="(routes, date) in cachedRoutes" :key="date" class="border border-slate-100 rounded-lg p-4">
+                            <div class="flex justify-between items-center mb-2">
+                                <h4 class="font-bold text-slate-700">[[ date ]]</h4>
+                                <div class="flex items-center gap-3">
+                                    <span class="text-xs text-slate-500">[[ routes.length ]] routes</span>
+                                    <button @click="deleteCachedDate(date)" class="text-xs text-red-500 hover:text-red-700">Delete</button>
+                                </div>
+                            </div>
+                            <div class="text-xs text-slate-500 space-y-1">
+                                <div v-for="route in routes.slice(0, 5)" :key="route">• [[ route ]]</div>
+                                <div v-if="routes.length > 5" class="text-slate-400">... and [[ routes.length - 5 ]] more</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Weather Data -->
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+                <div class="p-6 border-b border-slate-50 bg-slate-50/30 flex justify-between items-center">
+                    <h3 class="font-bold text-slate-800">Weather Data by Date</h3>
+                    <button @click="loadWeatherData" class="text-xs font-bold text-brand-600 hover:underline">Reload</button>
+                </div>
+                <div class="p-6">
+                    <div v-if="!weatherData || Object.keys(weatherData).length === 0" class="text-center text-slate-400 italic py-8">
+                        No weather data found.
+                    </div>
+                    <div v-else class="space-y-4">
+                        <div v-for="(airports, date) in weatherData" :key="date" class="border border-slate-100 rounded-lg p-4">
+                            <div class="flex justify-between items-center mb-2">
+                                <h4 class="font-bold text-slate-700">[[ date ]]</h4>
+                                <div class="flex items-center gap-3">
+                                    <span class="text-xs text-slate-500">[[ airports.length ]] airports</span>
+                                    <button @click="deleteWeatherDate(date)" class="text-xs text-red-500 hover:text-red-700">Delete</button>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
+                                <div v-for="airport in airports.slice(0, 8)" :key="airport.airport" class="bg-slate-50 rounded p-2">
+                                    <div class="font-bold text-slate-700">[[ airport.airport ]]</div>
+                                    <div class="text-slate-500">[[ airport.temp ]]°F</div>
+                                </div>
+                                <div v-if="airports.length > 8" class="flex items-center justify-center text-slate-400">
+                                    +[[ airports.length - 8 ]] more
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
     </div>
 </div>
 
@@ -285,6 +349,8 @@ createApp({
         const settings = ref({});
         const lastHeartbeat = ref(null); // Placeholder
         const adminPassword = ref(localStorage.getItem('adminPass') || '')
+        const cachedRoutes = ref({});
+        const weatherData = ref({})
         
         const jobs = ref([
             { key: 'auto', name: 'AutoScraper', desc: 'Maintains cache for near-term flights.', schedule: 'Every 30m', enabled: true, lastRun: null, loading: false },
@@ -325,6 +391,10 @@ createApp({
                 if (currentTab.value === 'proxies') await fetchProxies();
                 if (currentTab.value === 'settings') await fetchSettings();
                 if (currentTab.value === 'scrapers') await loadJobStates();
+                if (currentTab.value === 'data') {
+                    await loadCachedRoutes();
+                    await loadWeatherData();
+                }
             } catch (e) { console.error('fetchData error:', e); }
             finally { loading.value = false; }
         };
@@ -481,7 +551,49 @@ createApp({
             } catch (e) { alert('Failed to trigger'); }
             if(j) j.loading = false;
         };
-        
+
+        const loadCachedRoutes = async () => {
+            try {
+                const res = await fetch('/api/admin/cached_routes', { headers: getHeaders() });
+                if (!res.ok) return;
+                cachedRoutes.value = await res.json();
+                console.log('Cached routes loaded:', cachedRoutes.value);
+            } catch (e) {
+                console.error('Failed to load cached routes:', e);
+            }
+        };
+
+        const deleteCachedDate = async (date) => {
+            if (!confirm(`Delete all cached routes for ${date}?`)) return;
+            try {
+                await fetch(`/api/admin/cached_routes/${date}`, { method: 'DELETE', headers: getHeaders() });
+                await loadCachedRoutes();
+            } catch (e) {
+                alert('Failed to delete');
+            }
+        };
+
+        const loadWeatherData = async () => {
+            try {
+                const res = await fetch('/api/admin/weather_data', { headers: getHeaders() });
+                if (!res.ok) return;
+                weatherData.value = await res.json();
+                console.log('Weather data loaded:', weatherData.value);
+            } catch (e) {
+                console.error('Failed to load weather data:', e);
+            }
+        };
+
+        const deleteWeatherDate = async (date) => {
+            if (!confirm(`Delete weather data for ${date}?`)) return;
+            try {
+                await fetch(`/api/admin/weather_data/${date}`, { method: 'DELETE', headers: getHeaders() });
+                await loadWeatherData();
+            } catch (e) {
+                alert('Failed to delete');
+            }
+        };
+
         const formatTime = (iso) => {
             if(!iso) return '';
             return new Date(iso).toLocaleString();
@@ -507,8 +619,10 @@ createApp({
 
         return {
             tabs, currentTab, loading, stats, recentRuns, proxies, proxyInput, settings, jobs, lastHeartbeat,
+            cachedRoutes, weatherData,
             fetchData, fetchRuns, addProxies, deleteProxy, deleteAllProxies, recheckProxies, saveSettings, triggerJob,
-            loadJobStates, toggleJobEnabled, formatTime, getStatusColor
+            loadJobStates, toggleJobEnabled, loadCachedRoutes, deleteCachedDate, loadWeatherData, deleteWeatherDate,
+            formatTime, getStatusColor
         };
     }
 }).mount('#admin-app');
