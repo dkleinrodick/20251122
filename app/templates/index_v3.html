@@ -1676,6 +1676,8 @@
                 // Default to List view on Mobile, Map on Desktop
                 const exploreView = ref(isMobileUA ? 'list' : 'map');
                 const currentTab = ref('explore');
+                const blackoutDates = ref(new Set());
+                const blackoutEnabled = ref(true);
                 const tabs = [
                     { id: 'explore', label: 'Explore', icon: 'ph-compass', desc: 'Visual Map of Network' },
                     { id: 'oneway', label: 'One Way', icon: 'ph-airplane-takeoff', desc: 'Direct & Connecting Flights' },
