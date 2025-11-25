@@ -573,6 +573,20 @@
                                             <toggle-switch v-model="settings.save_debug_responses" label="Save Debug Responses"></toggle-switch>
                                         </div>
                                     </div>
+
+                                    <!-- Blackout Dates -->
+                                    <div>
+                                        <h4 class="text-xs font-bold text-surface-200 uppercase mb-4 flex items-center gap-2">
+                                            <i class="ph-bold ph-calendar-x"></i> Blackout Dates
+                                        </h4>
+                                        <div class="space-y-4">
+                                            <toggle-switch v-model="settings.blackout_dates_enabled" label="Enable Blackout Warnings"></toggle-switch>
+                                            <div>
+                                                <label class="block text-xs font-bold text-surface-200 uppercase mb-2">Dates (JSON List)</label>
+                                                <textarea v-model="settings.blackout_dates" class="w-full bg-surface-900 border border-surface-100 rounded-lg px-3 py-2.5 text-white text-xs font-mono h-32 outline-none focus:border-brand-500" placeholder='["2025-01-01", "2025-01-02"]'></textarea>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
 
