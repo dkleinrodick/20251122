@@ -556,7 +556,20 @@ createApp({
             try {
                 const res = await fetch('/api/admin/cached_routes', { headers: getHeaders() });
                 if (!res.ok) return;
-                cachedRoutes.value = await res.json();
+                const data = await res.json();
+
+                // Transform nested structure to date -> routes array
+                const transformed = {};
+                for (const [date, origins] of Object.entries(data)) {
+                    transformed[date] = [];
+                    for (const [origin, destinations] of Object.entries(origins)) {
+                        for (const [dest, info] of Object.entries(destinations)) {
+                            transformed[date].push(`${origin} → ${dest} (${info.count} flights)`);
+                        }
+                    }
+                }
+
+                cachedRoutes.value = transformed;
                 console.log('Cached routes loaded:', cachedRoutes.value);
             } catch (e) {
                 console.error('Failed to load cached routes:', e);
