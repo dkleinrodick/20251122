@@ -1540,11 +1540,11 @@
                             
                                         <div v-if="forceDesktop || appMode === 'landing'" class="text-center py-8 px-6">
                                             <p class="text-[10px] text-slate-400 leading-relaxed max-w-2xl mx-auto font-medium">
-                                                                    WildFares is an independent project and is not affiliated with, endorsed by, or connected to Frontier Airlines, Inc. or the GoWild!™ Pass program. All trademarks are property of their respective owners.
-                                                                    <br><br>
-                                                                    <span class="font-mono text-slate-300">v3.0.0 (Beta)</span>
-                                                                    <span class="mx-2 text-slate-200">|</span>
-                                                                    <a href="/terms" class="hover:text-slate-500 transition">Terms</a>                                                <span class="mx-1 text-slate-200">•</span>
+                                                                                                            WildFares is an independent project and is not affiliated with, endorsed by, or connected to Frontier Airlines, Inc. or the GoWild!™ Pass program. All trademarks are property of their respective owners.
+                                                                                                            <br><br>
+                                                                                                            <span class="font-mono text-slate-300" @click="alert('Blackout Debug:\nEnabled: ' + blackoutEnabled + '\nSize: ' + blackoutDates.size + '\nMessage: ' + blackoutMessage + '\nPopup: ' + showBlackoutPopup)">v3.0.2 (Debug)</span>
+                                                                                                            <span class="mx-2 text-slate-200">|</span>
+                                                                                                            <a href="/terms" class="hover:text-slate-500 transition">Terms</a>                                                <span class="mx-1 text-slate-200">•</span>
                                                 <a href="/privacy" class="hover:text-slate-500 transition">Privacy</a>
                                                 <span class="mx-1 text-slate-200">•</span>
                                                 <a href="mailto:David@wildfares.com" class="hover:text-slate-500 transition">Questions/Comments? David@wildfares.com</a>
@@ -1568,6 +1568,12 @@
     </div>
 
     <script>
+        // Global Error Handler for Mobile Debugging
+        window.onerror = function(msg, url, line, col, error) {
+            alert("JS Error: " + msg + "\nLine: " + line);
+            return false;
+        };
+
         const { createApp, ref, computed, watch, onMounted, nextTick } = Vue;
 
         const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
@@ -2088,13 +2094,37 @@
                 };
 
                 const fetchConfig = async () => {
+                    // Default fallback first
+                    try {
+                        blackoutDates.value = new Set(fallbackBlackout);
+                    } catch (e) { console.error("Fallback init error", e); }
+
                     try {
                         const config = await axios.get('/api/public_config');
-                        if (String(config.data.announcement_enabled).toLowerCase() === 'true' && config.data.announcement_html) {
-                            announcementHtml.value = config.data.announcement_html;
-                            showAnnouncement.value = true;
+                        
+                        if (config.data) {
+                            if (String(config.data.announcement_enabled).toLowerCase() === 'true' && config.data.announcement_html) {
+                                announcementHtml.value = config.data.announcement_html;
+                                showAnnouncement.value = true;
+                            }
+                            if (config.data.blackout_dates) {
+                                try {
+                                    const dates = JSON.parse(config.data.blackout_dates);
+                                    if (Array.isArray(dates)) {
+                                        blackoutDates.value = new Set(dates);
+                                    }
+                                } catch(jsonErr) {
+                                    console.error("Blackout JSON parse error", jsonErr);
+                                }
+                            }
+                            if (config.data.blackout_dates_enabled) {
+                                blackoutEnabled.value = String(config.data.blackout_dates_enabled).toLowerCase() === 'true';
+                            }
                         }
-                    } catch (e) { console.error("Config Load Failed", e); }
+                    } catch (e) { 
+                        console.error("Config Load Failed (Network)", e); 
+                        // Don't throw, just continue with defaults/fallbacks
+                    }
                 };
 
                 const init = async () => {
