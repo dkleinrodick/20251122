@@ -1378,3 +1378,134 @@ async def get_seat_inventory(db: AsyncSession = Depends(get_db)):
     # Sort by date, then origin
     inventory.sort(key=lambda x: (x["date"], x["origin"]))
     return inventory
+
+@app.get("/api/admin/route_analytics", dependencies=[Depends(verify_admin)])
+async def get_route_analytics(db: AsyncSession = Depends(get_db)):
+    """
+    Smart route analytics aggregating current availability and historical trends
+    """
+    from app.models import FareSnapshot
+    from collections import defaultdict
+
+    # Fetch all current cache
+    cache_stmt = select(FlightCache)
+    cache_res = await db.execute(cache_stmt)
+    cache_entries = cache_res.scalars().all()
+
+    # Fetch fare snapshots (last 7 days)
+    snapshot_cutoff = datetime.now(pytz.UTC) - timedelta(days=7)
+    snapshot_stmt = select(FareSnapshot).where(FareSnapshot.scraped_at >= snapshot_cutoff)
+    snapshot_res = await db.execute(snapshot_stmt)
+    snapshots = snapshot_res.scalars().all()
+
+    # Build route analytics
+    routes = defaultdict(lambda: {
+        "origin": "",
+        "destination": "",
+        "dates": {},
+        "gowild_available": False,
+        "best_gowild_price": None,
+        "best_standard_price": None,
+        "total_flights": 0,
+        "last_updated": None
+    })
+
+    # Process current cache
+    for cache in cache_entries:
+        route_key = f"{cache.origin}-{cache.destination}"
+        route = routes[route_key]
+        route["origin"] = cache.origin
+        route["destination"] = cache.destination
+
+        flights = decompress_data(cache.data)
+        if not flights:
+            continue
+
+        date = cache.travel_date
+        if date not in route["dates"]:
+            route["dates"][date] = {
+                "gowild": {"price": None, "seats": 0},
+                "standard": {"price": None, "seats": 0},
+                "discount_den": {"price": None, "seats": 0},
+                "flight_count": 0
+            }
+
+        date_data = route["dates"][date]
+        date_data["flight_count"] = len(flights)
+        route["total_flights"] += len(flights)
+
+        # Extract fare info
+        for flight in flights:
+            fare_type = flight.get("fareType", "")
+            price = flight.get("price")
+            seats = flight.get("seatsAvailable", 0)
+
+            if "GoWild" in fare_type or "Go Wild" in fare_type:
+                if price and (date_data["gowild"]["price"] is None or price < date_data["gowild"]["price"]):
+                    date_data["gowild"]["price"] = price
+                date_data["gowild"]["seats"] = max(date_data["gowild"]["seats"], seats)
+                route["gowild_available"] = True
+                if route["best_gowild_price"] is None or price < route["best_gowild_price"]:
+                    route["best_gowild_price"] = price
+            elif "Discount" in fare_type or "Den" in fare_type:
+                if price and (date_data["discount_den"]["price"] is None or price < date_data["discount_den"]["price"]):
+                    date_data["discount_den"]["price"] = price
+                date_data["discount_den"]["seats"] = max(date_data["discount_den"]["seats"], seats)
+            else:  # Standard
+                if price and (date_data["standard"]["price"] is None or price < date_data["standard"]["price"]):
+                    date_data["standard"]["price"] = price
+                date_data["standard"]["seats"] = max(date_data["standard"]["seats"], seats)
+                if route["best_standard_price"] is None or price < route["best_standard_price"]:
+                    route["best_standard_price"] = price
+
+        # Update timestamp
+        if cache.created_at:
+            ts = cache.created_at if cache.created_at.tzinfo else pytz.UTC.localize(cache.created_at)
+            if route["last_updated"] is None or ts > route["last_updated"]:
+                route["last_updated"] = ts.isoformat()
+
+    # Process snapshots for trends
+    snapshot_data = defaultdict(lambda: defaultdict(list))
+    for snap in snapshots:
+        route_key = f"{snap.origin}-{snap.destination}"
+        date = snap.travel_date
+        snapshot_data[route_key][date].append({
+            "scraped_at": snap.scraped_at.isoformat() if snap.scraped_at and snap.scraped_at.tzinfo else pytz.UTC.localize(snap.scraped_at).isoformat() if snap.scraped_at else None,
+            "min_price_standard": snap.min_price_standard,
+            "min_price_gowild": snap.min_price_gowild,
+            "seats_gowild": snap.seats_gowild
+        })
+
+    # Add trend indicators
+    for route_key, route in routes.items():
+        route["trends"] = {}
+        if route_key in snapshot_data:
+            for date, snaps in snapshot_data[route_key].items():
+                if len(snaps) >= 2:
+                    # Sort by time
+                    snaps.sort(key=lambda x: x["scraped_at"] or "")
+                    first = snaps[0]
+                    last = snaps[-1]
+
+                    route["trends"][date] = {
+                        "price_change_gowild": None,
+                        "price_change_standard": None,
+                        "seat_change_gowild": None
+                    }
+
+                    # Calculate changes
+                    if first["min_price_gowild"] and last["min_price_gowild"]:
+                        route["trends"][date]["price_change_gowild"] = last["min_price_gowild"] - first["min_price_gowild"]
+                    if first["min_price_standard"] and last["min_price_standard"]:
+                        route["trends"][date]["price_change_standard"] = last["min_price_standard"] - first["min_price_standard"]
+                    if first["seats_gowild"] is not None and last["seats_gowild"] is not None:
+                        route["trends"][date]["seat_change_gowild"] = last["seats_gowild"] - first["seats_gowild"]
+
+    # Convert to list and sort by best deals
+    route_list = list(routes.values())
+    route_list.sort(key=lambda r: (
+        0 if r["gowild_available"] else 1,  # GoWild first
+        r["best_gowild_price"] if r["best_gowild_price"] else 9999
+    ))
+
+    return route_list

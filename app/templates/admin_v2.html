@@ -263,155 +263,163 @@
         <!-- DATA EXPLORER TAB -->
         <div v-if="currentTab === 'data'" class="animate-fade-in space-y-6">
 
-            <!-- Database Overview Stats -->
+            <!-- Top Stats Cards -->
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-                    <div class="text-slate-400 text-xs font-bold uppercase mb-1">Total Cache Entries</div>
-                    <div class="text-3xl font-bold text-slate-900">[[ dataStats.totalCacheEntries || 0 ]]</div>
-                    <div class="text-xs text-slate-500 mt-1">[[ dataStats.uniqueDates || 0 ]] unique dates</div>
+                <div class="bg-gradient-to-br from-green-500 to-green-600 p-6 rounded-2xl shadow-lg text-white">
+                    <div class="text-green-100 text-xs font-bold uppercase mb-1">Best GoWild Deal</div>
+                    <div class="text-3xl font-bold">[[ bestGowildDeal ? '$' + bestGowildDeal.price : '—' ]]</div>
+                    <div class="text-xs text-green-100 mt-1">[[ bestGowildDeal ? bestGowildDeal.route : 'No deals' ]]</div>
                 </div>
-                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-                    <div class="text-slate-400 text-xs font-bold uppercase mb-1">Total Flights</div>
-                    <div class="text-3xl font-bold text-slate-900">[[ dataStats.totalFlights || 0 ]]</div>
-                    <div class="text-xs text-slate-500 mt-1">[[ dataStats.uniqueRoutes || 0 ]] unique routes</div>
+                <div class="bg-gradient-to-br from-brand-500 to-brand-600 p-6 rounded-2xl shadow-lg text-white">
+                    <div class="text-brand-100 text-xs font-bold uppercase mb-1">Routes with GoWild</div>
+                    <div class="text-3xl font-bold">[[ gowildAvailableCount ]]</div>
+                    <div class="text-xs text-brand-100 mt-1">of [[ routeAnalytics.length ]] total routes</div>
                 </div>
-                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-                    <div class="text-slate-400 text-xs font-bold uppercase mb-1">Weather Forecasts</div>
-                    <div class="text-3xl font-bold text-slate-900">[[ dataStats.weatherEntries || 0 ]]</div>
-                    <div class="text-xs text-slate-500 mt-1">[[ dataStats.weatherDates || 0 ]] dates</div>
+                <div class="bg-gradient-to-br from-orange-500 to-orange-600 p-6 rounded-2xl shadow-lg text-white">
+                    <div class="text-orange-100 text-xs font-bold uppercase mb-1">Price Drops (24h)</div>
+                    <div class="text-3xl font-bold">[[ priceDropCount ]]</div>
+                    <div class="text-xs text-orange-100 mt-1">routes with lower prices</div>
                 </div>
-                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-                    <div class="text-slate-400 text-xs font-bold uppercase mb-1">Route Pairs</div>
-                    <div class="text-3xl font-bold text-slate-900">[[ dataStats.routePairs || 0 ]]</div>
-                    <div class="text-xs text-slate-500 mt-1">[[ dataStats.activeRoutes || 0 ]] active</div>
+                <div class="bg-gradient-to-br from-red-500 to-red-600 p-6 rounded-2xl shadow-lg text-white">
+                    <div class="text-red-100 text-xs font-bold uppercase mb-1">Seats Decreasing</div>
+                    <div class="text-3xl font-bold">[[ seatsDecreasingCount ]]</div>
+                    <div class="text-xs text-red-100 mt-1">book before they're gone!</div>
                 </div>
             </div>
 
-            <!-- Flight Cache Detailed View -->
+            <!-- Smart Route Analytics Table -->
             <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
                 <div class="p-6 border-b border-slate-50 bg-slate-50/30">
                     <div class="flex justify-between items-center mb-4">
-                        <h3 class="font-bold text-slate-800">Flight Cache Inventory</h3>
-                        <button @click="loadFlightInventory" class="text-xs font-bold text-brand-600 hover:underline">Reload</button>
+                        <h3 class="font-bold text-slate-800">Route Analytics & Trends</h3>
+                        <button @click="loadRouteAnalytics" class="text-xs font-bold text-brand-600 hover:underline">Reload</button>
                     </div>
-                    <div class="flex gap-3">
-                        <input v-model="flightSearchQuery" type="text" placeholder="Search by origin, destination, or date..."
-                            class="flex-1 bg-white border border-slate-200 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-brand-500">
-                        <select v-model="flightDateFilter" class="bg-white border border-slate-200 rounded-lg px-4 py-2 text-sm">
-                            <option value="">All Dates</option>
-                            <option v-for="date in uniqueFlightDates" :key="date" :value="date">[[ date ]]</option>
+                    <div class="flex gap-3 flex-wrap">
+                        <input v-model="routeSearch" type="text" placeholder="Search routes (e.g., ORD, LAX)..."
+                            class="flex-1 min-w-[200px] bg-white border border-slate-200 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-brand-500">
+                        <select v-model="fareFilter" class="bg-white border border-slate-200 rounded-lg px-4 py-2 text-sm">
+                            <option value="">All Fares</option>
+                            <option value="gowild">GoWild Available Only</option>
+                            <option value="standard">Standard Available Only</option>
+                        </select>
+                        <select v-model="sortBy" class="bg-white border border-slate-200 rounded-lg px-4 py-2 text-sm">
+                            <option value="best_deal">Best Deals First</option>
+                            <option value="price_low">Lowest Price</option>
+                            <option value="price_high">Highest Price</option>
+                            <option value="seats">Most Seats</option>
                         </select>
                     </div>
                 </div>
-                <div class="overflow-x-auto max-h-96">
+
+                <div class="overflow-x-auto" style="max-height: 600px;">
                     <table class="w-full text-left text-sm">
                         <thead class="bg-slate-50 text-slate-500 font-bold uppercase text-xs sticky top-0">
                             <tr>
-                                <th class="px-6 py-3">Date</th>
                                 <th class="px-6 py-3">Route</th>
-                                <th class="px-6 py-3">Flight #</th>
-                                <th class="px-6 py-3">Fare Type</th>
-                                <th class="px-6 py-3">Price</th>
-                                <th class="px-6 py-3">Seats</th>
+                                <th class="px-6 py-3">GoWild</th>
+                                <th class="px-6 py-3">Standard</th>
+                                <th class="px-6 py-3">Discount Den</th>
+                                <th class="px-6 py-3">Dates</th>
+                                <th class="px-6 py-3">Trends</th>
                                 <th class="px-6 py-3">Updated</th>
+                                <th class="px-6 py-3">Actions</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100">
-                            <tr v-for="flight in filteredFlightInventory" :key="flight.id" class="hover:bg-slate-50/50">
-                                <td class="px-6 py-3 font-mono text-xs text-slate-700">[[ flight.date ]]</td>
-                                <td class="px-6 py-3 font-bold text-slate-900">[[ flight.origin ]] → [[ flight.destination ]]</td>
-                                <td class="px-6 py-3 font-mono text-xs text-slate-600">[[ flight.flight ]]</td>
-                                <td class="px-6 py-3">
-                                    <span class="text-xs px-2 py-1 rounded" :class="flight.fareType === 'GoWild! Pass' ? 'bg-brand-50 text-brand-700' : 'bg-slate-100 text-slate-700'">
-                                        [[ flight.fareType ]]
-                                    </span>
-                                </td>
-                                <td class="px-6 py-3 font-bold text-green-600">$[[ flight.price ]]</td>
-                                <td class="px-6 py-3 text-slate-600">[[ flight.seats ]]</td>
-                                <td class="px-6 py-3 text-xs text-slate-400">[[ formatTime(flight.updated) ]]</td>
-                            </tr>
-                            <tr v-if="filteredFlightInventory.length === 0">
-                                <td colspan="7" class="px-6 py-8 text-center text-slate-400 italic">No flights found</td>
+                            <template v-for="(route, idx) in filteredRoutes" :key="idx">
+                                <tr class="hover:bg-slate-50/50 cursor-pointer" @click="toggleRouteExpand(idx)">
+                                    <td class="px-6 py-4 font-bold text-slate-900">[[ route.origin ]] → [[ route.destination ]]</td>
+                                    <td class="px-6 py-4">
+                                        <div v-if="route.best_gowild_price" class="flex items-center gap-2">
+                                            <span class="font-bold text-green-600">$[[ route.best_gowild_price ]]</span>
+                                            <span class="text-xs bg-green-50 text-green-700 px-2 py-0.5 rounded">✓</span>
+                                        </div>
+                                        <span v-else class="text-slate-400 text-xs">—</span>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <span v-if="route.best_standard_price" class="font-bold text-slate-700">$[[ route.best_standard_price ]]</span>
+                                        <span v-else class="text-slate-400 text-xs">—</span>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <span class="text-slate-400 text-xs">Check dates</span>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <span class="text-xs bg-slate-100 text-slate-700 px-2 py-1 rounded">[[ Object.keys(route.dates).length ]] dates</span>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <div class="flex gap-1">
+                                            <span v-if="hasPositiveTrends(route)" class="text-xs">📈</span>
+                                            <span v-if="hasNegativeTrends(route)" class="text-xs">📉</span>
+                                            <span v-if="!hasPositiveTrends(route) && !hasNegativeTrends(route)" class="text-slate-400 text-xs">—</span>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 text-xs text-slate-500">[[ formatTime(route.last_updated) || 'Unknown' ]]</td>
+                                    <td class="px-6 py-4">
+                                        <button class="text-brand-600 hover:underline text-xs font-bold">
+                                            [[ expandedRoute === idx ? 'Hide' : 'Expand' ]]
+                                        </button>
+                                    </td>
+                                </tr>
+
+                                <!-- Expanded Details Row -->
+                                <tr v-if="expandedRoute === idx" class="bg-slate-50">
+                                    <td colspan="8" class="px-6 py-6">
+                                        <div class="space-y-4">
+                                            <h4 class="font-bold text-slate-800 mb-3">Detailed Breakdown by Date</h4>
+                                            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                                                <div v-for="(dateData, date) in route.dates" :key="date" class="border border-slate-200 rounded-lg p-4 bg-white">
+                                                    <div class="font-bold text-slate-700 mb-3">[[ date ]]</div>
+                                                    <div class="grid grid-cols-3 gap-3 text-sm">
+                                                        <div>
+                                                            <div class="text-xs text-slate-500 uppercase mb-1">GoWild</div>
+                                                            <div v-if="dateData.gowild.price" class="font-bold text-green-600">$[[ dateData.gowild.price ]]</div>
+                                                            <div v-else class="text-slate-400">—</div>
+                                                            <div v-if="dateData.gowild.seats" class="text-xs text-slate-600">[[ dateData.gowild.seats ]] seats</div>
+                                                        </div>
+                                                        <div>
+                                                            <div class="text-xs text-slate-500 uppercase mb-1">Standard</div>
+                                                            <div v-if="dateData.standard.price" class="font-bold text-slate-700">$[[ dateData.standard.price ]]</div>
+                                                            <div v-else class="text-slate-400">—</div>
+                                                            <div v-if="dateData.standard.seats" class="text-xs text-slate-600">[[ dateData.standard.seats ]] seats</div>
+                                                        </div>
+                                                        <div>
+                                                            <div class="text-xs text-slate-500 uppercase mb-1">Discount Den</div>
+                                                            <div v-if="dateData.discount_den.price" class="font-bold text-orange-600">$[[ dateData.discount_den.price ]]</div>
+                                                            <div v-else class="text-slate-400">—</div>
+                                                            <div v-if="dateData.discount_den.seats" class="text-xs text-slate-600">[[ dateData.discount_den.seats ]] seats</div>
+                                                        </div>
+                                                    </div>
+                                                    <div v-if="route.trends && route.trends[date]" class="mt-3 pt-3 border-t border-slate-100">
+                                                        <div class="text-xs text-slate-500 uppercase mb-2">7-Day Trends</div>
+                                                        <div class="flex gap-3 text-xs">
+                                                            <div v-if="route.trends[date].price_change_gowild !== null">
+                                                                <span :class="route.trends[date].price_change_gowild < 0 ? 'text-green-600' : 'text-red-600'">
+                                                                    [[ route.trends[date].price_change_gowild < 0 ? '↓' : '↑' ]] $[[ Math.abs(route.trends[date].price_change_gowild) ]] GoWild
+                                                                </span>
+                                                            </div>
+                                                            <div v-if="route.trends[date].seat_change_gowild !== null">
+                                                                <span :class="route.trends[date].seat_change_gowild > 0 ? 'text-green-600' : 'text-red-600'">
+                                                                    [[ route.trends[date].seat_change_gowild > 0 ? '↑' : '↓' ]] [[ Math.abs(route.trends[date].seat_change_gowild) ]] seats
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </template>
+
+                            <tr v-if="filteredRoutes.length === 0">
+                                <td colspan="8" class="px-6 py-8 text-center text-slate-400 italic">No routes found</td>
                             </tr>
                         </tbody>
                     </table>
                 </div>
-                <div class="p-4 border-t border-slate-100 bg-slate-50/30 text-xs text-slate-500 flex justify-between items-center">
-                    <span>Showing [[ filteredFlightInventory.length ]] of [[ flightInventory.length ]] flights</span>
-                    <div class="flex gap-3">
-                        <button @click="clearOldCache" class="text-red-500 hover:text-red-700 font-bold">Clear Old Cache (7+ days)</button>
-                    </div>
-                </div>
-            </div>
 
-            <!-- Route Pairs Management -->
-            <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-                <div class="p-6 border-b border-slate-50 bg-slate-50/30 flex justify-between items-center">
-                    <h3 class="font-bold text-slate-800">Route Pairs Configuration</h3>
-                    <button @click="loadRoutePairs" class="text-xs font-bold text-brand-600 hover:underline">Reload</button>
-                </div>
-                <div class="overflow-x-auto max-h-96">
-                    <table class="w-full text-left text-sm">
-                        <thead class="bg-slate-50 text-slate-500 font-bold uppercase text-xs sticky top-0">
-                            <tr>
-                                <th class="px-6 py-3">ID</th>
-                                <th class="px-6 py-3">Route</th>
-                                <th class="px-6 py-3">Status</th>
-                                <th class="px-6 py-3">Last Validated</th>
-                                <th class="px-6 py-3">Errors</th>
-                                <th class="px-6 py-3">Action</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-slate-100">
-                            <tr v-for="route in routePairs" :key="route.id" class="hover:bg-slate-50/50">
-                                <td class="px-6 py-3 font-mono text-xs text-slate-400">#[[ route.id ]]</td>
-                                <td class="px-6 py-3 font-bold text-slate-900">[[ route.origin ]] → [[ route.destination ]]</td>
-                                <td class="px-6 py-3">
-                                    <span v-if="route.is_active" class="text-green-600 font-bold text-xs bg-green-50 px-2 py-1 rounded">Active</span>
-                                    <span v-else class="text-red-600 font-bold text-xs bg-red-50 px-2 py-1 rounded">Inactive</span>
-                                </td>
-                                <td class="px-6 py-3 text-xs text-slate-500">[[ formatTime(route.last_validated) || 'Never' ]]</td>
-                                <td class="px-6 py-3 text-xs text-red-600 font-bold">[[ route.error_count || 0 ]]</td>
-                                <td class="px-6 py-3">
-                                    <button @click="toggleRoute(route.id)" class="text-xs text-brand-600 hover:underline">Toggle</button>
-                                </td>
-                            </tr>
-                            <tr v-if="routePairs.length === 0">
-                                <td colspan="6" class="px-6 py-8 text-center text-slate-400 italic">No route pairs found</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <!-- Weather Data by Date -->
-            <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-                <div class="p-6 border-b border-slate-50 bg-slate-50/30 flex justify-between items-center">
-                    <h3 class="font-bold text-slate-800">Weather Forecasts</h3>
-                    <button @click="loadWeatherData" class="text-xs font-bold text-brand-600 hover:underline">Reload</button>
-                </div>
-                <div class="p-6">
-                    <div v-if="!weatherData || Object.keys(weatherData).length === 0" class="text-center text-slate-400 italic py-8">
-                        No weather data found.
-                    </div>
-                    <div v-else class="space-y-4">
-                        <div v-for="(airports, date) in weatherData" :key="date" class="border border-slate-100 rounded-lg p-4">
-                            <div class="flex justify-between items-center mb-3">
-                                <h4 class="font-bold text-slate-700">[[ date ]]</h4>
-                                <div class="flex items-center gap-3">
-                                    <span class="text-xs text-slate-500">[[ airports.length ]] airports</span>
-                                    <button @click="deleteWeatherDate(date)" class="text-xs text-red-500 hover:text-red-700">Delete</button>
-                                </div>
-                            </div>
-                            <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2 text-xs">
-                                <div v-for="airport in airports" :key="airport.airport" class="bg-slate-50 rounded p-2">
-                                    <div class="font-bold text-slate-700">[[ airport.airport ]]</div>
-                                    <div class="text-slate-500">[[ airport.temp ]]°F</div>
-                                    <div class="text-xs text-slate-400">Code: [[ airport.condition ]]</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                <div class="p-4 border-t border-slate-100 bg-slate-50/30 text-xs text-slate-500">
+                    Showing [[ filteredRoutes.length ]] of [[ routeAnalytics.length ]] routes
                 </div>
             </div>
 
@@ -442,12 +450,11 @@ createApp({
         const settings = ref({});
         const lastHeartbeat = ref(null); // Placeholder
         const adminPassword = ref(localStorage.getItem('adminPass') || '')
-        const weatherData = ref({});
-        const dataStats = ref({});
-        const flightInventory = ref([]);
-        const flightSearchQuery = ref('');
-        const flightDateFilter = ref('');
-        const routePairs = ref([])
+        const routeAnalytics = ref([]);
+        const routeSearch = ref('');
+        const fareFilter = ref('');
+        const sortBy = ref('best_deal');
+        const expandedRoute = ref(null)
         
         const jobs = ref([
             { key: 'auto', name: 'AutoScraper', desc: 'Maintains cache for near-term flights.', schedule: 'Every 30m', enabled: true, lastRun: null, loading: false },
@@ -458,32 +465,77 @@ createApp({
         ]);
 
         // -- Computed Properties --
-        const uniqueFlightDates = Vue.computed(() => {
-            const dates = new Set();
-            flightInventory.value.forEach(f => dates.add(f.date));
-            return Array.from(dates).sort();
+        const bestGowildDeal = Vue.computed(() => {
+            const withGowild = routeAnalytics.value.filter(r => r.gowild_available && r.best_gowild_price);
+            if (withGowild.length === 0) return null;
+            const best = withGowild.reduce((min, r) => r.best_gowild_price < min.best_gowild_price ? r : min);
+            return {
+                price: best.best_gowild_price,
+                route: `${best.origin} → ${best.destination}`
+            };
         });
 
-        const filteredFlightInventory = Vue.computed(() => {
-            let filtered = flightInventory.value;
+        const gowildAvailableCount = Vue.computed(() => {
+            return routeAnalytics.value.filter(r => r.gowild_available).length;
+        });
 
-            // Apply search query
-            if (flightSearchQuery.value) {
-                const query = flightSearchQuery.value.toLowerCase();
-                filtered = filtered.filter(f =>
-                    f.origin.toLowerCase().includes(query) ||
-                    f.destination.toLowerCase().includes(query) ||
-                    f.date.includes(query) ||
-                    f.flight.toLowerCase().includes(query)
+        const priceDropCount = Vue.computed(() => {
+            return routeAnalytics.value.filter(r => {
+                if (!r.trends) return false;
+                return Object.values(r.trends).some(t =>
+                    t.price_change_gowild < 0 || t.price_change_standard < 0
+                );
+            }).length;
+        });
+
+        const seatsDecreasingCount = Vue.computed(() => {
+            return routeAnalytics.value.filter(r => {
+                if (!r.trends) return false;
+                return Object.values(r.trends).some(t => t.seat_change_gowild < 0);
+            }).length;
+        });
+
+        const filteredRoutes = Vue.computed(() => {
+            let filtered = [...routeAnalytics.value];
+
+            // Apply search
+            if (routeSearch.value) {
+                const query = routeSearch.value.toUpperCase();
+                filtered = filtered.filter(r =>
+                    r.origin.includes(query) || r.destination.includes(query)
                 );
             }
 
-            // Apply date filter
-            if (flightDateFilter.value) {
-                filtered = filtered.filter(f => f.date === flightDateFilter.value);
+            // Apply fare filter
+            if (fareFilter.value === 'gowild') {
+                filtered = filtered.filter(r => r.gowild_available);
+            } else if (fareFilter.value === 'standard') {
+                filtered = filtered.filter(r => r.best_standard_price);
             }
 
-            return filtered.slice(0, 100); // Limit to 100 for performance
+            // Apply sorting
+            if (sortBy.value === 'price_low') {
+                filtered.sort((a, b) => {
+                    const priceA = a.best_gowild_price || a.best_standard_price || 9999;
+                    const priceB = b.best_gowild_price || b.best_standard_price || 9999;
+                    return priceA - priceB;
+                });
+            } else if (sortBy.value === 'price_high') {
+                filtered.sort((a, b) => {
+                    const priceA = a.best_standard_price || a.best_gowild_price || 0;
+                    const priceB = b.best_standard_price || b.best_gowild_price || 0;
+                    return priceB - priceA;
+                });
+            } else if (sortBy.value === 'seats') {
+                filtered.sort((a, b) => {
+                    const seatsA = Object.values(a.dates).reduce((sum, d) => sum + (d.gowild.seats || 0), 0);
+                    const seatsB = Object.values(b.dates).reduce((sum, d) => sum + (d.gowild.seats || 0), 0);
+                    return seatsB - seatsA;
+                });
+            }
+            // best_deal is default from API
+
+            return filtered;
         });
 
         // -- API Helpers --
@@ -518,10 +570,7 @@ createApp({
                 if (currentTab.value === 'settings') await fetchSettings();
                 if (currentTab.value === 'scrapers') await loadJobStates();
                 if (currentTab.value === 'data') {
-                    await loadDataStats();
-                    await loadFlightInventory();
-                    await loadRoutePairs();
-                    await loadWeatherData();
+                    await loadRouteAnalytics();
                 }
             } catch (e) { console.error('fetchData error:', e); }
             finally { loading.value = false; }
@@ -680,104 +729,41 @@ createApp({
             if(j) j.loading = false;
         };
 
-        const loadDataStats = async () => {
+        const loadRouteAnalytics = async () => {
             try {
-                const res = await fetch('/api/admin/cache_stats', { headers: getHeaders() });
-                if (!res.ok) return;
-                const data = await res.json();
-
-                // Build stats object
-                dataStats.value = {
-                    totalCacheEntries: data.total_flights || 0,
-                    uniqueDates: data.unique_dates || 0,
-                    uniqueRoutes: data.unique_routes || 0,
-                    totalFlights: flightInventory.value.length,
-                    weatherEntries: 0,
-                    weatherDates: Object.keys(weatherData.value).length,
-                    routePairs: routePairs.value.length,
-                    activeRoutes: routePairs.value.filter(r => r.is_active).length
-                };
-
-                console.log('Data stats loaded:', dataStats.value);
-            } catch (e) {
-                console.error('Failed to load data stats:', e);
-            }
-        };
-
-        const loadFlightInventory = async () => {
-            try {
-                const res = await fetch('/api/admin/seat_inventory', { headers: getHeaders() });
+                console.log('Loading route analytics...');
+                const res = await fetch('/api/admin/route_analytics', { headers: getHeaders() });
                 if (!res.ok) {
-                    console.error('Failed to load flight inventory:', res.status);
+                    console.error('Failed to load route analytics:', res.status);
+                    const text = await res.text();
+                    console.error('Response:', text);
                     return;
                 }
-                flightInventory.value = await res.json();
-                console.log('Flight inventory loaded:', flightInventory.value.length, 'flights');
+                routeAnalytics.value = await res.json();
+                console.log('Route analytics loaded:', routeAnalytics.value.length, 'routes');
             } catch (e) {
-                console.error('Failed to load flight inventory:', e);
+                console.error('Failed to load route analytics:', e);
             }
         };
 
-        const loadRoutePairs = async () => {
-            try {
-                const res = await fetch('/api/admin/routes_list', { headers: getHeaders() });
-                if (!res.ok) return;
-                routePairs.value = await res.json();
-                console.log('Route pairs loaded:', routePairs.value.length);
-            } catch (e) {
-                console.error('Failed to load route pairs:', e);
-            }
+        const toggleRouteExpand = (idx) => {
+            expandedRoute.value = expandedRoute.value === idx ? null : idx;
         };
 
-        const toggleRoute = async (routeId) => {
-            try {
-                await fetch(`/api/admin/routes/${routeId}/toggle`, { method: 'POST', headers: getHeaders() });
-                await loadRoutePairs();
-            } catch (e) {
-                alert('Failed to toggle route');
-            }
+        const hasPositiveTrends = (route) => {
+            if (!route.trends) return false;
+            return Object.values(route.trends).some(t =>
+                (t.seat_change_gowild && t.seat_change_gowild > 0)
+            );
         };
 
-        const clearOldCache = async () => {
-            if (!confirm('Delete all cache entries older than 7 days?')) return;
-            try {
-                const cutoffDate = new Date();
-                cutoffDate.setDate(cutoffDate.getDate() - 7);
-                const cutoffStr = cutoffDate.toISOString().split('T')[0];
-
-                // Find old dates
-                const oldDates = uniqueFlightDates.value.filter(d => d < cutoffStr);
-
-                for (const date of oldDates) {
-                    await fetch(`/api/admin/cached_routes/${date}`, { method: 'DELETE', headers: getHeaders() });
-                }
-
-                alert(`Deleted cache for ${oldDates.length} old dates`);
-                await loadFlightInventory();
-            } catch (e) {
-                alert('Failed to clear old cache');
-            }
-        };
-
-        const loadWeatherData = async () => {
-            try {
-                const res = await fetch('/api/admin/weather_data', { headers: getHeaders() });
-                if (!res.ok) return;
-                weatherData.value = await res.json();
-                console.log('Weather data loaded:', weatherData.value);
-            } catch (e) {
-                console.error('Failed to load weather data:', e);
-            }
-        };
-
-        const deleteWeatherDate = async (date) => {
-            if (!confirm(`Delete weather data for ${date}?`)) return;
-            try {
-                await fetch(`/api/admin/weather_data/${date}`, { method: 'DELETE', headers: getHeaders() });
-                await loadWeatherData();
-            } catch (e) {
-                alert('Failed to delete');
-            }
+        const hasNegativeTrends = (route) => {
+            if (!route.trends) return false;
+            return Object.values(route.trends).some(t =>
+                (t.price_change_gowild && t.price_change_gowild < 0) ||
+                (t.price_change_standard && t.price_change_standard < 0) ||
+                (t.seat_change_gowild && t.seat_change_gowild < 0)
+            );
         };
 
         const formatTime = (iso) => {
@@ -805,11 +791,10 @@ createApp({
 
         return {
             tabs, currentTab, loading, stats, recentRuns, proxies, proxyInput, settings, jobs, lastHeartbeat,
-            weatherData, dataStats, flightInventory, flightSearchQuery, flightDateFilter, routePairs,
-            uniqueFlightDates, filteredFlightInventory,
+            routeAnalytics, routeSearch, fareFilter, sortBy, expandedRoute,
+            bestGowildDeal, gowildAvailableCount, priceDropCount, seatsDecreasingCount, filteredRoutes,
             fetchData, fetchRuns, addProxies, deleteProxy, deleteAllProxies, recheckProxies, saveSettings, triggerJob,
-            loadJobStates, toggleJobEnabled, loadWeatherData, deleteWeatherDate,
-            loadDataStats, loadFlightInventory, loadRoutePairs, toggleRoute, clearOldCache,
+            loadJobStates, toggleJobEnabled, loadRouteAnalytics, toggleRouteExpand, hasPositiveTrends, hasNegativeTrends,
             formatTime, getStatusColor
         };
     }
