@@ -291,6 +291,9 @@ createApp({
             const headers = { 'Content-Type': 'application/json' };
             if (adminPassword.value) {
                 headers['X-Admin-Pass'] = adminPassword.value;
+                console.log('Auth header set with password');
+            } else {
+                console.warn('No admin password set!');
             }
             return headers;
         };
@@ -359,13 +362,22 @@ createApp({
         const fetchSettings = async () => {
             try {
                 const res = await fetch('/api/settings', { headers: getHeaders() });
+                if (!res.ok) {
+                    console.error('Settings fetch failed:', res.status, res.statusText);
+                    const text = await res.text();
+                    console.error('Response:', text);
+                    return;
+                }
                 const data = await res.json();
+                console.log('Settings loaded:', data);
                 // Convert bool strings to bools for checkboxes
                 if(data.scraper_proxy_enabled) data.scraper_proxy_enabled = data.scraper_proxy_enabled === 'true';
                 if(data.blackout_dates_enabled) data.blackout_dates_enabled = data.blackout_dates_enabled === 'true';
                 if(data.announcement_enabled) data.announcement_enabled = data.announcement_enabled === 'true';
                 settings.value = data;
-            } catch (e) {}
+            } catch (e) {
+                console.error('Settings fetch error:', e);
+            }
         };
 
         const saveSettings = async () => {
