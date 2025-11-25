@@ -1758,7 +1758,9 @@
                     const isToday = blackoutDates.value.has(tStr);
                     const isTom = blackoutDates.value.has(tomStr);
                     
-                    if ((isToday || isTom) && !sessionStorage.getItem('blackoutDismissed')) {
+                    console.log("Blackout Check:", { tStr, isToday, tomStr, isTom });
+
+                    if ((isToday || isTom) && !sessionStorage.getItem('blackoutDismissed_v305')) {
                         if (isToday && isTom) blackoutMessage.value = "Heads up! Today and Tomorrow are GoWild! Blackout Dates.";
                         else if (isToday) blackoutMessage.value = "Heads up! Today is a GoWild! Blackout Date.";
                         else if (isTom) blackoutMessage.value = "Heads up! Tomorrow is a GoWild! Blackout Date.";
@@ -1769,7 +1771,7 @@
                 
                 const dismissBlackoutPopup = () => {
                     showBlackoutPopup.value = false;
-                    sessionStorage.setItem('blackoutDismissed', 'true');
+                    sessionStorage.setItem('blackoutDismissed_v305', 'true');
                 };
                 
                 const showBookingWarning = ref(false);
