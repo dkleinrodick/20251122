@@ -339,6 +339,21 @@
                     </button>
                 </div>
 
+                <!-- Blackout Alert Banner (Dismissible) -->
+                <div v-if="showBlackoutPopup" class="m-4 md:mx-8 mb-0 bg-orange-50 border border-orange-200 rounded-xl p-4 flex items-start gap-3 shadow-sm animate-fade-in relative">
+                    <div class="bg-orange-100 text-orange-600 rounded-lg p-1.5 flex-shrink-0">
+                        <i class="ph-fill ph-warning-octagon text-xl"></i>
+                    </div>
+                    <div class="flex-1 mr-4">
+                        <h4 class="text-orange-800 font-bold text-sm mb-0.5">Flight Availability Warning</h4>
+                        <p class="text-orange-700 text-xs leading-relaxed">{{ blackoutMessage }}</p>
+                        <p class="text-orange-600 text-[10px] mt-1 font-medium">GoWild! fares are typically unavailable on these days.</p>
+                    </div>
+                    <button @click="dismissBlackoutPopup" class="absolute top-2 right-2 text-orange-300 hover:text-orange-600 transition rounded-full p-1 hover:bg-orange-100">
+                        <i class="ph-bold ph-x"></i>
+                    </button>
+                </div>
+
                 <!-- Search Inputs -->
                 <div class="p-6 md:p-8">
                     <div class="grid grid-cols-1 md:grid-cols-12 gap-8 items-end">
@@ -454,15 +469,11 @@
                                 <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider">Departing</label>
                             </div>
                             <div @click="showDateDropdown = !showDateDropdown" 
-                                class="bg-white border border-slate-200 hover:border-brand-300 rounded-2xl flex items-center px-4 py-3.5 relative cursor-pointer transition-all shadow-sm group"
-                                :class="blackoutEnabled && blackoutDates.has(search.date) ? 'border-red-300 bg-red-50' : ''">
-                                <i class="ph ph-calendar-blank text-slate-400 text-xl mr-3 group-hover:text-brand-500"
-                                   :class="blackoutEnabled && blackoutDates.has(search.date) ? 'text-red-500' : ''"></i>
-                                <div class="font-bold text-slate-800 flex-1 truncate"
-                                     :class="blackoutEnabled && blackoutDates.has(search.date) ? 'text-red-700' : ''">
+                                class="bg-white border border-slate-200 hover:border-brand-300 rounded-2xl flex items-center px-4 py-3.5 relative cursor-pointer transition-all shadow-sm group">
+                                <i class="ph ph-calendar-blank text-slate-400 text-xl mr-3 group-hover:text-brand-500"></i>
+                                <div class="font-bold text-slate-800 flex-1 truncate">
                                     {{ dateOptions.find(o => o.value === search.date)?.label || 'Select Date' }}<span v-if="search.origin" class="text-brand-500">*</span>
                                     <span v-if="dateOptions.find(o => o.value === search.date)?.short" class="font-mono font-normal text-slate-400 ml-1">({{ dateOptions.find(o => o.value === search.date)?.short }})</span>
-                                    <span v-if="blackoutEnabled && blackoutDates.has(search.date)" class="ml-2 text-[10px] uppercase font-bold bg-red-200 text-red-800 px-1.5 py-0.5 rounded">Blackout</span>
                                 </div>
                                 <i class="ph ph-caret-down text-slate-400 transition-transform duration-300" :class="showDateDropdown ? 'rotate-180' : ''"></i>
                             </div>
@@ -471,15 +482,11 @@
                             <div v-if="showDateDropdown" class="absolute top-full left-0 w-full bg-white border border-slate-100 rounded-xl shadow-xl mt-2 z-50 py-2 animate-fade-in max-h-64 overflow-y-auto">
                                 <div v-for="opt in dateOptions" :key="opt.value" 
                                      @click="search.date = opt.value; showDateDropdown = false" 
-                                     class="px-4 py-3 hover:bg-brand-50 cursor-pointer flex items-center justify-between group"
-                                     :class="opt.isBlackout ? 'opacity-50 bg-slate-50' : ''">
-                                    <span class="font-bold text-slate-700 group-hover:text-brand-700" :class="opt.isBlackout ? 'line-through text-slate-400' : ''">
+                                     class="px-4 py-3 hover:bg-brand-50 cursor-pointer flex items-center justify-between group">
+                                    <span class="font-bold text-slate-700 group-hover:text-brand-700">
                                         {{ opt.label }}<span v-if="search.origin" class="text-brand-500">*</span>
                                     </span>
-                                    <div class="flex items-center gap-2">
-                                        <span v-if="opt.isBlackout" class="text-[10px] font-bold text-red-500 bg-red-50 px-1.5 py-0.5 rounded uppercase tracking-wider border border-red-100">Blackout</span>
-                                        <span class="text-xs text-slate-400 font-mono">{{ opt.short }}</span>
-                                    </div>
+                                    <span class="text-xs text-slate-400 font-mono">{{ opt.short }}</span>
                                 </div>
                             </div>
                         </div>
