@@ -262,38 +262,132 @@
 
         <!-- DATA EXPLORER TAB -->
         <div v-if="currentTab === 'data'" class="animate-fade-in space-y-6">
-            <!-- Cached Routes -->
-            <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-                <div class="p-6 border-b border-slate-50 bg-slate-50/30 flex justify-between items-center">
-                    <h3 class="font-bold text-slate-800">Cached Routes by Date</h3>
-                    <button @click="loadCachedRoutes" class="text-xs font-bold text-brand-600 hover:underline">Reload</button>
+
+            <!-- Database Overview Stats -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                    <div class="text-slate-400 text-xs font-bold uppercase mb-1">Total Cache Entries</div>
+                    <div class="text-3xl font-bold text-slate-900">[[ dataStats.totalCacheEntries || 0 ]]</div>
+                    <div class="text-xs text-slate-500 mt-1">[[ dataStats.uniqueDates || 0 ]] unique dates</div>
                 </div>
-                <div class="p-6">
-                    <div v-if="!cachedRoutes || Object.keys(cachedRoutes).length === 0" class="text-center text-slate-400 italic py-8">
-                        No cached routes found.
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                    <div class="text-slate-400 text-xs font-bold uppercase mb-1">Total Flights</div>
+                    <div class="text-3xl font-bold text-slate-900">[[ dataStats.totalFlights || 0 ]]</div>
+                    <div class="text-xs text-slate-500 mt-1">[[ dataStats.uniqueRoutes || 0 ]] unique routes</div>
+                </div>
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                    <div class="text-slate-400 text-xs font-bold uppercase mb-1">Weather Forecasts</div>
+                    <div class="text-3xl font-bold text-slate-900">[[ dataStats.weatherEntries || 0 ]]</div>
+                    <div class="text-xs text-slate-500 mt-1">[[ dataStats.weatherDates || 0 ]] dates</div>
+                </div>
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                    <div class="text-slate-400 text-xs font-bold uppercase mb-1">Route Pairs</div>
+                    <div class="text-3xl font-bold text-slate-900">[[ dataStats.routePairs || 0 ]]</div>
+                    <div class="text-xs text-slate-500 mt-1">[[ dataStats.activeRoutes || 0 ]] active</div>
+                </div>
+            </div>
+
+            <!-- Flight Cache Detailed View -->
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+                <div class="p-6 border-b border-slate-50 bg-slate-50/30">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="font-bold text-slate-800">Flight Cache Inventory</h3>
+                        <button @click="loadFlightInventory" class="text-xs font-bold text-brand-600 hover:underline">Reload</button>
                     </div>
-                    <div v-else class="space-y-4">
-                        <div v-for="(routes, date) in cachedRoutes" :key="date" class="border border-slate-100 rounded-lg p-4">
-                            <div class="flex justify-between items-center mb-2">
-                                <h4 class="font-bold text-slate-700">[[ date ]]</h4>
-                                <div class="flex items-center gap-3">
-                                    <span class="text-xs text-slate-500">[[ routes.length ]] routes</span>
-                                    <button @click="deleteCachedDate(date)" class="text-xs text-red-500 hover:text-red-700">Delete</button>
-                                </div>
-                            </div>
-                            <div class="text-xs text-slate-500 space-y-1">
-                                <div v-for="route in routes.slice(0, 5)" :key="route">• [[ route ]]</div>
-                                <div v-if="routes.length > 5" class="text-slate-400">... and [[ routes.length - 5 ]] more</div>
-                            </div>
-                        </div>
+                    <div class="flex gap-3">
+                        <input v-model="flightSearchQuery" type="text" placeholder="Search by origin, destination, or date..."
+                            class="flex-1 bg-white border border-slate-200 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-brand-500">
+                        <select v-model="flightDateFilter" class="bg-white border border-slate-200 rounded-lg px-4 py-2 text-sm">
+                            <option value="">All Dates</option>
+                            <option v-for="date in uniqueFlightDates" :key="date" :value="date">[[ date ]]</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="overflow-x-auto max-h-96">
+                    <table class="w-full text-left text-sm">
+                        <thead class="bg-slate-50 text-slate-500 font-bold uppercase text-xs sticky top-0">
+                            <tr>
+                                <th class="px-6 py-3">Date</th>
+                                <th class="px-6 py-3">Route</th>
+                                <th class="px-6 py-3">Flight #</th>
+                                <th class="px-6 py-3">Fare Type</th>
+                                <th class="px-6 py-3">Price</th>
+                                <th class="px-6 py-3">Seats</th>
+                                <th class="px-6 py-3">Updated</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                            <tr v-for="flight in filteredFlightInventory" :key="flight.id" class="hover:bg-slate-50/50">
+                                <td class="px-6 py-3 font-mono text-xs text-slate-700">[[ flight.date ]]</td>
+                                <td class="px-6 py-3 font-bold text-slate-900">[[ flight.origin ]] → [[ flight.destination ]]</td>
+                                <td class="px-6 py-3 font-mono text-xs text-slate-600">[[ flight.flight ]]</td>
+                                <td class="px-6 py-3">
+                                    <span class="text-xs px-2 py-1 rounded" :class="flight.fareType === 'GoWild! Pass' ? 'bg-brand-50 text-brand-700' : 'bg-slate-100 text-slate-700'">
+                                        [[ flight.fareType ]]
+                                    </span>
+                                </td>
+                                <td class="px-6 py-3 font-bold text-green-600">$[[ flight.price ]]</td>
+                                <td class="px-6 py-3 text-slate-600">[[ flight.seats ]]</td>
+                                <td class="px-6 py-3 text-xs text-slate-400">[[ formatTime(flight.updated) ]]</td>
+                            </tr>
+                            <tr v-if="filteredFlightInventory.length === 0">
+                                <td colspan="7" class="px-6 py-8 text-center text-slate-400 italic">No flights found</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="p-4 border-t border-slate-100 bg-slate-50/30 text-xs text-slate-500 flex justify-between items-center">
+                    <span>Showing [[ filteredFlightInventory.length ]] of [[ flightInventory.length ]] flights</span>
+                    <div class="flex gap-3">
+                        <button @click="clearOldCache" class="text-red-500 hover:text-red-700 font-bold">Clear Old Cache (7+ days)</button>
                     </div>
                 </div>
             </div>
 
-            <!-- Weather Data -->
+            <!-- Route Pairs Management -->
             <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
                 <div class="p-6 border-b border-slate-50 bg-slate-50/30 flex justify-between items-center">
-                    <h3 class="font-bold text-slate-800">Weather Data by Date</h3>
+                    <h3 class="font-bold text-slate-800">Route Pairs Configuration</h3>
+                    <button @click="loadRoutePairs" class="text-xs font-bold text-brand-600 hover:underline">Reload</button>
+                </div>
+                <div class="overflow-x-auto max-h-96">
+                    <table class="w-full text-left text-sm">
+                        <thead class="bg-slate-50 text-slate-500 font-bold uppercase text-xs sticky top-0">
+                            <tr>
+                                <th class="px-6 py-3">ID</th>
+                                <th class="px-6 py-3">Route</th>
+                                <th class="px-6 py-3">Status</th>
+                                <th class="px-6 py-3">Last Validated</th>
+                                <th class="px-6 py-3">Errors</th>
+                                <th class="px-6 py-3">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                            <tr v-for="route in routePairs" :key="route.id" class="hover:bg-slate-50/50">
+                                <td class="px-6 py-3 font-mono text-xs text-slate-400">#[[ route.id ]]</td>
+                                <td class="px-6 py-3 font-bold text-slate-900">[[ route.origin ]] → [[ route.destination ]]</td>
+                                <td class="px-6 py-3">
+                                    <span v-if="route.is_active" class="text-green-600 font-bold text-xs bg-green-50 px-2 py-1 rounded">Active</span>
+                                    <span v-else class="text-red-600 font-bold text-xs bg-red-50 px-2 py-1 rounded">Inactive</span>
+                                </td>
+                                <td class="px-6 py-3 text-xs text-slate-500">[[ formatTime(route.last_validated) || 'Never' ]]</td>
+                                <td class="px-6 py-3 text-xs text-red-600 font-bold">[[ route.error_count || 0 ]]</td>
+                                <td class="px-6 py-3">
+                                    <button @click="toggleRoute(route.id)" class="text-xs text-brand-600 hover:underline">Toggle</button>
+                                </td>
+                            </tr>
+                            <tr v-if="routePairs.length === 0">
+                                <td colspan="6" class="px-6 py-8 text-center text-slate-400 italic">No route pairs found</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Weather Data by Date -->
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+                <div class="p-6 border-b border-slate-50 bg-slate-50/30 flex justify-between items-center">
+                    <h3 class="font-bold text-slate-800">Weather Forecasts</h3>
                     <button @click="loadWeatherData" class="text-xs font-bold text-brand-600 hover:underline">Reload</button>
                 </div>
                 <div class="p-6">
@@ -302,26 +396,25 @@
                     </div>
                     <div v-else class="space-y-4">
                         <div v-for="(airports, date) in weatherData" :key="date" class="border border-slate-100 rounded-lg p-4">
-                            <div class="flex justify-between items-center mb-2">
+                            <div class="flex justify-between items-center mb-3">
                                 <h4 class="font-bold text-slate-700">[[ date ]]</h4>
                                 <div class="flex items-center gap-3">
                                     <span class="text-xs text-slate-500">[[ airports.length ]] airports</span>
                                     <button @click="deleteWeatherDate(date)" class="text-xs text-red-500 hover:text-red-700">Delete</button>
                                 </div>
                             </div>
-                            <div class="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
-                                <div v-for="airport in airports.slice(0, 8)" :key="airport.airport" class="bg-slate-50 rounded p-2">
+                            <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2 text-xs">
+                                <div v-for="airport in airports" :key="airport.airport" class="bg-slate-50 rounded p-2">
                                     <div class="font-bold text-slate-700">[[ airport.airport ]]</div>
                                     <div class="text-slate-500">[[ airport.temp ]]°F</div>
-                                </div>
-                                <div v-if="airports.length > 8" class="flex items-center justify-center text-slate-400">
-                                    +[[ airports.length - 8 ]] more
+                                    <div class="text-xs text-slate-400">Code: [[ airport.condition ]]</div>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
+
         </div>
 
     </div>
@@ -349,8 +442,12 @@ createApp({
         const settings = ref({});
         const lastHeartbeat = ref(null); // Placeholder
         const adminPassword = ref(localStorage.getItem('adminPass') || '')
-        const cachedRoutes = ref({});
-        const weatherData = ref({})
+        const weatherData = ref({});
+        const dataStats = ref({});
+        const flightInventory = ref([]);
+        const flightSearchQuery = ref('');
+        const flightDateFilter = ref('');
+        const routePairs = ref([])
         
         const jobs = ref([
             { key: 'auto', name: 'AutoScraper', desc: 'Maintains cache for near-term flights.', schedule: 'Every 30m', enabled: true, lastRun: null, loading: false },
@@ -359,6 +456,35 @@ createApp({
             { key: 'route_sync', name: 'Route Sync', desc: 'Discovers new routes.', schedule: 'Weekly', enabled: true, lastRun: null, loading: false },
             { key: 'weather', name: 'Weather Scraper', desc: 'Updates forecasts.', schedule: 'Daily', enabled: true, lastRun: null, loading: false },
         ]);
+
+        // -- Computed Properties --
+        const uniqueFlightDates = Vue.computed(() => {
+            const dates = new Set();
+            flightInventory.value.forEach(f => dates.add(f.date));
+            return Array.from(dates).sort();
+        });
+
+        const filteredFlightInventory = Vue.computed(() => {
+            let filtered = flightInventory.value;
+
+            // Apply search query
+            if (flightSearchQuery.value) {
+                const query = flightSearchQuery.value.toLowerCase();
+                filtered = filtered.filter(f =>
+                    f.origin.toLowerCase().includes(query) ||
+                    f.destination.toLowerCase().includes(query) ||
+                    f.date.includes(query) ||
+                    f.flight.toLowerCase().includes(query)
+                );
+            }
+
+            // Apply date filter
+            if (flightDateFilter.value) {
+                filtered = filtered.filter(f => f.date === flightDateFilter.value);
+            }
+
+            return filtered.slice(0, 100); // Limit to 100 for performance
+        });
 
         // -- API Helpers --
         const getHeaders = () => {
@@ -392,7 +518,9 @@ createApp({
                 if (currentTab.value === 'settings') await fetchSettings();
                 if (currentTab.value === 'scrapers') await loadJobStates();
                 if (currentTab.value === 'data') {
-                    await loadCachedRoutes();
+                    await loadDataStats();
+                    await loadFlightInventory();
+                    await loadRoutePairs();
                     await loadWeatherData();
                 }
             } catch (e) { console.error('fetchData error:', e); }
@@ -552,37 +680,82 @@ createApp({
             if(j) j.loading = false;
         };
 
-        const loadCachedRoutes = async () => {
+        const loadDataStats = async () => {
             try {
-                const res = await fetch('/api/admin/cached_routes', { headers: getHeaders() });
+                const res = await fetch('/api/admin/cache_stats', { headers: getHeaders() });
                 if (!res.ok) return;
                 const data = await res.json();
 
-                // Transform nested structure to date -> routes array
-                const transformed = {};
-                for (const [date, origins] of Object.entries(data)) {
-                    transformed[date] = [];
-                    for (const [origin, destinations] of Object.entries(origins)) {
-                        for (const [dest, info] of Object.entries(destinations)) {
-                            transformed[date].push(`${origin} → ${dest} (${info.count} flights)`);
-                        }
-                    }
-                }
+                // Build stats object
+                dataStats.value = {
+                    totalCacheEntries: data.total_flights || 0,
+                    uniqueDates: data.unique_dates || 0,
+                    uniqueRoutes: data.unique_routes || 0,
+                    totalFlights: flightInventory.value.length,
+                    weatherEntries: 0,
+                    weatherDates: Object.keys(weatherData.value).length,
+                    routePairs: routePairs.value.length,
+                    activeRoutes: routePairs.value.filter(r => r.is_active).length
+                };
 
-                cachedRoutes.value = transformed;
-                console.log('Cached routes loaded:', cachedRoutes.value);
+                console.log('Data stats loaded:', dataStats.value);
             } catch (e) {
-                console.error('Failed to load cached routes:', e);
+                console.error('Failed to load data stats:', e);
             }
         };
 
-        const deleteCachedDate = async (date) => {
-            if (!confirm(`Delete all cached routes for ${date}?`)) return;
+        const loadFlightInventory = async () => {
             try {
-                await fetch(`/api/admin/cached_routes/${date}`, { method: 'DELETE', headers: getHeaders() });
-                await loadCachedRoutes();
+                const res = await fetch('/api/admin/seat_inventory', { headers: getHeaders() });
+                if (!res.ok) {
+                    console.error('Failed to load flight inventory:', res.status);
+                    return;
+                }
+                flightInventory.value = await res.json();
+                console.log('Flight inventory loaded:', flightInventory.value.length, 'flights');
             } catch (e) {
-                alert('Failed to delete');
+                console.error('Failed to load flight inventory:', e);
+            }
+        };
+
+        const loadRoutePairs = async () => {
+            try {
+                const res = await fetch('/api/admin/routes_list', { headers: getHeaders() });
+                if (!res.ok) return;
+                routePairs.value = await res.json();
+                console.log('Route pairs loaded:', routePairs.value.length);
+            } catch (e) {
+                console.error('Failed to load route pairs:', e);
+            }
+        };
+
+        const toggleRoute = async (routeId) => {
+            try {
+                await fetch(`/api/admin/routes/${routeId}/toggle`, { method: 'POST', headers: getHeaders() });
+                await loadRoutePairs();
+            } catch (e) {
+                alert('Failed to toggle route');
+            }
+        };
+
+        const clearOldCache = async () => {
+            if (!confirm('Delete all cache entries older than 7 days?')) return;
+            try {
+                const cutoffDate = new Date();
+                cutoffDate.setDate(cutoffDate.getDate() - 7);
+                const cutoffStr = cutoffDate.toISOString().split('T')[0];
+
+                // Find old dates
+                const oldDates = uniqueFlightDates.value.filter(d => d < cutoffStr);
+
+                for (const date of oldDates) {
+                    await fetch(`/api/admin/cached_routes/${date}`, { method: 'DELETE', headers: getHeaders() });
+                }
+
+                alert(`Deleted cache for ${oldDates.length} old dates`);
+                await loadFlightInventory();
+            } catch (e) {
+                alert('Failed to clear old cache');
             }
         };
 
@@ -632,9 +805,11 @@ createApp({
 
         return {
             tabs, currentTab, loading, stats, recentRuns, proxies, proxyInput, settings, jobs, lastHeartbeat,
-            cachedRoutes, weatherData,
+            weatherData, dataStats, flightInventory, flightSearchQuery, flightDateFilter, routePairs,
+            uniqueFlightDates, filteredFlightInventory,
             fetchData, fetchRuns, addProxies, deleteProxy, deleteAllProxies, recheckProxies, saveSettings, triggerJob,
-            loadJobStates, toggleJobEnabled, loadCachedRoutes, deleteCachedDate, loadWeatherData, deleteWeatherDate,
+            loadJobStates, toggleJobEnabled, loadWeatherData, deleteWeatherDate,
+            loadDataStats, loadFlightInventory, loadRoutePairs, toggleRoute, clearOldCache,
             formatTime, getStatusColor
         };
     }
