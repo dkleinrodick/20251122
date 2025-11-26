@@ -266,7 +266,7 @@ async def debug_db():
                     password=p.password,
                     host=p.hostname,
                     port=p.port,
-                    database=p.path.lstrip('/')
+                    database=p.path.lstrip('/'),
                     ssl=ssl_ctx,
                     server_settings={'jit': 'off'}
                 )
