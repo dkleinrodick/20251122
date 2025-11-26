@@ -46,6 +46,26 @@ class FlightCache(Base):
     data = Column(JSON)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
+class FareSnapshot(Base):
+    """
+    Analytics table: Append-only history of fare availability.
+    Used by the Three-Week Scraper to track price/availability trends over time.
+    """
+    __tablename__ = "fare_snapshots"
+    id = Column(Integer, primary_key=True, index=True)
+    origin = Column(String(3), index=True)
+    destination = Column(String(3), index=True)
+    travel_date = Column(String(10), index=True) # YYYY-MM-DD
+    scraped_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    # Summary Metrics (extracted from JSON for easier SQL querying)
+    min_price_standard = Column(Float, nullable=True)
+    min_price_gowild = Column(Float, nullable=True)
+    seats_gowild = Column(Integer, nullable=True)
+
+    # Full Data Blob
+    data = Column(JSON)
+
 class WeatherData(Base):
     __tablename__ = "weather_data"
     id = Column(Integer, primary_key=True, index=True)
