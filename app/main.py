@@ -110,48 +110,9 @@ STARTUP_TIME = datetime.utcnow()
 
 @app.on_event("startup")
 async def startup_event():
-    """Lightweight startup for serverless - with essential seeding."""
     global STARTUP_TIME
     STARTUP_TIME = datetime.utcnow()
-
-    try:
-        async with SessionLocal() as session:
-            # Check and seed airports if missing
-            result = await session.execute(select(func.count()).select_from(Airport))
-            count = result.scalar()
-            if count == 0:
-                logger.info(f"Seeding {len(AIRPORTS_LIST)} airports...")
-                from sqlalchemy import insert
-                to_insert = []
-                for a in AIRPORTS_LIST:
-                     to_insert.append({
-                         "code": a["code"], 
-                         "city_name": a["city"],
-                         "timezone": a.get("timezone", "UTC"),
-                         "latitude": a.get("lat"),
-                         "longitude": a.get("lon")
-                     })
-                if to_insert:
-                     await session.execute(insert(Airport).values(to_insert))
-                     await session.commit()
-                logger.info("Airports seeded successfully.")
-            else:
-                logger.info(f"Airports already seeded ({count} found).")
-                
-            # Check and seed blackout dates
-            blackout_dates = ["2025-01-01", "2025-01-04", "2025-01-05", "2025-01-16", "2025-01-17", "2025-01-20", "2025-02-13", "2025-02-14", "2025-02-17", "2025-03-14", "2025-03-15", "2025-03-16", "2025-03-21", "2025-03-22", "2025-03-23", "2025-03-28", "2025-03-29", "2025-03-30", "2025-04-04", "2025-04-05", "2025-04-06", "2025-04-11", "2025-04-12", "2025-04-13", "2025-04-18", "2025-04-19", "2025-04-20", "2025-04-21", "2025-05-22", "2025-05-23", "2025-05-26", "2025-06-22", "2025-06-26", "2025-06-27", "2025-06-28", "2025-06-29", "2025-07-03", "2025-07-04", "2025-07-05", "2025-07-06", "2025-07-07", "2025-08-28", "2025-08-29", "2025-09-01", "2025-10-09", "2025-10-10", "2025-10-12", "2025-10-13", "2025-11-25", "2025-11-26", "2025-11-29", "2025-11-30", "2025-12-01", "2025-12-20", "2025-12-21", "2025-12-22", "2025-12-23", "2025-12-26", "2025-12-27", "2025-12-28", "2025-12-29", "2025-12-30", "2025-12-31", "2026-01-01", "2026-01-03", "2026-01-04", "2026-01-15", "2026-01-16", "2026-01-19", "2026-02-12", "2026-02-13", "2026-02-16", "2026-03-13", "2026-03-14", "2026-03-15", "2026-03-20", "2026-03-21", "2026-03-22", "2026-03-27", "2026-03-28", "2026-03-29", "2026-04-03", "2026-04-04", "2026-04-05", "2026-04-06", "2026-04-10", "2026-04-11", "2026-04-12", "2026-05-21", "2026-05-22", "2026-05-25", "2026-06-25", "2026-06-26", "2026-06-27", "2026-06-28", "2026-07-02", "2026-07-03", "2026-07-04", "2026-07-05", "2026-07-06", "2026-09-03", "2026-09-04", "2026-09-07", "2026-10-08", "2026-10-09", "2026-10-11", "2026-10-12", "2026-11-24", "2026-11-25", "2026-11-28", "2026-11-29", "2026-11-30", "2026-12-19", "2026-12-20", "2026-12-21", "2026-12-22", "2026-12-23", "2026-12-24", "2026-12-26", "2026-12-27", "2026-12-28", "2026-12-29", "2026-12-30", "2026-12-31", "2027-01-01", "2027-01-02", "2027-01-03", "2027-01-14", "2027-01-15", "2027-01-18", "2027-02-11", "2027-02-12", "2027-02-15", "2027-03-12", "2027-03-13", "2027-03-14", "2027-03-19", "2027-03-20", "2027-03-21", "2027-03-26", "2027-03-27", "2027-03-28", "2027-03-29", "2027-04-02", "2027-04-03", "2027-04-04"]
-            
-            res = await session.execute(select(SystemSetting).where(SystemSetting.key == "blackout_dates"))
-            if not res.scalar_one_or_none():
-                session.add(SystemSetting(key="blackout_dates", value=json.dumps(blackout_dates)))
-                session.add(SystemSetting(key="blackout_dates_enabled", value="true"))
-                await session.commit()
-                logger.info("Blackout dates seeded.")
-                
-    except Exception as e:
-        logger.warning(f"Startup seeding check failed: {e}")
-
-    logger.info("Background scheduler disabled for Vercel - using GitHub Actions instead")
+    logger.info("Startup complete.")
 
 async def verify_admin(
     authorization: str = Header(None),
@@ -236,11 +197,7 @@ async def get_sitemap():
     for p in pages:
         path = f"/{p}" if p else "/"
         priority = "1.0" if not p else "0.8"
-        xml += f"""  <url>
-    <loc>{base_url}{path}</loc>
-    <changefreq>weekly</changefreq>
-    <priority>{priority}</priority>
-  </url>\n"""
+        xml += f"  <url>\n    <loc>{base_url}{path}</loc>\n    <changefreq>weekly</changefreq>\n    <priority>{priority}</priority>\n  </url>\n"
     
     xml += '</urlset>'
     return HTMLResponse(content=xml, media_type="application/xml")
@@ -309,7 +266,7 @@ async def debug_db():
                     password=p.password,
                     host=p.hostname,
                     port=p.port,
-                    database=p.path.lstrip('/'),
+                    database=p.path.lstrip('/')
                     ssl=ssl_ctx,
                     server_settings={'jit': 'off'}
                 )
@@ -480,9 +437,16 @@ async def process_bulk_search(job_id: str, tasks: List[dict], mode: str = "ondem
     scraper = ScraperEngine()
     total = len(tasks)
     completed = 0
-    JOBS[job_id] = {"status": "running", "progress": 0, "results": [], "total": total}
+    
+    # Register if not already (it should be registered by caller)
+    if job_id not in JOBS:
+        register_job(job_id)
+    
+    update_job(job_id, status="running", progress=0, message=f"Processing {total} tasks...")
+    
     async with AsyncSession(engine) as db:
         sem = await scraper.get_semaphore(db)
+    
     async def limited_task(t):
         async with sem:
             async with AsyncSession(engine) as local_db:
@@ -494,31 +458,29 @@ async def process_bulk_search(job_id: str, tasks: List[dict], mode: str = "ondem
     def chunked(l, n):
         for i in range(0, len(l), n): yield l[i:i + n]
     
+    results = []
     for chunk in chunked(tasks, 5):
         if check_stop(job_id): break
         coros = [limited_task(t) for t in chunk]
         chunk_results = await asyncio.gather(*coros)
-        JOBS[job_id]["results"].extend(chunk_results)
+        results.extend(chunk_results)
         completed += len(chunk)
-        JOBS[job_id]["progress"] = int((completed / total) * 100)
+        
+        progress = int((completed / total) * 100)
+        update_job(job_id, progress=progress, message=f"Processed {completed}/{total}")
+        
+        # Store partial results in JOBS if needed?
+        # The original code stored results in JOBS[job_id]["results"].
+        if job_id in JOBS:
+            if "results" not in JOBS[job_id]: JOBS[job_id]["results"] = []
+            JOBS[job_id]["results"].extend(chunk_results)
+            
         await asyncio.sleep(0.1)
     
-    if not check_stop(job_id):
-        JOBS[job_id]["status"] = "completed"
+    if check_stop(job_id):
+        update_job(job_id, status="cancelled", message="Cancelled by user.")
     else:
-        JOBS[job_id]["status"] = "cancelled" # Ensure final status is cancelled if loop broke
-
-def check_stop(job_id):
-    return JOBS.get(job_id, {}).get("status") == "cancelled"
-
-@app.post("/api/admin/jobs/{job_id}/stop", dependencies=[Depends(verify_admin)])
-async def stop_job(job_id: str):
-    if job_id not in JOBS:
-        raise HTTPException(status_code=404, detail="Job not found")
-    
-    JOBS[job_id]["status"] = "cancelled"
-    JOBS[job_id]["message"] = "Stopping..."
-    return {"status": "stopping"}
+        complete_job(job_id, message="Completed")
 
 @app.post("/api/bulk_search")
 async def trigger_bulk_search(request: Request, background_tasks: BackgroundTasks, db: AsyncSession = Depends(get_db)):
@@ -550,7 +512,8 @@ async def trigger_bulk_search(request: Request, background_tasks: BackgroundTask
             for p in pairs: tasks.append({"origin": p.origin, "destination": p.destination, "date": date})
 
     job_id = str(uuid.uuid4())
-    JOBS[job_id] = {"status": "pending", "progress": 0, "results": []}
+    register_job(job_id)
+    update_job(job_id, status="pending", progress=0, message="Queued")
     # Default mode for bulk_search is ondemand unless specified differently? 
     # The "mode" variable above is used for "broadcast"/"all" logic, not scraper mode.
     # So we pass "ondemand" to the scraper.
@@ -562,6 +525,23 @@ async def get_job_status(job_id: str):
     job = JOBS.get(job_id)
     if not job: raise HTTPException(status_code=404, detail="Job not found")
     return job
+
+@app.get("/api/admin/active_jobs", dependencies=[Depends(verify_admin)])
+async def get_active_jobs():
+    """Return list of running/pending jobs"""
+    active = []
+    for jid, job in JOBS.items():
+        if job.get("status") in ["running", "pending"]:
+            active.append({"id": jid, **job})
+    return active
+
+@app.post("/api/admin/jobs/{job_id}/stop", dependencies=[Depends(verify_admin)])
+async def stop_job(job_id: str):
+    if job_id not in JOBS:
+        raise HTTPException(status_code=404, detail="Job not found")
+    
+    update_job(job_id, status="cancelled", message="Stopping...")
+    return {"status": "stopping"}
 
 @app.get("/api/scraper/status")
 async def get_scraper_status(db: AsyncSession = Depends(get_db)):
@@ -1141,6 +1121,8 @@ async def update_weather_task():
 async def update_routes(background_tasks: BackgroundTasks, db: AsyncSession = Depends(get_db)):
     count = await scrape_frontier_routes(db)
     job_id = str(uuid.uuid4())
+    register_job(job_id)
+    update_job(job_id, status="pending", progress=0, message="Queued")
     background_tasks.add_task(validate_routes_task, job_id)
     return {"status": "started", "job_id": job_id, "routes_found": count}
 
@@ -1151,7 +1133,8 @@ async def trigger_weather_update(background_tasks: BackgroundTasks):
 
 async def run_manual_scrape_task(job_id: str):
     """Manually triggered full scrape task - using robust cache logic"""
-    JOBS[job_id] = {"status": "running", "progress": 0, "message": "Starting manual scrape..."}
+    register_job(job_id) # Ensure registered (though caller should have done it)
+    update_job(job_id, status="running", progress=0, message="Starting manual scrape...")
     
     try:
         # 1. Fetch Active Routes
@@ -1162,8 +1145,7 @@ async def run_manual_scrape_task(job_id: str):
             routes_data = [(r.origin, r.destination) for r in routes]
 
         if not routes_data:
-            JOBS[job_id]["status"] = "completed"
-            JOBS[job_id]["message"] = "No active routes found."
+            complete_job(job_id, message="No active routes found.")
             return
 
         # Identify International Airports
@@ -1188,8 +1170,7 @@ async def run_manual_scrape_task(job_id: str):
                 completed_count += 1
                 if total_tasks > 0:
                     progress = int((completed_count / total_tasks) * 100)
-                    JOBS[job_id]["progress"] = progress
-                    JOBS[job_id]["message"] = f"Scraped {completed_count}/{total_tasks}"
+                    update_job(job_id, progress=progress, message=f"Scraped {completed_count}/{total_tasks}")
 
         # Build Task List with Dynamic Windows
         tasks = []
@@ -1209,8 +1190,7 @@ async def run_manual_scrape_task(job_id: str):
                 tasks.append(scrape_single(origin, destination, date_str))
         
         if check_stop(job_id):
-            JOBS[job_id]["status"] = "cancelled"
-            JOBS[job_id]["message"] = "Cancelled by user."
+            update_job(job_id, status="cancelled", message="Cancelled by user.")
             return
 
         total_tasks = len(tasks)
@@ -1218,8 +1198,7 @@ async def run_manual_scrape_task(job_id: str):
         await asyncio.gather(*tasks)
         
         if check_stop(job_id):
-            JOBS[job_id]["status"] = "cancelled"
-            JOBS[job_id]["message"] = "Cancelled by user."
+            update_job(job_id, status="cancelled", message="Cancelled by user.")
             return
         
         # Save last success time
@@ -1233,13 +1212,11 @@ async def run_manual_scrape_task(job_id: str):
                 session.add(SystemSetting(key="last_auto_scrape", value=now_iso))
             await session.commit()
 
-        JOBS[job_id]["status"] = "completed"
-        JOBS[job_id]["message"] = f"Manual Scrape Complete. Processed {completed_count} searches."
+        complete_job(job_id, message=f"Manual Scrape Complete. Processed {completed_count} searches.")
         
     except Exception as e:
         logger.error(f"Manual scrape failed: {e}")
-        JOBS[job_id]["status"] = "failed"
-        JOBS[job_id]["message"] = str(e)
+        update_job(job_id, status="failed", message=str(e))
 
 @app.post("/api/admin/scrape_route", dependencies=[Depends(verify_admin)])
 async def admin_scrape_route(request: Request, db: AsyncSession = Depends(get_db)):
@@ -1259,8 +1236,8 @@ async def admin_scrape_route(request: Request, db: AsyncSession = Depends(get_db
 @app.post("/api/admin/run_scraper", dependencies=[Depends(verify_admin)])
 async def trigger_auto_scraper(background_tasks: BackgroundTasks):
     job_id = str(uuid.uuid4())
-    # Initialize job state immediately so frontend can poll it
-    JOBS[job_id] = {"status": "pending", "progress": 0, "message": "Queued"}
+    register_job(job_id)
+    update_job(job_id, status="pending", progress=0, message="Queued")
     background_tasks.add_task(run_manual_scrape_task, job_id)
     return {"status": "started", "job_id": job_id}
 
@@ -1269,14 +1246,12 @@ async def trigger_specific_scraper(
     request: Request,
     background_tasks: BackgroundTasks
 ):
-    """Manually trigger a specific scraper job"""
     data = await request.json()
-    scraper_type = data.get("scraper_type")  # AutoScraper, MidnightScraper, 3WeekScraper, RouteScraper, WeatherScraper
-
+    scraper_type = data.get("scraper_type")
+    
     if not scraper_type:
         raise HTTPException(status_code=400, detail="scraper_type required")
 
-    # Map scraper types to job classes
     scraper_map = {
         "AutoScraper": AutoScraper,
         "MidnightScraper": MidnightScraper,
@@ -1286,16 +1261,19 @@ async def trigger_specific_scraper(
     }
 
     if scraper_type not in scraper_map:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Invalid scraper_type. Must be one of: {', '.join(scraper_map.keys())}"
-        )
+        raise HTTPException(status_code=400, detail="Invalid scraper type")
 
     job_class = scraper_map[scraper_type]
     job = job_class()
-    background_tasks.add_task(job.run, heartbeat_id=None, mode="manual")
+    
+    job_id = str(uuid.uuid4())
+    # Register upfront so UI sees it immediately
+    register_job(job_id)
+    update_job(job_id, status="pending", message=f"Queued {scraper_type}...")
+    
+    background_tasks.add_task(job.run, heartbeat_id=None, mode="manual", job_id=job_id)
 
-    return {"status": "triggered", "scraper_type": scraper_type}
+    return {"status": "triggered", "scraper_type": scraper_type, "job_id": job_id}
 
 @app.get("/api/admin/cache_stats", dependencies=[Depends(verify_admin)])
 async def get_cache_stats(db: AsyncSession = Depends(get_db)):
