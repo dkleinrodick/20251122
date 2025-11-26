@@ -308,64 +308,76 @@ class RouteScraper:
             today_utc = datetime.utcnow()
 
             async def check_route(route_dict):
-                if stop_check and stop_check(): return {"id": route_dict["id"], "status": "skip"}
-                async with sem:
-                    proxy = await proxy_mgr.get_next_proxy()
-                    client = FrontierClient(proxy=proxy, timeout=20.0)
-                    route_id = route_dict["id"]
-                    origin = route_dict["origin"]
-                    dest = route_dict["destination"]
+                route_id = route_dict["id"]
+                origin = route_dict["origin"]
+                dest = route_dict["destination"]
+                
+                # Retry loop for robustness against flaky proxies
+                for attempt in range(3):
+                    if stop_check and stop_check(): return {"id": route_id, "status": "skip"}
                     
-                    result = {"id": route_id, "status": "invalid"} # Default to invalid until proven valid
-                    
-                    # Extended window to catch weekly flights (Tu/Th only etc)
-                    days_to_check = 14 if (origin in intl_codes or dest in intl_codes) else 7
-                    
-                    try:
-                        await client.authenticate()
+                    async with sem:
+                        proxy = await proxy_mgr.get_next_proxy()
+                        client = FrontierClient(proxy=proxy, timeout=20.0)
                         
-                        for i in range(days_to_check):
-                            if stop_check and stop_check(): 
-                                result["status"] = "skip"
-                                break
+                        result = {"id": route_id, "status": "invalid"} # Default to invalid until proven valid
+                        
+                        try:
+                            await client.authenticate()
+                            
+                            # Extended window to catch weekly flights (Tu/Th only etc)
+                            days_to_check = 14 if (origin in intl_codes or dest in intl_codes) else 7
+                            
+                            for i in range(days_to_check):
+                                if stop_check and stop_check(): 
+                                    result["status"] = "skip"
+                                    break
+                                    
+                                check_date = (today_utc + timedelta(days=i)).strftime("%Y-%m-%d")
                                 
-                            check_date = (today_utc + timedelta(days=i)).strftime("%Y-%m-%d")
+                                try:
+                                    await client.search(origin, dest, check_date)
+                                    # If we get here (200 OK), the route is valid in the system
+                                    result["status"] = "valid"
+                                    logger.info(f"[VALID] {origin}-{dest}")
+                                    break # Found a valid day, stop checking
+                                except httpx.HTTPStatusError as http_err:
+                                    if http_err.response.status_code == 400:
+                                        # Check if market is invalid to skip further dates
+                                        try:
+                                            err_data = http_err.response.json()
+                                            msg = err_data.get("message", "").lower()
+                                            if "does not exist" in msg:
+                                                # "The market X - Y does not exist"
+                                                logger.info(f"[INVALID MARKET] {origin}-{dest} - Stopping checks.")
+                                                result["status"] = "invalid"
+                                                break
+                                        except:
+                                            pass
+                                        logger.warning(f"[WARN] {origin}-{dest} ({http_err.response.status_code})")
+                                    else:
+                                        logger.warning(f"[WARN] {origin}-{dest} ({http_err.response.status_code})")
+                                except Exception:
+                                    pass
                             
-                            try:
-                                await client.search(origin, dest, check_date)
-                                # If we get here (200 OK), the route is valid in the system
-                                result["status"] = "valid"
-                                logger.info(f"[VALID] {origin}-{dest}")
-                                break # Found a valid day, stop checking
-                            except httpx.HTTPStatusError as http_err:
-                                if http_err.response.status_code == 400:
-                                    # Check if market is invalid to skip further dates
-                                    try:
-                                        err_data = http_err.response.json()
-                                        msg = err_data.get("message", "").lower()
-                                        if "does not exist" in msg:
-                                            # "The market X - Y does not exist"
-                                            logger.info(f"[INVALID MARKET] {origin}-{dest} - Stopping checks.")
-                                            result["status"] = "invalid"
-                                            break
-                                    except:
-                                        pass
-                                    logger.warning(f"[WARN] {origin}-{dest} ({http_err.response.status_code})")
-                                else:
-                                    logger.warning(f"[WARN] {origin}-{dest} ({http_err.response.status_code})")
-                            except Exception:
-                                pass
-                        
-                        if result["status"] == "invalid":
-                            logger.warning(f"[INVALID] {origin}-{dest} (Checked {days_to_check} days)")
+                            # If we reached here without breaking for 'skip' or 'valid', result is 'invalid' (or 'valid' if found)
+                            if result["status"] == "skip":
+                                return result
+                                
+                            if result["status"] == "invalid":
+                                logger.warning(f"[INVALID] {origin}-{dest} (Checked {days_to_check} days)")
                             
-                    except Exception as e:
-                        logger.error(f"[ERROR] {origin}-{dest}: {e}")
-                        result["status"] = "skip" # Don't mark invalid on auth/net error
-                    finally:
-                        await client.close()
-                    
-                    return result
+                            return result # Success (either Valid or Invalid)
+
+                        except Exception as e:
+                            logger.warning(f"[Attempt {attempt+1}/3] Error checking {origin}-{dest}: {e}")
+                            # Loop will continue to next attempt
+                        finally:
+                            await client.close()
+                
+                # If all attempts failed
+                logger.error(f"[SKIP] {origin}-{dest} failed 3 attempts.")
+                return {"id": route_id, "status": "skip"}
 
             # Process in batches
             batch_size = 200 
@@ -398,6 +410,8 @@ class RouteScraper:
                         elif res["status"] == "invalid":
                             invalid_ids.append(res["id"])
                     
+                    logger.info(f"Batch Result: {len(valid_ids)} Valid, {len(invalid_ids)} Invalid. Updating DB...")
+
                     if valid_ids:
                         await session.execute(
                             update(RoutePair)
