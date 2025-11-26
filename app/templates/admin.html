@@ -395,20 +395,13 @@
                             <h3 class="text-lg font-bold text-white mb-6 border-b border-surface-100 pb-4">System Configuration</h3>
 
                             <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                                <!-- LEFT COLUMN -->
+                                <!-- LEFT COLUMN: SCRAPERS & GENERAL -->
                                 <div class="space-y-8">
-                                    <!-- Announcement Settings -->
-                                    <div>
-                                        <h4 class="text-xs font-bold text-surface-200 uppercase mb-4 flex items-center gap-2">
-                                            <i class="ph-bold ph-megaphone"></i> Announcement
-                                        </h4>
-                                        <div class="space-y-4">
-                                            <toggle-switch v-model="settings.announcement_enabled" label="Enable Announcement"></toggle-switch>
-                                            <div>
-                                                <label class="block text-xs font-bold text-surface-200 uppercase mb-2">HTML Content</label>
-                                                <textarea v-model="settings.announcement_html" class="w-full bg-surface-900 border border-surface-100 rounded-lg px-3 py-2.5 text-white text-xs font-mono h-32 outline-none focus:border-brand-500"></textarea>
-                                            </div>
-                                        </div>
+                                    <div class="bg-surface-900 rounded-lg p-4 border border-brand-500/30">
+                                        <h5 class="text-xs font-bold text-brand-400 uppercase tracking-wider mb-1 flex items-center gap-2">
+                                            <i class="ph-bold ph-robot"></i> Automated Scrapers
+                                        </h5>
+                                        <p class="text-[10px] text-surface-200">Heartbeat-based scraper scheduling</p>
                                     </div>
 
                                     <!-- Auto Scraper Settings -->
@@ -500,8 +493,15 @@
                                     </div>
                                 </div>
 
-                                <!-- RIGHT COLUMN -->
+                                <!-- RIGHT COLUMN: INFRASTRUCTURE & ADVANCED -->
                                 <div class="space-y-8">
+                                    <div class="bg-surface-900 rounded-lg p-4 border border-purple-500/30">
+                                        <h5 class="text-xs font-bold text-purple-400 uppercase tracking-wider mb-1 flex items-center gap-2">
+                                            <i class="ph-bold ph-database"></i> Infrastructure & Performance
+                                        </h5>
+                                        <p class="text-[10px] text-surface-200">Cache, proxy, and system settings</p>
+                                    </div>
+
                                     <!-- Cache Settings -->
                                     <div>
                                         <h4 class="text-xs font-bold text-surface-200 uppercase mb-4 flex items-center gap-2">
