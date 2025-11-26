@@ -36,6 +36,7 @@ from app.jobs import AutoScraper, MidnightScraper, ThreeWeekScraper
 from app.route_scraper import RouteScraper
 from app.weather_scraper import WeatherScraper
 from app.scheduler_logic import SchedulerLogic
+from app.job_manager import JOBS, register_job, update_job, complete_job, check_stop
 
 # Setup logging
 logging.basicConfig(
@@ -105,8 +106,6 @@ app.include_router(
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 templates = Jinja2Templates(directory="app/templates")
 
-# Global Job Store (In-memory for simplicity)
-JOBS = {}
 STARTUP_TIME = datetime.utcnow()
 
 @app.on_event("startup")
