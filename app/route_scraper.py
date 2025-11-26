@@ -330,7 +330,7 @@ class RouteScraper:
                     return result
 
             # Process in batches
-            batch_size = 50 
+            batch_size = 200 
             for i in range(0, total, batch_size):
                 if stop_check and stop_check(): break
                 
