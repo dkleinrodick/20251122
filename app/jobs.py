@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import SessionLocal
 from app.models import RoutePair, Airport, FlightCache, SystemSetting, ScraperRun
-from app.scraper import AsyncScraperEngine
+from app.scraper import ScraperEngine
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +19,7 @@ class BaseJob:
 
     async def get_engine(self, session):
         if not self.engine:
-            self.engine = AsyncScraperEngine(session)
+            self.engine = ScraperEngine(session)
         return self.engine
 
     async def get_setting(self, session, key: str, default: str) -> str:
