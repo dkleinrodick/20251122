@@ -819,42 +819,34 @@ async def clear_flight_cache(db: AsyncSession = Depends(get_db)):
 async def validate_routes_task(job_id: str):
     JOBS[job_id] = {"status": "running", "progress": 0, "message": "Starting validation..."}
     
-    # 1. Fetch all route data (detached)
+    # 1. Sync Airports First (Ensure DB has all known airports)
+    async with SessionLocal() as session:
+        # Fetch existing codes
+        res = await session.execute(select(Airport.code))
+        existing_codes = {r for r in res.scalars().all()}
+        
+        to_insert = []
+        for a in AIRPORTS_LIST:
+            if a["code"] not in existing_codes:
+                to_insert.append({
+                     "code": a["code"], 
+                     "city_name": a["city"],
+                     "timezone": a.get("timezone", "UTC"),
+                     "latitude": a.get("lat"),
+                     "longitude": a.get("lon")
+                 })
+        
+        if to_insert:
+            from sqlalchemy import insert
+            await session.execute(insert(Airport).values(to_insert))
+            await session.commit()
+            logger.info(f"Route Validator: Seeded {len(to_insert)} new airports from static list.")
+
+    # 2. Fetch all route data (detached)
     routes_data = []
     async with SessionLocal() as session:
         res = await session.execute(select(RoutePair.id, RoutePair.origin, RoutePair.destination))
         routes_data = res.all()
-
-        # Ensure all airports exist before we start validation logic
-        res_airports = await session.execute(select(Airport.code))
-        existing_codes = {r for r in res_airports.scalars().all()}
-        
-        missing_airports = []
-        for r in routes_data:
-            if r.origin not in existing_codes: missing_airports.append(r.origin)
-            if r.destination not in existing_codes: missing_airports.append(r.destination)
-        
-        if missing_airports:
-            # Filter duplicates
-            missing_airports = list(set(missing_airports))
-            to_insert = []
-            for code in missing_airports:
-                # Find in static list
-                found = next((a for a in AIRPORTS_LIST if a["code"] == code), None)
-                if found:
-                    to_insert.append({
-                         "code": found["code"], 
-                         "city_name": found["city"],
-                         "timezone": found.get("timezone", "UTC"),
-                         "latitude": found.get("lat"),
-                         "longitude": found.get("lon")
-                     })
-            
-            if to_insert:
-                from sqlalchemy import insert
-                await session.execute(insert(Airport).values(to_insert))
-                await session.commit()
-                logger.info(f"Seeded {len(to_insert)} missing airports during validation.")
 
     total = len(routes_data)
     if total == 0:
@@ -890,19 +882,11 @@ async def validate_routes_task(job_id: str):
                         # Speed up validation by skipping jitter
                         res = await engine.perform_search(origin, destination, date_str, session, force_refresh=True, ignore_jitter=True)
                         
-                        # If no error, assume valid route exists (even if 0 flights, route is technically valid in system)
-                        # But usually we want to see if *any* flights appear over X days to confirm it's active
-                        # Frontier returns empty list if valid route but no inventory.
-                        # Returns error if route is invalid.
-                        
                         if isinstance(res, dict) and "error" in res:
-                            # If 400/404/500, likely invalid route or blocked.
-                            # We count as "failure" for this day.
                             pass 
                         else:
-                            # Success! Route exists.
                             found_valid_flight = True
-                            break # Found one valid day, so route is valid
+                            break 
                     
                     # Update DB
                     stmt = select(RoutePair).where(RoutePair.id == rid)
@@ -911,6 +895,7 @@ async def validate_routes_task(job_id: str):
                     
                     if route:
                         route.is_active = found_valid_flight
+                        route.last_validated = datetime.utcnow()
                         if not found_valid_flight:
                             route.error_count += 1
                             bad_count += 1
@@ -924,14 +909,22 @@ async def validate_routes_task(job_id: str):
             bad_count += 1
         finally:
             completed_count += 1
-            progress = int((completed_count / total) * 100)
-            JOBS[job_id]["progress"] = progress
-            JOBS[job_id]["message"] = f"Validated {completed_count}/{total} (Active: {active_count}, Bad: {bad_count})"
+            # Progress updated in batch loop to avoid too much contention? 
+            # Or keep it here for smoothness.
+            pass
 
-    # Launch all tasks
-    logger.info(f"Validating {total} routes with concurrency...")
-    tasks = [validate_single(rid, origin, destination) for rid, origin, destination in routes_data]
-    await asyncio.gather(*tasks)
+    # Launch tasks in chunks
+    chunk_size = 100
+    for i in range(0, total, chunk_size):
+        chunk = routes_data[i:i + chunk_size]
+        
+        tasks = [validate_single(rid, origin, destination) for rid, origin, destination in chunk]
+        await asyncio.gather(*tasks)
+        
+        # Update progress
+        progress = int((completed_count / total) * 100)
+        JOBS[job_id]["progress"] = progress
+        JOBS[job_id]["message"] = f"Validated {completed_count}/{total} (Active: {active_count}, Bad: {bad_count})"
 
     JOBS[job_id]["status"] = "completed"
     JOBS[job_id]["message"] = f"Validation complete. Active: {active_count}, Bad: {bad_count}"
