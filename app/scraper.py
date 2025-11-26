@@ -200,7 +200,7 @@ class AsyncScraperEngine:
         ap = res.scalar_one_or_none()
         return pytz.timezone(ap.timezone) if ap and ap.timezone else pytz.UTC
 
-    async def process_queue(self, tasks: List[Dict[str, str]], mode="auto") -> Dict:
+    async def process_queue(self, tasks: List[Dict[str, str]], mode="auto", ignore_jitter=False) -> Dict:
         """
         Main entry point.
         tasks: list of dicts {'origin': 'DEN', 'destination': 'MCO', 'date': '2025-11-28'}
@@ -220,7 +220,7 @@ class AsyncScraperEngine:
         # Spawn Workers
         workers = []
         for i in range(min(worker_count, len(tasks))):
-            workers.append(asyncio.create_task(self._worker(f"Worker-{i}", queue, results, mode)))
+            workers.append(asyncio.create_task(self._worker(f"Worker-{i}", queue, results, mode, ignore_jitter)))
             
         # Wait for queue to empty
         await queue.join()
@@ -230,7 +230,7 @@ class AsyncScraperEngine:
         
         return results
 
-    async def _worker(self, name: str, queue: asyncio.Queue, results: Dict, mode: str):
+    async def _worker(self, name: str, queue: asyncio.Queue, results: Dict, mode: str, ignore_jitter: bool):
         while True:
             task = await queue.get()
             origin = task['origin']
@@ -239,9 +239,10 @@ class AsyncScraperEngine:
             
             try:
                 # Jitter
-                jitter_min = await self._get_setting("scraper_jitter_min", 0.1, float)
-                jitter_max = await self._get_setting("scraper_jitter_max", 5.0, float)
-                await asyncio.sleep(random.uniform(jitter_min, jitter_max))
+                if not ignore_jitter:
+                    jitter_min = await self._get_setting("scraper_jitter_min", 0.1, float)
+                    jitter_max = await self._get_setting("scraper_jitter_max", 5.0, float)
+                    await asyncio.sleep(random.uniform(jitter_min, jitter_max))
 
                 # Proxy
                 proxy = await self.proxy_mgr.get_next_proxy()
@@ -509,7 +510,7 @@ class ScraperEngine:
         limit = await engine._get_setting("scraper_worker_count", 20, int)
         return asyncio.Semaphore(limit)
 
-    async def perform_search(self, origin, dest, date, session: AsyncSession, force_refresh=False, mode="ondemand"):
+    async def perform_search(self, origin, dest, date, session: AsyncSession, force_refresh=False, mode="ondemand", ignore_jitter=False):
         # 1. Check cache if not forced
         if not force_refresh:
             stmt = select(FlightCache).where(
@@ -527,7 +528,7 @@ class ScraperEngine:
         # Note: process_queue handles settings loading
         
         task = {"origin": origin, "destination": dest, "date": date}
-        results = await engine.process_queue([task], mode=mode)
+        results = await engine.process_queue([task], mode=mode, ignore_jitter=ignore_jitter)
         
         if results["errors"] > 0:
              # Return error details from the first error

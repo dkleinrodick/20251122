@@ -887,7 +887,8 @@ async def validate_routes_task(job_id: str):
                     
                     for i in range(days_to_check):
                         date_str = (today_utc + timedelta(days=i)).strftime("%Y-%m-%d")
-                        res = await engine.perform_search(origin, destination, date_str, session, force_refresh=True)
+                        # Speed up validation by skipping jitter
+                        res = await engine.perform_search(origin, destination, date_str, session, force_refresh=True, ignore_jitter=True)
                         
                         # If no error, assume valid route exists (even if 0 flights, route is technically valid in system)
                         # But usually we want to see if *any* flights appear over X days to confirm it's active
