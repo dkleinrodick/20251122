@@ -477,7 +477,7 @@ async def explore_advanced(date: str, target: Optional[str] = None, type: str = 
 
 # --- Job / Bulk Logic ---
 
-async def process_bulk_search(job_id: str, tasks: List[dict]):
+async def process_bulk_search(job_id: str, tasks: List[dict], mode: str = "ondemand"):
     scraper = ScraperEngine()
     total = len(tasks)
     completed = 0
@@ -487,7 +487,8 @@ async def process_bulk_search(job_id: str, tasks: List[dict]):
     async def limited_task(t):
         async with sem:
             async with AsyncSession(engine) as local_db:
-                res = await scraper.perform_search(t['origin'], t['destination'], t['date'], local_db)
+                # Pass the mode to perform_search
+                res = await scraper.perform_search(t['origin'], t['destination'], t['date'], local_db, force_refresh=True, mode=mode)
                 # Extract flights from result dict
                 data = res.get("flights", []) if isinstance(res, dict) else []
                 return {**t, "data": data}
@@ -534,7 +535,10 @@ async def trigger_bulk_search(request: Request, background_tasks: BackgroundTask
 
     job_id = str(uuid.uuid4())
     JOBS[job_id] = {"status": "pending", "progress": 0, "results": []}
-    background_tasks.add_task(process_bulk_search, job_id, tasks)
+    # Default mode for bulk_search is ondemand unless specified differently? 
+    # The "mode" variable above is used for "broadcast"/"all" logic, not scraper mode.
+    # So we pass "ondemand" to the scraper.
+    background_tasks.add_task(process_bulk_search, job_id, tasks, "ondemand")
     return {"job_id": job_id}
 
 @app.get("/api/jobs/{job_id}")
@@ -1539,6 +1543,48 @@ async def redo_snapshot(snap_id: int, db: AsyncSession = Depends(get_db)):
         raise HTTPException(status_code=500, detail=result["error"])
         
     return {"status": "redone", "origin": origin, "destination": dest, "date": date}
+
+@app.post("/api/admin/snapshots/redo_date", dependencies=[Depends(verify_admin)])
+async def redo_snapshot_date(request: Request, background_tasks: BackgroundTasks, db: AsyncSession = Depends(get_db)):
+    """
+    Redo all snapshots for a specific travel date that were collected TODAY.
+    This is useful if a daily run produced bad data for a specific future date.
+    """
+    data = await request.json()
+    date = data.get("date")
+    if not date:
+        raise HTTPException(status_code=400, detail="Date required")
+
+    # 1. Identify 'Today' window (UTC) to target only recent runs
+    today_start = datetime.now(pytz.UTC).replace(hour=0, minute=0, second=0, microsecond=0)
+    
+    # 2. Find target snapshots
+    stmt = select(FareSnapshot).where(
+        and_(
+            FareSnapshot.travel_date == date,
+            FareSnapshot.scraped_at >= today_start
+        )
+    )
+    res = await db.execute(stmt)
+    snapshots = res.scalars().all()
+    
+    if not snapshots:
+        return {"status": "skipped", "message": "No snapshots found for this date collected today."}
+    
+    # 3. Collect Tasks & Delete
+    tasks = []
+    for s in snapshots:
+        tasks.append({"origin": s.origin, "destination": s.destination, "date": s.travel_date})
+        await db.delete(s)
+    
+    await db.commit()
+    
+    # 4. Trigger Bulk Re-scrape (mode=3week ensures it saves back to snapshots)
+    job_id = str(uuid.uuid4())
+    JOBS[job_id] = {"status": "pending", "progress": 0, "results": []}
+    background_tasks.add_task(process_bulk_search, job_id, tasks, "3week")
+    
+    return {"status": "started", "job_id": job_id, "count": len(tasks)}
 
 @app.get("/api/admin/grouped_snapshots", dependencies=[Depends(verify_admin)])
 async def get_grouped_snapshots(db: AsyncSession = Depends(get_db)):

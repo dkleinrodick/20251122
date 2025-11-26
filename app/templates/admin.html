@@ -546,6 +546,10 @@
                                         </div>
                                         <div class="flex items-center gap-4">
                                             <span class="text-xs font-bold text-surface-200">{{ Object.keys(origins).length }} Origins</span>
+                                            <!-- Redo Day Button -->
+                                            <button @click.stop="redoSnapshotDate(date)" class="text-surface-200 hover:text-brand-400" title="Redo today's scans for this date">
+                                                <i class="ph-bold ph-arrows-clockwise"></i>
+                                            </button>
                                             <!-- Snapshots are permanent history, maybe don't allow delete from here easily -->
                                         </div>
                                     </div>
@@ -678,6 +682,7 @@
                                                 <input-group v-model="settings.schedule_auto_interval" label="Interval (Min)" type="number"></input-group>
                                                 <input-group v-model="settings.max_concurrent_requests" label="Max Workers" type="number"></input-group>
                                             </div>
+                                            <input-group v-model="settings.scraper_stale_minutes" label="Stale Data Threshold (Min)" type="number" placeholder="60"></input-group>
                                         </div>
                                     </div>
 
@@ -1132,6 +1137,18 @@
                     } catch(e) { alert("Failed to redo snapshot: " + (e.response?.data?.detail || e.message)); }
                 };
 
+                const redoSnapshotDate = async (date) => {
+                    if(!confirm(`Redo ALL snapshots for ${date} collected TODAY? This deletes them and re-queues them.`)) return;
+                    try {
+                        const res = await axios.post('/api/admin/snapshots/redo_date', { date }, { headers: getHeaders() });
+                        if(res.data.status === 'skipped') {
+                            alert(res.data.message);
+                        } else {
+                            alert(`Redo Started. Job ID: ${res.data.job_id}. ${res.data.count} snapshots queued.`);
+                        }
+                    } catch(e) { alert("Failed: " + e.message); }
+                };
+
                 const openExplorer = async () => {
                     try {
                         const [f, w, s] = await Promise.all([
@@ -1248,7 +1265,7 @@
                     flightDetails, lookupQuery,
                     routeJob, manualScrape,
                     explorerMode, explorerData, expanded,
-                    selectedSnapshots, snapshotQuery, inspectSnapshots, redoSnapshot,
+                    selectedSnapshots, snapshotQuery, inspectSnapshots, redoSnapshot, redoSnapshotDate,
                     allRoutes, isLoadingRoutes, sortedRoutes, routeSort,
                     fetchData, fetchScraperRuns, fetchHeartbeats, fetchFlightDetails, fetchRoutes,
                     triggerScraper, runManualScrape, updateRoutes, clearCache, rebootBackend,
