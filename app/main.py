@@ -167,14 +167,6 @@ async def verify_admin(
 async def read_root(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
 
-@app.get("/v2")
-async def redirect_v2():
-    return RedirectResponse(url="/")
-
-@app.get("/v3", response_class=HTMLResponse)
-async def read_v3(request: Request):
-    return templates.TemplateResponse("index_v3.html", {"request": request})
-
 @app.get("/features", response_class=HTMLResponse)
 async def read_features(request: Request):
     return templates.TemplateResponse("marketing.html", {"request": request})
