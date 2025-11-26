@@ -292,12 +292,16 @@ class RouteScraper:
             proxy_mgr = ProxyManager(session)
             await proxy_mgr.load_proxies()
             
+            # Fetch concurrency setting
             setting = await session.execute(select(SystemSetting).where(SystemSetting.key == "scraper_worker_count"))
             setting = setting.scalar_one_or_none()
             max_concurrent = int(setting.value) if setting else 20
             
             sem = asyncio.Semaphore(max_concurrent)
-            check_date = (datetime.utcnow() + timedelta(days=1)).strftime("%Y-%m-%d")
+            
+            # Prepare logic for multi-day check
+            intl_codes = {a['code'] for a in AIRPORTS_LIST if a.get('is_international')}
+            today_utc = datetime.utcnow()
 
             async def check_route(route_dict):
                 if stop_check and stop_check(): return {"id": route_dict["id"], "status": "skip"}
@@ -308,22 +312,44 @@ class RouteScraper:
                     origin = route_dict["origin"]
                     dest = route_dict["destination"]
                     
-                    result = {"id": route_id, "status": "skip"}
+                    result = {"id": route_id, "status": "invalid"} # Default to invalid until proven valid
+                    
+                    days_to_check = 11 if (origin in intl_codes or destination in intl_codes) else 3
                     
                     try:
-                        try:
-                            await client.authenticate() 
-                            await client.search(origin, dest, check_date)
-                            result["status"] = "valid"
-                            logger.info(f"[VALID] {origin}-{dest}")
-                        except httpx.HTTPStatusError as http_err:
-                            if http_err.response.status_code == 400:
-                                result["status"] = "invalid"
-                                logger.warning(f"[INVALID] {origin}-{dest} (400)")
-                            else:
-                                logger.warning(f"[SKIP] {origin}-{dest} ({http_err.response.status_code})")
-                        except Exception as e:
-                            logger.error(f"[ERROR] {origin}-{dest}: {e}")
+                        await client.authenticate()
+                        
+                        for i in range(days_to_check):
+                            if stop_check and stop_check(): 
+                                result["status"] = "skip"
+                                break
+                                
+                            check_date = (today_utc + timedelta(days=i)).strftime("%Y-%m-%d")
+                            
+                            try:
+                                await client.search(origin, dest, check_date)
+                                # If we get here (200 OK), the route is valid in the system
+                                result["status"] = "valid"
+                                logger.info(f"[VALID] {origin}-{dest}")
+                                break # Found a valid day, stop checking
+                            except httpx.HTTPStatusError as http_err:
+                                if http_err.response.status_code == 400:
+                                    # 400 usually means route invalid OR date invalid for route.
+                                    # We keep trying other days.
+                                    pass
+                                else:
+                                    # 503/403 etc - treat as skip or keep trying?
+                                    logger.warning(f"[WARN] {origin}-{dest} ({http_err.response.status_code})")
+                            except Exception:
+                                # Network error, proxy error, etc.
+                                pass
+                        
+                        if result["status"] == "invalid":
+                            logger.warning(f"[INVALID] {origin}-{dest} (Checked {days_to_check} days)")
+                            
+                    except Exception as e:
+                        logger.error(f"[ERROR] {origin}-{dest}: {e}")
+                        result["status"] = "skip" # Don't mark invalid on auth/net error
                     finally:
                         await client.close()
                     
