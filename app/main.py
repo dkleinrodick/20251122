@@ -488,7 +488,7 @@ async def process_bulk_search(job_id: str, tasks: List[dict], mode: str = "ondem
         async with sem:
             async with AsyncSession(engine) as local_db:
                 # Pass the mode to perform_search
-                res = await scraper.perform_search(t['origin'], t['destination'], t['date'], local_db, force_refresh=True, mode=mode)
+                res = await scraper.perform_search(t['origin'], t['destination'], t['date'], local_db, force_refresh=True, mode=mode, stop_check=lambda: check_stop(job_id))
                 # Extract flights from result dict
                 data = res.get("flights", []) if isinstance(res, dict) else []
                 return {**t, "data": data}
@@ -496,13 +496,30 @@ async def process_bulk_search(job_id: str, tasks: List[dict], mode: str = "ondem
         for i in range(0, len(l), n): yield l[i:i + n]
     
     for chunk in chunked(tasks, 5):
+        if check_stop(job_id): break
         coros = [limited_task(t) for t in chunk]
         chunk_results = await asyncio.gather(*coros)
         JOBS[job_id]["results"].extend(chunk_results)
         completed += len(chunk)
         JOBS[job_id]["progress"] = int((completed / total) * 100)
         await asyncio.sleep(0.1)
-    JOBS[job_id]["status"] = "completed"
+    
+    if not check_stop(job_id):
+        JOBS[job_id]["status"] = "completed"
+    else:
+        JOBS[job_id]["status"] = "cancelled" # Ensure final status is cancelled if loop broke
+
+def check_stop(job_id):
+    return JOBS.get(job_id, {}).get("status") == "cancelled"
+
+@app.post("/api/admin/jobs/{job_id}/stop", dependencies=[Depends(verify_admin)])
+async def stop_job(job_id: str):
+    if job_id not in JOBS:
+        raise HTTPException(status_code=404, detail="Job not found")
+    
+    JOBS[job_id]["status"] = "cancelled"
+    JOBS[job_id]["message"] = "Stopping..."
+    return {"status": "stopping"}
 
 @app.post("/api/bulk_search")
 async def trigger_bulk_search(request: Request, background_tasks: BackgroundTasks, db: AsyncSession = Depends(get_db)):
@@ -878,9 +895,10 @@ async def validate_routes_task(job_id: str):
                     found_valid_flight = False
                     
                     for i in range(days_to_check):
+                        if check_stop(job_id): return # Quick exit
                         date_str = (today_utc + timedelta(days=i)).strftime("%Y-%m-%d")
                         # Speed up validation by skipping jitter
-                        res = await engine.perform_search(origin, destination, date_str, session, force_refresh=True, ignore_jitter=True)
+                        res = await engine.perform_search(origin, destination, date_str, session, force_refresh=True, ignore_jitter=True, stop_check=lambda: check_stop(job_id))
                         
                         if isinstance(res, dict) and "error" in res:
                             pass 
@@ -888,6 +906,8 @@ async def validate_routes_task(job_id: str):
                             found_valid_flight = True
                             break 
                     
+                    if check_stop(job_id): return
+
                     # Update DB
                     stmt = select(RoutePair).where(RoutePair.id == rid)
                     r_res = await session.execute(stmt)
@@ -916,6 +936,7 @@ async def validate_routes_task(job_id: str):
     # Launch tasks in chunks
     chunk_size = 100
     for i in range(0, total, chunk_size):
+        if check_stop(job_id): break
         chunk = routes_data[i:i + chunk_size]
         
         tasks = [validate_single(rid, origin, destination) for rid, origin, destination in chunk]
@@ -926,12 +947,15 @@ async def validate_routes_task(job_id: str):
         JOBS[job_id]["progress"] = progress
         JOBS[job_id]["message"] = f"Validated {completed_count}/{total} (Active: {active_count}, Bad: {bad_count})"
 
-    JOBS[job_id]["status"] = "completed"
-    JOBS[job_id]["message"] = f"Validation complete. Active: {active_count}, Bad: {bad_count}"
-    
-    # Chain Weather Update
-    logger.info("Triggering chained weather update...")
-    await update_weather_task()
+    if check_stop(job_id):
+        JOBS[job_id]["status"] = "cancelled"
+        JOBS[job_id]["message"] = "Validation cancelled."
+    else:
+        JOBS[job_id]["status"] = "completed"
+        JOBS[job_id]["message"] = f"Validation complete. Active: {active_count}, Bad: {bad_count}"
+        # Chain Weather Update
+        logger.info("Triggering chained weather update...")
+        await update_weather_task()
 
 async def run_full_cache_task(job_id: str, scope: str):
     JOBS[job_id] = {"status": "running", "progress": 0, "message": "Starting full cache..."}
@@ -1149,7 +1173,7 @@ async def run_manual_scrape_task(job_id: str):
                 async with sem:
                     async with SessionLocal() as session:
                         # Perform search and update cache
-                        await engine.perform_search(origin, destination, date, session, force_refresh=True)
+                        await engine.perform_search(origin, destination, date, session, force_refresh=True, stop_check=lambda: check_stop(job_id))
             except Exception as e:
                 logger.error(f"Manual scrape failed for {origin}->{destination} on {date}: {e}")
             finally:
@@ -1165,18 +1189,30 @@ async def run_manual_scrape_task(job_id: str):
         now_ref = datetime.now(pytz.timezone('America/Los_Angeles'))
         
         for origin, destination in routes_data:
+            if check_stop(job_id): break
             # Determine window size
             window = 2 # Default: Today + Tomorrow
             if origin in intl_codes or destination in intl_codes:
                 window = 10 # Extended for Intl
             
             for i in range(window):
+                if check_stop(job_id): break
                 date_str = (now_ref + timedelta(days=i)).strftime("%Y-%m-%d")
                 tasks.append(scrape_single(origin, destination, date_str))
         
+        if check_stop(job_id):
+            JOBS[job_id]["status"] = "cancelled"
+            JOBS[job_id]["message"] = "Cancelled by user."
+            return
+
         total_tasks = len(tasks)
         
         await asyncio.gather(*tasks)
+        
+        if check_stop(job_id):
+            JOBS[job_id]["status"] = "cancelled"
+            JOBS[job_id]["message"] = "Cancelled by user."
+            return
         
         # Save last success time
         async with SessionLocal() as session:

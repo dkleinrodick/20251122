@@ -154,7 +154,12 @@
                                         
                                         <div class="h-px bg-surface-100 my-2"></div>
                                         
-                                        <action-button icon="ph-arrows-clockwise" label="Update Route Map" @click="updateRoutes" :loading="routeJob.status === 'running'" :subtext="routeJob.message"></action-button>
+                                        <div>
+                                            <action-button icon="ph-arrows-clockwise" label="Update Route Map" @click="updateRoutes" :loading="routeJob.status === 'running'" :subtext="routeJob.message"></action-button>
+                                            <button v-if="routeJob.status === 'running'" @click="stopJob(routeJob.job_id)" class="w-full mt-1 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 rounded-lg text-xs font-bold transition">
+                                                Stop Job
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
 
@@ -933,9 +938,10 @@
                 const allRoutes = ref([]);
                 const isLoadingRoutes = ref(false);
                 const routeSort = ref('errors');
-                const routeJob = ref({ status: 'idle' });
+                const routeJob = ref({ status: 'idle', message: '', job_id: null });
+                const autoScraperJob = ref({ status: 'idle', message: null, job_id: null });
 
-                // Explorer Data
+                // Data Explorer
                 const explorerMode = ref('lookup'); // lookup, flights, weather, fare_history
                 const explorerData = ref({ flights: {}, weather: {}, snapshots: {} });
                 const expanded = ref({});
@@ -1068,26 +1074,34 @@
                     finally { isLoadingRoutes.value = false; }
                 };
 
-                // --- Actions ---
-                const triggerScraper = async (type) => {
-                    if(!confirm(`Manually trigger ${type}?`)) return;
-                    try {
-                        await axios.post('/api/admin/trigger_scraper', { scraper_type: type }, { headers: getHeaders() });
-                        alert(`${type} Queued`);
-                        setTimeout(fetchScraperRuns, 1000);
-                    } catch(e) { alert("Failed to trigger scraper"); }
+                // Actions
+                const runAutoScraper = async () => {
+                    if(!confirm("Start Auto Scraper?")) return;
+                    const res = await axios.post('/api/admin/run_scraper', {}, { headers: getHeaders() });
+                    autoScraperJob.value = { status: 'running', message: 'Starting...', job_id: res.data.job_id };
+                    pollJob(res.data.job_id, (job) => {
+                        autoScraperJob.value = { ...job, job_id: res.data.job_id };
+                        if(job.status === 'completed') fetchData();
+                    });
                 };
 
                 const updateRoutes = async () => {
                     const res = await axios.post('/api/update_routes', {}, { headers: getHeaders() });
-                    routeJob.value = { status: 'running', message: 'Updating...' };
+                    routeJob.value = { status: 'running', message: 'Updating...', job_id: res.data.job_id };
                     pollJob(res.data.job_id, (job) => {
-                        routeJob.value = job;
-                        if(job.status === 'completed') fetchRoutes();
+                        routeJob.value = { ...job, job_id: res.data.job_id };
+                        if(job.status === 'completed') fetchData();
                     });
                 };
-                
-                const clearCache = async () => {
+
+                const stopJob = async (id) => {
+                    if(!confirm("Stop this job?")) return;
+                    try {
+                        await axios.post(`/api/admin/jobs/${id}/stop`, {}, { headers: getHeaders() });
+                    } catch(e) { alert("Failed to stop job"); }
+                };
+
+                const triggerWeatherUpdate = async () => {
                     if(!confirm("Clear Flight Cache?")) return;
                     await axios.post('/api/admin/clear_cache', {}, { headers: getHeaders() });
                     fetchData();
@@ -1279,12 +1293,12 @@
                     settings, proxies, cacheCount, activeProxiesCount, uptimeString,
                     heartbeats, scraperRuns, scraperTypeFilter,
                     flightDetails, lookupQuery,
-                    routeJob, manualScrape,
+                    routeJob, autoScraperJob, manualScrape,
                     explorerMode, explorerData, expanded,
                     selectedSnapshots, snapshotQuery, inspectSnapshots, redoSnapshot, redoSnapshotDate,
                     allRoutes, isLoadingRoutes, sortedRoutes, routeSort,
                     fetchData, fetchScraperRuns, fetchHeartbeats, fetchFlightDetails, fetchRoutes,
-                    triggerScraper, runManualScrape, updateRoutes, clearCache, rebootBackend,
+                    triggerScraper, runManualScrape, updateRoutes, stopJob, clearCache, rebootBackend,
                     saveSettings, toggleRoute,
                     newProxies, addProxies, recheckProxies, deleteAllProxies, deleteProxy,
                     formatSmartTime, formatDuration, toggleExpand, deleteDate,
