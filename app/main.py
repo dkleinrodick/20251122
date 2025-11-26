@@ -22,7 +22,7 @@ import re
 
 from app.database import init_db, get_db, engine, Base, SessionLocal
 from app.models import SystemSetting, Proxy, FlightCache, RoutePair, Airport, WeatherData, ScraperRun, HeartbeatLog, FareSnapshot
-from app.scraper import ScraperEngine, verify_proxy
+from app.scraper import ScraperEngine, verify_proxy, AsyncScraperEngine
 from app.airports_data import AIRPORT_MAPPING, AIRPORTS_LIST
 # Scheduler disabled
 SCRAPER_STATUS = {"status": "disabled"}
