@@ -264,7 +264,7 @@ class RouteScraper:
         validated_count = 0
 
         async with SessionLocal() as session:
-            cutoff = datetime.now(pytz.UTC) - timedelta(days=30)
+            cutoff = datetime.now(pytz.UTC) - timedelta(days=3)
             
             stmt = select(RoutePair).where(
                 or_(
