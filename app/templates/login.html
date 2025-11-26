@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+
+{% block title %}Login - WildFares{% endblock %}
+
+{% block content %}
+<div class="min-h-screen flex items-center justify-center relative overflow-hidden pt-20 pb-12">
+    <!-- Background -->
+    <div class="absolute inset-0 z-0">
+        <div class="absolute inset-0 bg-gradient-to-br from-brand-900 via-slate-900 to-brand-950"></div>
+        <div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
+    </div>
+
+    <div class="relative z-10 w-full max-w-md px-4">
+        <div class="bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/20 overflow-hidden p-8 animate-slide-up">
+            
+            <div class="text-center mb-8">
+                <h2 class="text-3xl font-bold text-slate-900 font-display mb-2">Welcome Back</h2>
+                <p class="text-slate-500 text-sm">Login to access your dashboard</p>
+            </div>
+
+            <form id="login-form" class="space-y-5">
+                <div>
+                    <label for="email" class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Email Address</label>
+                    <input type="email" id="email" name="username" required 
+                        class="w-full bg-slate-50 border border-slate-200 text-slate-900 font-bold rounded-xl px-4 py-3 focus:outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 transition">
+                </div>
+
+                <div>
+                    <label for="password" class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Password</label>
+                    <input type="password" id="password" name="password" required 
+                        class="w-full bg-slate-50 border border-slate-200 text-slate-900 font-bold rounded-xl px-4 py-3 focus:outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 transition">
+                </div>
+
+                <div id="error-message" class="hidden bg-red-50 text-red-600 text-sm p-3 rounded-xl border border-red-100 text-center font-bold"></div>
+
+                <button type="submit" id="submit-btn"
+                    class="w-full bg-brand-600 hover:bg-brand-700 text-white font-bold py-4 rounded-xl shadow-lg shadow-brand-600/30 transition transform active:scale-95 flex justify-center items-center gap-2">
+                    <span>Log In</span>
+                    <i class="ph-bold ph-sign-in"></i>
+                </button>
+            </form>
+
+            <div class="mt-8 text-center space-y-2">
+                <p class="text-slate-500 text-sm">
+                    Don't have an account? 
+                    <a href="/register" class="text-brand-600 font-bold hover:text-brand-800 transition">Create one</a>
+                </p>
+                <p class="text-xs">
+                    <a href="/auth/forgot-password" class="text-slate-400 hover:text-slate-600 transition">Forgot Password?</a>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('login-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('submit-btn');
+    const err = document.getElementById('error-message');
+    
+    btn.disabled = true;
+    btn.classList.add('opacity-75');
+    err.classList.add('hidden');
+    
+    // Create URLSearchParams for x-www-form-urlencoded
+    const formData = new FormData(e.target);
+    const data = new URLSearchParams(formData);
+
+    try {
+        const response = await fetch('/auth/jwt/login', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: data,
+        });
+
+        if (response.ok) {
+            // Login successful
+            window.location.href = '/app';
+        } else {
+            const result = await response.json();
+            let msg = "Login failed.";
+            // FastAPI Users returns "LOGIN_BAD_CREDENTIALS" usually
+            if (result.detail === "LOGIN_BAD_CREDENTIALS") {
+                msg = "Invalid email or password.";
+            } else if (result.detail) {
+                msg = result.detail;
+            }
+            err.textContent = msg;
+            err.classList.remove('hidden');
+            btn.disabled = false;
+            btn.classList.remove('opacity-75');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        err.textContent = "An unexpected error occurred.";
+        err.classList.remove('hidden');
+        btn.disabled = false;
+        btn.classList.remove('opacity-75');
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="en" class="antialiased">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WildFares Control Center</title>
+    <link rel="icon" type="image/svg+xml" href="/static/logo.svg">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+        
+        :root { --brand-color: #0ea5e9; }
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
+        .font-mono { font-family: 'JetBrains Mono', monospace; }
+        
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        /* Transitions */
+        .fade-enter-active, .fade-leave-active { transition: opacity 0.2s ease; }
+        .fade-enter-from, .fade-leave-to { opacity: 0; }
+    </style>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0f9ff', 100: '#e0f2fe', 200: '#bae6fd', 300: '#7dd3fc',
+                            400: '#38bdf8', 500: '#0ea5e9', 600: '#0284c7', 700: '#0369a1',
+                            800: '#075985', 900: '#0c4a6e', 950: '#082f49',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="text-slate-800 h-screen flex flex-col overflow-hidden">
+    <div id="app" class="h-full flex flex-col relative">
+        {% raw %}
+
+        <!-- LOGIN SCREEN -->
+        <div v-if="!authenticated" class="absolute inset-0 z-50 bg-slate-50 flex items-center justify-center p-4">
+            <div class="w-full max-w-md bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden">
+                <div class="bg-slate-900 p-8 text-center">
+                    <div class="w-16 h-16 bg-brand-500 rounded-2xl mx-auto flex items-center justify-center shadow-lg shadow-brand-500/30 mb-4">
+                        <i class="ph-bold ph-airplane-tilt text-3xl text-white"></i>
+                    </div>
+                    <h1 class="text-2xl font-bold text-white">Control Center</h1>
+                    <p class="text-slate-400 text-sm mt-1">WildFares Administration</p>
+                </div>
+                <div class="p-8 space-y-6">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Access Key</label>
+                        <input v-model="password" type="password" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3.5 font-bold text-slate-700 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition" placeholder="••••••••" @keyup.enter="login">
+                    </div>
+                    <button @click="login" class="w-full bg-brand-600 hover:bg-brand-700 text-white font-bold py-4 rounded-xl shadow-lg shadow-brand-600/20 transition transform active:scale-95">
+                        Authenticate
+                    </button>
+                    <p v-if="loginError" class="text-center text-rose-500 text-sm font-bold flex items-center justify-center gap-2">
+                        <i class="ph-bold ph-warning-circle"></i> {{ loginError }}
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- MAIN ADMIN INTERFACE -->
+        <div v-else class="flex h-full">
+            
+            <!-- MOBILE HEADER -->
+            <div class="lg:hidden fixed top-0 left-0 right-0 h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 z-30">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 bg-brand-600 rounded-lg flex items-center justify-center text-white">
+                        <i class="ph-bold ph-airplane-tilt"></i>
+                    </div>
+                    <span class="font-bold text-slate-800">WildFares</span>
+                </div>
+                <button @click="sidebarOpen = !sidebarOpen" class="p-2 text-slate-500 hover:bg-slate-100 rounded-lg">
+                    <i class="ph-bold ph-list text-2xl"></i>
+                </button>
+            </div>
+
+            <!-- SIDEBAR NAVIGATION -->
+            <div :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'" class="fixed lg:static inset-y-0 left-0 w-72 bg-slate-900 text-slate-300 flex flex-col z-40 transition-transform duration-300 ease-in-out lg:flex-shrink-0">
+                
+                <!-- Brand -->
+                <div class="h-20 flex items-center px-8 border-b border-slate-800/50">
+                    <div class="flex items-center gap-3 text-white">
+                        <div class="bg-brand-500 p-1.5 rounded-lg">
+                            <i class="ph-bold ph-airplane-tilt text-xl"></i>
+                        </div>
+                        <span class="font-bold text-lg tracking-tight">WildFares</span>
+                    </div>
+                </div>
+
+                <!-- Nav Links -->
+                <div class="flex-1 overflow-y-auto py-6 px-4 space-y-1">
+                    <button v-for="item in navItems" :key="item.id" @click="activeTab = item.id; sidebarOpen = false"
+                        :class="activeTab === item.id ? 'bg-brand-600 text-white shadow-lg shadow-brand-900/20' : 'hover:bg-slate-800 hover:text-white'"
+                        class="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all duration-200 group">
+                        <i :class="[item.icon, activeTab === item.id ? 'text-white' : 'text-slate-500 group-hover:text-white']" class="ph-duotone text-xl"></i>
+                        <span class="font-bold text-sm">{{ item.label }}</span>
+                        <span v-if="item.id === 'proxies' && proxies.length > 0" class="ml-auto text-[10px] font-bold bg-slate-800 px-2 py-0.5 rounded-full text-slate-400">{{ proxies.length }}</span>
+                    </button>
+                </div>
+
+                <!-- Footer Stats -->
+                <div class="p-6 bg-slate-950 border-t border-slate-800/50">
+                    <div class="flex items-center gap-2 mb-3 text-xs font-medium text-slate-500 uppercase tracking-wider">
+                        <div class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div> System Online
+                    </div>
+                    <div class="text-slate-400 text-xs font-mono mb-4">Uptime: {{ uptimeString }}</div>
+                    <a href="/" class="block w-full bg-slate-800 hover:bg-slate-700 text-white text-center py-2.5 rounded-lg text-xs font-bold transition">
+                        Exit to Search <i class="ph-bold ph-arrow-right ml-1"></i>
+                    </a>
+                </div>
+            </div>
+
+            <!-- MAIN CONTENT -->
+            <div class="flex-1 flex flex-col overflow-hidden bg-slate-50 relative w-full">
+                <!-- Mobile Overlay -->
+                <div v-if="sidebarOpen" @click="sidebarOpen = false" class="absolute inset-0 bg-slate-900/50 z-30 lg:hidden backdrop-blur-sm"></div>
+
+                <!-- Header (Desktop) -->
+                <header class="hidden lg:flex items-center justify-between px-8 py-5 bg-white border-b border-slate-200/60">
+                    <div>
+                        <h2 class="text-xl font-bold text-slate-800">{{ currentNavLabel }}</h2>
+                        <p class="text-xs text-slate-400 mt-0.5 font-medium">Manage your WildFares instance</p>
+                    </div>
+                    <div class="flex gap-3">
+                        <button @click="fetchData" class="p-2 text-slate-400 hover:text-brand-600 hover:bg-brand-50 rounded-lg transition" title="Refresh Data">
+                            <i class="ph-bold ph-arrows-clockwise text-xl"></i>
+                        </button>
+                    </div>
+                </header>
+
+                <!-- Content Scroll Area -->
+                <main class="flex-1 overflow-y-auto p-4 lg:p-8 pt-20 lg:pt-8">
+                    
+                    <!-- DASHBOARD VIEW -->
+                    <div v-if="activeTab === 'dashboard'" class="space-y-6 max-w-7xl mx-auto animate-fade-in">
+                        <!-- Quick Stats Grid -->
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <!-- Cache Stat -->
+                            <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex flex-col justify-between h-32">
+                                <div class="flex justify-between items-start">
+                                    <div class="p-2 bg-emerald-50 text-emerald-600 rounded-lg"><i class="ph-duotone ph-database text-xl"></i></div>
+                                </div>
+                                <div>
+                                    <div class="text-2xl font-bold text-slate-800">{{ cacheCount }}</div>
+                                    <div class="text-xs font-bold text-slate-400 uppercase tracking-wide">Cached Routes</div>
+                                </div>
+                            </div>
+                            <!-- Proxies Stat -->
+                            <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex flex-col justify-between h-32">
+                                <div class="flex justify-between items-start">
+                                    <div class="p-2 bg-blue-50 text-blue-600 rounded-lg"><i class="ph-duotone ph-shield-check text-xl"></i></div>
+                                    <div class="text-xs font-bold px-2 py-1 bg-slate-100 rounded text-slate-500">{{ proxies.filter(p=>p.is_active).length }} Live</div>
+                                </div>
+                                <div>
+                                    <div class="text-2xl font-bold text-slate-800">{{ proxies.length }}</div>
+                                    <div class="text-xs font-bold text-slate-400 uppercase tracking-wide">Total Proxies</div>
+                                </div>
+                            </div>
+                            <!-- Config Mode -->
+                            <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex flex-col justify-between h-32">
+                                <div class="flex justify-between items-start">
+                                    <div class="p-2 bg-purple-50 text-purple-600 rounded-lg"><i class="ph-duotone ph-gear text-xl"></i></div>
+                                </div>
+                                <div>
+                                    <div class="text-lg font-bold text-slate-800 capitalize truncate">{{ settings.scraper_mode || 'Unknown' }}</div>
+                                    <div class="text-xs font-bold text-slate-400 uppercase tracking-wide">Scraper Mode</div>
+                                </div>
+                            </div>
+                            <!-- Auto Status -->
+                            <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex flex-col justify-between h-32">
+                                <div class="flex justify-between items-start">
+                                    <div class="p-2 bg-orange-50 text-orange-600 rounded-lg"><i class="ph-duotone ph-robot text-xl"></i></div>
+                                    <div :class="settings.auto_scrape_enabled === 'true' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'" class="text-[10px] font-bold px-2 py-1 rounded uppercase">
+                                        {{ settings.auto_scrape_enabled === 'true' ? 'ON' : 'OFF' }}
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="text-lg font-bold text-slate-800">{{ settings.auto_scrape_interval }}m</div>
+                                    <div class="text-xs font-bold text-slate-400 uppercase tracking-wide">Interval</div>
+                                </div>
+                            </div>
+                            <!-- Last Run Stat -->
+                            <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex flex-col justify-between h-32">
+                                <div class="flex justify-between items-start">
+                                    <div class="p-2 bg-indigo-50 text-indigo-600 rounded-lg"><i class="ph-duotone ph-clock-counter-clockwise text-xl"></i></div>
+                                </div>
+                                <div>
+                                    <div class="text-lg font-bold text-slate-800 truncate" :title="settings.last_auto_scrape ? formatCST(settings.last_auto_scrape) : 'Never'">
+                                        {{ settings.last_auto_scrape ? formatSmartTime(settings.last_auto_scrape) : 'Never' }}
+                                    </div>
+                                    <div class="text-xs font-bold text-slate-400 uppercase tracking-wide">Last Scraper Run (CST)</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Actions Section -->
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            <!-- Maintenance Actions -->
+                            <div class="bg-white rounded-2xl border border-slate-100 p-6 shadow-sm">
+                                <h3 class="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2">
+                                    <i class="ph-bold ph-lightning text-amber-500"></i> System Operations
+                                </h3>
+                                <div class="space-y-3">
+                                    <button @click="runAutoScraper" class="w-full flex items-center justify-between p-3.5 rounded-xl bg-slate-50 hover:bg-blue-50 hover:text-blue-700 border border-slate-200 transition text-slate-700 text-sm font-bold group">
+                                        <span>Trigger Auto Scraper</span>
+                                        <i class="ph-bold ph-play text-slate-400 group-hover:text-blue-600"></i>
+                                    </button>
+                                    <button @click="rebootBackend" class="w-full flex items-center justify-between p-3.5 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 transition text-slate-700 text-sm font-bold group">
+                                        <span>Reboot Backend Service</span>
+                                        <i class="ph-bold ph-power text-slate-400 group-hover:text-slate-800"></i>
+                                    </button>
+                                    <div class="flex gap-3 pt-2">
+                                        <button @click="clearCache" class="flex-1 py-3 rounded-xl border border-rose-100 bg-rose-50 text-rose-600 font-bold text-xs hover:bg-rose-100 transition flex items-center justify-center gap-2">
+                                            <i class="ph-bold ph-trash"></i> Clear Cache
+                                        </button>
+                                        <button @click="deleteAllProxies" class="flex-1 py-3 rounded-xl border border-rose-100 bg-rose-50 text-rose-600 font-bold text-xs hover:bg-rose-100 transition flex items-center justify-center gap-2">
+                                            <i class="ph-bold ph-prohibit"></i> Purge Proxies
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Route Data Management -->
+                            <div class="bg-white rounded-2xl border border-slate-100 p-6 shadow-sm">
+                                <h3 class="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2">
+                                    <i class="ph-bold ph-arrows-clockwise text-brand-500"></i> Data Updates
+                                </h3>
+                                
+                                <!-- Route Update Job -->
+                                <div class="mb-4 p-4 rounded-xl border border-slate-100 bg-slate-50/50">
+                                    <div class="flex justify-between items-center mb-2">
+                                        <span class="text-xs font-bold text-slate-700 uppercase tracking-wide">Route Map</span>
+                                        <button @click="updateRoutes" :disabled="routeJob.status === 'running'" class="px-3 py-1.5 bg-brand-600 text-white text-xs font-bold rounded-lg hover:bg-brand-700 disabled:opacity-50 transition shadow-sm">
+                                            {{ routeJob.status === 'running' ? 'Updating...' : 'Update' }}
+                                        </button>
+                                    </div>
+                                    <div v-if="routeJob.status === 'running' || routeJob.message" class="space-y-1.5">
+                                        <div class="flex justify-between text-[10px] text-slate-500 font-bold">
+                                            <span>{{ routeJob.message }}</span>
+                                            <span>{{ routeJob.progress }}%</span>
+                                        </div>
+                                        <div class="h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                                            <div class="h-full bg-brand-500 transition-all duration-500" :style="{width: routeJob.progress + '%'} "></div>
+                                        </div>
+                                    </div>
+                                    <div v-else class="text-[10px] text-slate-400">
+                                        Syncs available routes from Frontier's sitemap.
+                                    </div>
+                                </div>
+
+                                <div class="grid grid-cols-2 gap-3">
+                                    <button @click="triggerWeatherUpdate" class="p-3 rounded-xl border border-slate-200 hover:border-orange-300 hover:bg-orange-50 transition text-left group">
+                                        <div class="text-xs font-bold text-slate-400 group-hover:text-orange-600 mb-1 uppercase">Weather</div>
+                                        <div class="text-sm font-bold text-slate-700 group-hover:text-orange-800 flex items-center gap-2">
+                                            Fetch Forecasts <i class="ph-bold ph-sun"></i>
+                                        </div>
+                                    </button>
+                                    <button @click="runFullCache('both')" class="p-3 rounded-xl border border-slate-200 hover:border-brand-300 hover:bg-brand-50 transition text-left group">
+                                        <div class="text-xs font-bold text-slate-400 group-hover:text-brand-600 mb-1 uppercase">Force Cache</div>
+                                        <div class="text-sm font-bold text-slate-700 group-hover:text-brand-800 flex items-center gap-2">
+                                            Scrape All <i class="ph-bold ph-download-simple"></i>
+                                        </div>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- SETTINGS VIEW -->
+                    <div v-if="activeTab === 'settings'" class="max-w-4xl mx-auto animate-fade-in pb-20">
+                        <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+                            <div class="p-6 border-b border-slate-50 flex justify-between items-center sticky top-0 bg-white/95 backdrop-blur z-10">
+                                <div>
+                                    <h3 class="text-lg font-bold text-slate-800">System Configuration</h3>
+                                    <p class="text-xs text-slate-400">Manage scraper behavior and automation.</p>
+                                </div>
+                                <button @click="saveSettings" class="bg-slate-800 text-white px-6 py-2.5 rounded-xl hover:bg-slate-900 transition shadow-lg shadow-slate-500/20 font-bold text-sm flex items-center gap-2">
+                                    <i class="ph-bold ph-floppy-disk"></i> Save
+                                </button>
+                            </div>
+                            
+                            <div class="p-6 md:p-8 space-y-8">
+                                <!-- Section: Scraper Logic -->
+                                <div>
+                                    <h4 class="text-xs font-bold text-brand-600 uppercase tracking-wider mb-4 pb-2 border-b border-slate-100">Scraper Logic</h4>
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <div>
+                                            <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Operation Mode</label>
+                                            <select v-model="settings.scraper_mode" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm font-bold text-slate-700 focus:ring-2 focus:ring-brand-500 outline-none">
+                                                <option value="ondemand">On-Demand (Interactive)</option>
+                                                <option value="automatic">Automatic (Cache Only)</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Max Concurrent Requests</label>
+                                            <input v-model="settings.max_concurrent_requests" type="number" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm font-bold text-slate-700 focus:ring-2 focus:ring-brand-500 outline-none">
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Request Timeout (Sec)</label>
+                                            <input v-model="settings.scraper_timeout" type="number" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm font-bold text-slate-700 focus:ring-2 focus:ring-brand-500 outline-none">
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs font-bold text-slate-500 uppercase mb-2">User Agent</label>
+                                            <input v-model="settings.scraper_user_agent" type="text" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm font-mono text-slate-700 focus:ring-2 focus:ring-brand-500 outline-none">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Section: Automation -->
+                                <div>
+                                    <h4 class="text-xs font-bold text-brand-600 uppercase tracking-wider mb-4 pb-2 border-b border-slate-100">Automation & Schedules</h4>
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <!-- Toggle Auto Scraper -->
+                                        <label class="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-200 cursor-pointer hover:border-brand-300 transition">
+                                            <span class="text-sm font-bold text-slate-700">Enable Auto Scraper</span>
+                                            <div class="relative inline-flex items-center">
+                                                <input type="checkbox" v-model="settings.auto_scrape_enabled" true-value="true" false-value="false" class="sr-only peer">
+                                                <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-500"></div>
+                                            </div>
+                                        </label>
+                                        
+                                        <div>
+                                            <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Auto Interval (Mins)</label>
+                                            <input v-model="settings.auto_scrape_interval" type="number" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm font-bold text-slate-700 focus:ring-2 focus:ring-brand-500 outline-none">
+                                        </div>
+
+                                        <div>
+                                            <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Midnight Window (Mins)</label>
+                                            <input v-model="settings.midnight_scrape_window" type="number" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm font-bold text-slate-700 focus:ring-2 focus:ring-brand-500 outline-none" title="How many minutes after midnight to check">
+                                        </div>
+
+                                        <div>
+                                            <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Midnight Interval (Mins)</label>
+                                            <input v-model="settings.midnight_scrape_interval" type="number" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm font-bold text-slate-700 focus:ring-2 focus:ring-brand-500 outline-none" title="How often to run within window">
+                                        </div>
+
+                                        <div>
+                                            <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Cache Expiry (Mins)</label>
+                                            <input v-model="settings.cache_duration_minutes" type="number" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm font-bold text-slate-700 focus:ring-2 focus:ring-brand-500 outline-none">
+                                        </div>
+
+                                        <!-- Weather Scraper Controls -->
+                                        <label class="flex items-center justify-between p-4 bg-orange-50 rounded-xl border border-orange-200 cursor-pointer hover:border-orange-300 transition">
+                                            <span class="text-sm font-bold text-slate-700">Enable Weather Scraper</span>
+                                            <div class="relative inline-flex items-center">
+                                                <input type="checkbox" v-model="settings.weather_scrape_enabled" true-value="true" false-value="false" class="sr-only peer">
+                                                <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-500"></div>
+                                            </div>
+                                        </label>
+
+                                        <div>
+                                            <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Weather Scrape Time (CST)</label>
+                                            <input v-model="settings.weather_scrape_time_cst" type="time" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm font-bold text-slate-700 focus:ring-2 focus:ring-orange-500 outline-none" title="Daily weather update time in Central Standard Time">
+                                        </div>
+
+                                        <!-- Toggles -->
+                                        <div class="col-span-1 md:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-4">
+                                            <label class="flex items-center justify-between p-3 border border-slate-200 rounded-xl cursor-pointer hover:bg-slate-50 transition">
+                                                <div class="flex items-center gap-3">
+                                                    <div class="bg-blue-100 text-blue-600 p-1.5 rounded-lg"><i class="ph-bold ph-shield-check"></i></div>
+                                                    <span class="text-sm font-bold text-slate-700">Proxies</span>
+                                                </div>
+                                                <input type="checkbox" v-model="settings.proxy_enabled" true-value="true" false-value="false" class="accent-brand-600 w-5 h-5">
+                                            </label>
+                                            <label class="flex items-center justify-between p-3 border border-slate-200 rounded-xl cursor-pointer hover:bg-slate-50 transition">
+                                                <div class="flex items-center gap-3">
+                                                    <div class="bg-amber-100 text-amber-600 p-1.5 rounded-lg"><i class="ph-bold ph-bug"></i></div>
+                                                    <span class="text-sm font-bold text-slate-700">Debug JSON</span>
+                                                </div>
+                                                <input type="checkbox" v-model="settings.save_debug_responses" true-value="true" false-value="false" class="accent-brand-600 w-5 h-5">
+                                            </label>
+                                            <label class="flex items-center justify-between p-3 border border-slate-200 rounded-xl cursor-pointer hover:bg-slate-50 transition">
+                                                <div class="flex items-center gap-3">
+                                                    <div class="bg-slate-100 text-slate-600 p-1.5 rounded-lg"><i class="ph-bold ph-terminal-window"></i></div>
+                                                    <span class="text-sm font-bold text-slate-700">Verbose Logs</span>
+                                                </div>
+                                                <input type="checkbox" v-model="settings.debug_logging_enabled" true-value="true" false-value="false" class="accent-brand-600 w-5 h-5">
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Section: Popup -->
+                                <div>
+                                    <h4 class="text-xs font-bold text-brand-600 uppercase tracking-wider mb-4 pb-2 border-b border-slate-100">Announcement Popup</h4>
+                                    <div class="space-y-4">
+                                        <label class="flex items-center gap-3">
+                                            <input type="checkbox" v-model="settings.announcement_enabled" true-value="true" false-value="false" class="accent-brand-600 w-5 h-5">
+                                            <span class="text-sm font-bold text-slate-700">Enable Popup on Load</span>
+                                        </label>
+                                        
+                                        <div v-if="settings.announcement_enabled === 'true'" class="space-y-3 animate-fade-in">
+                                            <div class="flex gap-2">
+                                                <button @click="settings.announcement_html = '<h3>🚀 System Update</h3><p>We have improved the search engine. Enjoy faster results!</p>'" class="text-xs bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-lg border border-slate-200 font-bold text-slate-600 transition">Preset: Update</button>
+                                                <button @click="settings.announcement_html = '<h3>☕ Fuel the Adventure</h3><p>WildFares is a free tool. If you found a great deal, consider buying me a coffee to keep the servers running!</p><div class=\'mt-4 text-center\'><a href=\'https://venmo.com/u/YourUsername\' target=\'_blank\' class=\'inline-block bg-[#008CFF] text-white font-bold py-2 px-6 rounded-full hover:bg-[#0074D4] transition\'>Venmo</a></div>'" class="text-xs bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-lg border border-slate-200 font-bold text-slate-600 transition">Preset: Coffee</button>
+                                            </div>
+                                            <textarea v-model="settings.announcement_html" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 text-sm font-mono h-32 focus:ring-2 focus:ring-brand-500 outline-none" placeholder="<h3>Title</h3><p>Content...</p>"></textarea>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- PROXIES VIEW -->
+                    <div v-if="activeTab === 'proxies'" class="max-w-5xl mx-auto animate-fade-in pb-20">
+                        <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+                            <div class="p-6 border-b border-slate-50 flex justify-between items-center">
+                                <div>
+                                    <h3 class="text-lg font-bold text-slate-800">Proxy Management</h3>
+                                    <p class="text-xs text-slate-400">Avoid IP bans by rotating requests.</p>
+                                </div>
+                                <button @click="deleteAllProxies" v-if="proxies.length > 0" class="text-rose-600 hover:text-rose-700 text-xs font-bold bg-rose-50 hover:bg-rose-100 px-4 py-2 rounded-lg transition">
+                                    Delete All
+                                </button>
+                            </div>
+                            
+                            <div class="p-6">
+                                <!-- Add Box -->
+                                <div class="bg-slate-50 rounded-xl p-4 mb-6 border border-slate-200">
+                                    <div class="flex flex-col md:flex-row gap-4">
+                                        <textarea v-model="newProxies" placeholder="host:port:user:pass" class="flex-1 border border-slate-200 rounded-xl p-3 text-xs font-mono h-20 focus:ring-2 focus:ring-brand-500 outline-none"></textarea>
+                                        <button @click="addProxies" class="bg-slate-800 text-white px-6 rounded-xl hover:bg-slate-900 transition font-bold text-sm shadow-lg shadow-slate-500/20 h-20">
+                                            Add & Check
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- Table -->
+                                <div class="overflow-x-auto border border-slate-200 rounded-xl">
+                                    <table class="min-w-full divide-y divide-slate-100">
+                                        <thead class="bg-slate-50/50">
+                                            <tr>
+                                                <th class="px-4 py-3 text-left text-[10px] font-bold text-slate-400 uppercase">Address</th>
+                                                <th class="px-4 py-3 text-left text-[10px] font-bold text-slate-400 uppercase">Proto</th>
+                                                <th class="px-4 py-3 text-left text-[10px] font-bold text-slate-400 uppercase">Health</th>
+                                                <th class="px-4 py-3 text-left text-[10px] font-bold text-slate-400 uppercase">Checked</th>
+                                                <th class="px-4 py-3 text-right"></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="bg-white divide-y divide-slate-50">
+                                            <tr v-for="p in proxies" :key="p.id" class="hover:bg-slate-50 transition">
+                                                <td class="px-4 py-3 text-xs font-mono text-slate-600 max-w-[150px] truncate">{{ p.url }}</td>
+                                                <td class="px-4 py-3 text-xs font-bold text-slate-400 uppercase">{{ p.protocol }}</td>
+                                                <td class="px-4 py-3">
+                                                    <span :class="p.is_active ? 'bg-emerald-100 text-emerald-700 border-emerald-200' : 'bg-rose-100 text-rose-700 border-rose-200'" class="px-2 py-0.5 rounded-md text-[10px] font-bold border uppercase tracking-wide">
+                                                        {{ p.is_active ? 'Active' : 'Dead' }}
+                                                    </span>
+                                                </td>
+                                                <td class="px-4 py-3 text-xs text-slate-400">{{ new Date(p.last_checked).toLocaleTimeString() }}</td>
+                                                <td class="px-4 py-3 text-right">
+                                                    <button @click="deleteProxy(p.id)" class="text-slate-400 hover:text-rose-500 transition"><i class="ph-bold ph-trash"></i></button>
+                                                </td>
+                                            </tr>
+                                            <tr v-if="proxies.length === 0">
+                                                <td colspan="5" class="px-4 py-8 text-center text-slate-400 text-sm">No proxies configured.</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- DATA EXPLORER VIEW -->
+                    <div v-if="activeTab === 'data'" class="max-w-6xl mx-auto animate-fade-in pb-20">
+                        <div class="flex items-center gap-4 mb-6">
+                            <h3 class="text-xl font-bold text-slate-800">Database Inspector</h3>
+                            <div class="flex bg-white rounded-lg p-1 border border-slate-200 shadow-sm">
+                                <button @click="explorerMode = 'flights'" :class="explorerMode === 'flights' ? 'bg-brand-50 text-brand-700 shadow-sm' : 'text-slate-500 hover:bg-slate-50'" class="px-4 py-1.5 rounded-md text-xs font-bold transition">Flights</button>
+                                <button @click="explorerMode = 'weather'" :class="explorerMode === 'weather' ? 'bg-orange-50 text-orange-700 shadow-sm' : 'text-slate-500 hover:bg-slate-50'" class="px-4 py-1.5 rounded-md text-xs font-bold transition">Weather</button>
+                            </div>
+                        </div>
+
+                        <div v-if="isLoadingExplorer" class="p-12 flex justify-center">
+                            <i class="ph-duotone ph-circle-notch animate-spin text-3xl text-brand-400"></i>
+                        </div>
+
+                        <div v-else class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                            <!-- Flights List -->
+                            <div v-if="explorerMode === 'flights'">
+                                <div v-if="Object.keys(explorerData.flights).length === 0" class="p-8 text-center text-slate-400">Cache is empty.</div>
+                                <div v-else class="divide-y divide-slate-100">
+                                    <div v-for="(origins, date) in explorerData.flights" :key="date">
+                                        <div @click="explorerExpanded[date] = !explorerExpanded[date]" class="px-6 py-4 hover:bg-slate-50 cursor-pointer flex justify-between items-center transition select-none bg-slate-50/50">
+                                            <div class="flex items-center gap-3">
+                                                <i :class="explorerExpanded[date] ? 'ph-caret-down' : 'ph-caret-right'" class="ph-bold text-slate-400"></i>
+                                                <span class="font-mono font-bold text-slate-700">{{ date }}</span>
+                                            </div>
+                                            <button @click.stop="deleteFlightDate(date)" class="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded transition"><i class="ph-bold ph-trash"></i></button>
+                                        </div>
+                                        
+                                        <div v-if="explorerExpanded[date]" class="p-6 bg-white animate-fade-in grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                            <div v-for="(dests, origin) in origins" :key="origin" class="border border-slate-100 rounded-xl p-3">
+                                                <div class="flex items-center gap-2 mb-2 pb-2 border-b border-slate-50">
+                                                    <span class="bg-brand-50 text-brand-700 px-2 py-0.5 rounded text-xs font-bold">{{ origin }}</span>
+                                                    <i class="ph-bold ph-arrow-right text-slate-300 text-xs"></i>
+                                                    <span class="text-xs font-bold text-slate-400">{{ Object.keys(dests).length }} Dests</span>
+                                                </div>
+                                                <div class="space-y-1 max-h-32 overflow-y-auto custom-scrollbar pr-1">
+                                                    <div v-for="(data, dest) in dests" :key="dest" class="flex justify-between items-center text-[10px] py-1 border-b border-slate-50 last:border-0">
+                                                        <span class="font-bold text-slate-700">{{ dest }}</span>
+                                                        <div class="text-right leading-tight">
+                                                            <div class="font-bold text-brand-600">{{ data.count }} <span class="text-slate-400 font-normal">flts</span></div>
+                                                            <div class="text-[9px] text-slate-400" :title="new Date(data.updated).toLocaleString()">{{ formatSmartTime(data.updated) }}</div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Weather List -->
+                            <div v-if="explorerMode === 'weather'">
+                                <div v-if="Object.keys(explorerData.weather).length === 0" class="p-8 text-center text-slate-400">No weather data.</div>
+                                <div v-else class="divide-y divide-slate-100">
+                                    <div v-for="(airports, date) in explorerData.weather" :key="date">
+                                        <div @click="explorerExpanded[date] = !explorerExpanded[date]" class="px-6 py-4 hover:bg-slate-50 cursor-pointer flex justify-between items-center transition select-none">
+                                            <div class="flex items-center gap-3">
+                                                <i :class="explorerExpanded[date] ? 'ph-caret-down' : 'ph-caret-right'" class="ph-bold text-slate-400"></i>
+                                                <span class="font-mono font-bold text-slate-700">{{ date }}</span>
+                                                <span class="text-xs bg-orange-50 text-orange-700 px-2 py-0.5 rounded font-bold">{{ airports.length }} Airports</span>
+                                            </div>
+                                            <button @click.stop="deleteWeatherDate(date)" class="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded transition"><i class="ph-bold ph-trash"></i></button>
+                                        </div>
+                                        
+                                        <div v-if="explorerExpanded[date]" class="overflow-x-auto">
+                                            <table class="min-w-full divide-y divide-slate-100">
+                                                <tbody class="divide-y divide-slate-50 bg-slate-50/30">
+                                                    <tr v-for="w in airports" :key="w.airport">
+                                                        <td class="px-6 py-2 text-xs font-mono font-bold text-slate-600">{{ w.airport }}</td>
+                                                        <td class="px-6 py-2 text-xs font-bold text-slate-700">{{ w.temp }}°</td>
+                                                        <td class="px-6 py-2 text-xs text-slate-500">Code: {{ w.condition }}</td>
+                                                        <td class="px-6 py-2 text-xs text-slate-400 text-right">{{ formatSmartTime(w.updated) }}</td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </main>
+            </div>
+        </div>
+        {% endraw %}
+    </div>
+
+    <script>
+        const { createApp } = Vue;
+
+        createApp({
+            data() {
+                return {
+                    authenticated: false,
+                    password: '',
+                    loginError: '',
+                    sidebarOpen: false,
+                    activeTab: 'dashboard',
+                    navItems: [
+                        { id: 'dashboard', label: 'Dashboard', icon: 'ph-squares-four' },
+                        { id: 'settings', label: 'Configuration', icon: 'ph-sliders-horizontal' },
+                        { id: 'proxies', label: 'Proxies', icon: 'ph-shield-check' },
+                        { id: 'data', label: 'Data Explorer', icon: 'ph-database' },
+                    ],
+                    settings: {
+                        scraper_mode: 'ondemand',
+                        midnight_scrape_enabled: 'true',
+                        midnight_scrape_window: 15,
+                        midnight_scrape_interval: 5,
+                        cache_reset_enabled: 'true',
+                        cache_reset_days: 2,
+                        cache_reset_time: '09:00',
+                        save_debug_responses: 'false',
+                        weather_scrape_time: '08:00',
+                        weather_scrape_enabled: 'true',
+                        weather_scrape_time_cst: '23:49',
+                        proxy_enabled: 'false',
+                        max_concurrent_requests: 5,
+                        auto_scrape_interval: 60,
+                        auto_scrape_enabled: 'true',
+                        midnight_scrape_window: 15,
+                        midnight_scrape_interval: 5,
+                        cache_duration_minutes: 120,
+                        scraper_timeout: 30,
+                        scraper_user_agent: '',
+                        debug_logging_enabled: 'false',
+                        announcement_enabled: 'false',
+                        announcement_html: '',
+                        last_auto_scrape: null
+                    },
+                    proxies: [],
+                    newProxies: '',
+                    routeJob: { status: 'idle', progress: 0, message: '' },
+                    pollInterval: null,
+                    cacheCount: 0,
+                    uptimeSeconds: 0,
+                    explorerMode: 'flights', 
+                    explorerData: { flights: {}, weather: {} },
+                    explorerExpanded: {}, 
+                    isLoadingExplorer: false
+                }
+            },
+            computed: {
+                uptimeString() {
+                    if (this.uptimeSeconds < 60) return "Just now";
+                    const h = Math.floor(this.uptimeSeconds / 3600);
+                    const m = Math.floor((this.uptimeSeconds % 3600) / 60);
+                    return `${h}h ${m}m`;
+                },
+                currentNavLabel() {
+                    const item = this.navItems.find(i => i.id === this.activeTab);
+                    return item ? item.label : 'Dashboard';
+                }
+            },
+            watch: {
+                activeTab(newVal) {
+                    if (newVal === 'data') this.openExplorer();
+                },
+                'settings.announcement_enabled': function(val) {
+                    if (val === 'true' && !this.settings.announcement_html) {
+                        this.settings.announcement_html = '<h3>🚀 System Update</h3><p>We have improved the search engine. Enjoy faster results!</p>';
+                    }
+                }
+            },
+            methods: {
+                formatSmartTime(isoStr) {
+                    if (!isoStr) return '-';
+                    const date = new Date(isoStr);
+                    const now = new Date();
+
+                    // Compare dates in Central Time to determine if it's "today"
+                    const dateCSTStr = date.toLocaleDateString('en-US', { timeZone: 'America/Chicago' });
+                    const nowCSTStr = now.toLocaleDateString('en-US', { timeZone: 'America/Chicago' });
+                    const isToday = dateCSTStr === nowCSTStr;
+
+                    // Format in Central Time
+                    return isToday
+                        ? date.toLocaleTimeString('en-US', { timeZone: 'America/Chicago', hour: '2-digit', minute:'2-digit' })
+                        : date.toLocaleDateString('en-US', { timeZone: 'America/Chicago' });
+                },
+                formatCST(isoStr) {
+                    if (!isoStr) return 'Never';
+                    const date = new Date(isoStr);
+                    // Convert to Central Time (US/Central)
+                    return date.toLocaleString('en-US', {
+                        timeZone: 'America/Chicago',
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit',
+                        hour12: true
+                    }) + ' CST';
+                },
+                startUptimeLoop() {
+                    setInterval(async () => {
+                        try {
+                            const res = await axios.get('/api/admin/uptime');
+                            this.uptimeSeconds = res.data.uptime_seconds;
+                        } catch(e){}
+                    }, 30000);
+                    // Initial fetch
+                    axios.get('/api/admin/uptime').then(res => this.uptimeSeconds = res.data.uptime_seconds);
+                },
+                async login() {
+                    try {
+                        await axios.get('/api/settings', { headers: { 'X-Admin-Pass': this.password } });
+                        this.authenticated = true;
+                        this.fetchData();
+                        this.startUptimeLoop();
+                    } catch (e) {
+                        this.loginError = "Access Denied";
+                        setTimeout(() => this.loginError = '', 3000);
+                    }
+                },
+                getHeaders() { return { 'X-Admin-Pass': this.password }; },
+                async fetchData() {
+                    try {
+                        const sReq = await axios.get('/api/settings', { headers: this.getHeaders() });
+                        this.settings = sReq.data;
+                        const pReq = await axios.get('/api/proxies', { headers: this.getHeaders() });
+                        this.proxies = pReq.data;
+                        const cReq = await axios.get('/api/admin/cache_stats', { headers: this.getHeaders() });
+                        this.cacheCount = cReq.data.total_flights;
+                        // Refresh explorer if active
+                        if(this.activeTab === 'data') this.openExplorer();
+                    } catch (e) { console.error("Fetch error", e); }
+                },
+                async saveSettings() {
+                    try {
+                        await axios.post('/api/settings', this.settings, { headers: this.getHeaders() });
+                        alert("Configuration saved successfully.");
+                    } catch (e) { alert("Error saving settings"); }
+                },
+                async runAutoScraper() {
+                    if(!confirm("Trigger immediate scraper run?")) return;
+                    await axios.post('/api/admin/run_scraper', {}, { headers: this.getHeaders() });
+                },
+                async rebootBackend() {
+                    if(!confirm("Restart backend service?")) return;
+                    await axios.post('/api/admin/reboot', {}, { headers: this.getHeaders() });
+                },
+                async clearCache() {
+                    if(!confirm("Clear all cached data?")) return;
+                    await axios.post('/api/admin/clear_cache', {}, { headers: this.getHeaders() });
+                    this.cacheCount = 0;
+                    this.openExplorer();
+                },
+                async deleteAllProxies() {
+                    if(!confirm("Delete ALL proxies?")) return;
+                    await axios.delete('/api/proxies', { headers: this.getHeaders() });
+                    this.fetchData();
+                },
+                async deleteProxy(id) {
+                    if(!confirm("Delete proxy?")) return;
+                    await axios.delete(`/api/proxies/${id}`, { headers: this.getHeaders() });
+                    this.fetchData();
+                },
+                async addProxies() {
+                    if(!this.newProxies.trim()) return;
+                    await axios.post('/api/proxies', { proxies: this.newProxies }, { headers: this.getHeaders() });
+                    this.newProxies = '';
+                    this.fetchData();
+                    // Poll for verification updates
+                    let checks = 0;
+                    const intv = setInterval(() => {
+                        this.fetchData();
+                        checks++;
+                        if(checks > 10) clearInterval(intv);
+                    }, 2000);
+                },
+                async updateRoutes() {
+                    const res = await axios.post('/api/update_routes', {}, { headers: this.getHeaders() });
+                    this.routeJob = { status: 'running', progress: 0, message: 'Starting update...' };
+                    this.pollJob(res.data.job_id);
+                },
+                async triggerWeatherUpdate() {
+                    await axios.post('/api/admin/update_weather', {}, { headers: this.getHeaders() });
+                    alert("Weather update started.");
+                },
+                async runFullCache(scope) {
+                    const res = await axios.post('/api/admin/force_cache', { scope: scope }, { headers: this.getHeaders() });
+                    this.routeJob = { status: 'running', progress: 0, message: 'Starting full cache...' };
+                    this.pollJob(res.data.job_id);
+                },
+                pollJob(jobId) {
+                    if (this.pollInterval) clearInterval(this.pollInterval);
+                    this.pollInterval = setInterval(async () => {
+                        try {
+                            const res = await axios.get(`/api/jobs/${jobId}`);
+                            const job = res.data;
+                            this.routeJob = job;
+                            if (job.status === 'completed' || job.status === 'failed') {
+                                clearInterval(this.pollInterval);
+                                if(job.status === 'completed') this.fetchData();
+                            }
+                        } catch (e) { clearInterval(this.pollInterval); }
+                    }, 1000);
+                },
+                async openExplorer() {
+                    this.isLoadingExplorer = true;
+                    try {
+                        const [fRes, wRes] = await Promise.all([
+                            axios.get('/api/admin/cached_routes', { headers: this.getHeaders() }),
+                            axios.get('/api/admin/weather_data', { headers: this.getHeaders() })
+                        ]);
+                        this.explorerData.flights = fRes.data;
+                        this.explorerData.weather = wRes.data;
+                    } catch(e) { console.error(e); } 
+                    finally { this.isLoadingExplorer = false; }
+                },
+                async deleteFlightDate(date) {
+                    if(!confirm(`Delete all data for ${date}?`)) return;
+                    await axios.delete(`/api/admin/cached_routes/${date}`, { headers: this.getHeaders() });
+                    this.openExplorer();
+                },
+                async deleteWeatherDate(date) {
+                    if(!confirm(`Delete weather for ${date}?`)) return;
+                    await axios.delete(`/api/admin/weather_data/${date}`, { headers: this.getHeaders() });
+                    this.openExplorer();
+                }
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>

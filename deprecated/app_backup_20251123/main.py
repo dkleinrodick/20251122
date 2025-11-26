@@ -1,11 +1,7 @@
 from fastapi import FastAPI, Depends, HTTPException, BackgroundTasks, Request, Form, Header
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
-from dotenv import load_dotenv
-
-load_dotenv()
-
+from fastapi.responses import HTMLResponse, JSONResponse
 from sqlalchemy.future import select
 from sqlalchemy import delete, update, or_, func
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -20,22 +16,13 @@ import httpx
 import re
 
 from app.database import init_db, get_db, engine, Base, SessionLocal
-from app.models import SystemSetting, Proxy, FlightCache, RoutePair, Airport, WeatherData, ScraperRun
+from app.models import SystemSetting, Proxy, FlightCache, RoutePair, Airport, WeatherData
 from app.scraper import ScraperEngine, verify_proxy
 from app.airports_data import AIRPORT_MAPPING, AIRPORTS_LIST
 # Scheduler disabled
 SCRAPER_STATUS = {"status": "disabled"}
 from app.search_logic import find_round_trip_same_day, build_multi_hop_route, get_map_data
 from app.compression import decompress_data
-import jwt
-import os
-
-from app.auth import fastapi_users, current_active_user, get_user_manager, auth_backend, User
-from app.schemas import UserRead, UserCreate, UserUpdate
-from app.jobs import AutoScraper, MidnightScraper, ThreeWeekScraper
-from app.route_scraper import RouteScraper
-from app.weather_scraper import WeatherScraper
-from app.scheduler_logic import SchedulerLogic
 
 # Setup logging
 logging.basicConfig(
@@ -48,61 +35,10 @@ logging.getLogger("tzlocal").setLevel(logging.WARNING)
 
 logger = logging.getLogger(__name__)
 
-# JWT Configuration
-JWT_SECRET = os.environ.get("JWT_SECRET", "wildfares-secret-change-in-production")
-JWT_ALGORITHM = "HS256"
-JWT_EXPIRATION_DAYS = 7
-
-def create_access_token(data: dict) -> str:
-    """Create JWT token with expiration"""
-    to_encode = data.copy()
-    expire = datetime.utcnow() + timedelta(days=JWT_EXPIRATION_DAYS)
-    to_encode.update({"exp": expire})
-    return jwt.encode(to_encode, JWT_SECRET, algorithm=JWT_ALGORITHM)
-
-def verify_token(token: str) -> Optional[dict]:
-    """Verify JWT token and return payload"""
-    try:
-        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
-        return payload
-    except jwt.ExpiredSignatureError:
-        logger.warning("JWT token expired")
-        return None
-    except jwt.InvalidTokenError:
-        logger.warning("Invalid JWT token")
-        return None
-
 app = FastAPI(title="WildFares")
 
-# Mount FastAPI Users authentication and management routers
-app.include_router(
-    fastapi_users.get_auth_router(auth_backend),
-    prefix="/auth/jwt",
-    tags=["auth"],
-)
-app.include_router(
-    fastapi_users.get_register_router(UserRead, UserCreate),
-    prefix="/auth",
-    tags=["auth"],
-)
-app.include_router(
-    fastapi_users.get_verify_router(UserRead),
-    prefix="/auth",
-    tags=["auth"],
-)
-app.include_router(
-    fastapi_users.get_reset_password_router(),
-    prefix="/auth",
-    tags=["auth"],
-)
-app.include_router(
-    fastapi_users.get_users_router(UserRead, UserUpdate),
-    prefix="/users",
-    tags=["users"],
-)
-
 # Static files disabled for serverless - use CDN or public folder instead
-app.mount("/static", StaticFiles(directory="app/static"), name="static")
+# app.mount("/static", StaticFiles(directory="app/static"), name="static")
 templates = Jinja2Templates(directory="app/templates")
 
 # Global Job Store (In-memory for simplicity)
@@ -139,54 +75,21 @@ async def startup_event():
             else:
                 logger.info(f"Airports already seeded ({count} found).")
                 
-            # Check and seed blackout dates
-            blackout_dates = ["2025-01-01", "2025-01-04", "2025-01-05", "2025-01-16", "2025-01-17", "2025-01-20", "2025-02-13", "2025-02-14", "2025-02-17", "2025-03-14", "2025-03-15", "2025-03-16", "2025-03-21", "2025-03-22", "2025-03-23", "2025-03-28", "2025-03-29", "2025-03-30", "2025-04-04", "2025-04-05", "2025-04-06", "2025-04-11", "2025-04-12", "2025-04-13", "2025-04-18", "2025-04-19", "2025-04-20", "2025-04-21", "2025-05-22", "2025-05-23", "2025-05-26", "2025-06-22", "2025-06-26", "2025-06-27", "2025-06-28", "2025-06-29", "2025-07-03", "2025-07-04", "2025-07-05", "2025-07-06", "2025-07-07", "2025-08-28", "2025-08-29", "2025-09-01", "2025-10-09", "2025-10-10", "2025-10-12", "2025-10-13", "2025-11-25", "2025-11-26", "2025-11-29", "2025-11-30", "2025-12-01", "2025-12-20", "2025-12-21", "2025-12-22", "2025-12-23", "2025-12-26", "2025-12-27", "2025-12-28", "2025-12-29", "2025-12-30", "2025-12-31", "2026-01-01", "2026-01-03", "2026-01-04", "2026-01-15", "2026-01-16", "2026-01-19", "2026-02-12", "2026-02-13", "2026-02-16", "2026-03-13", "2026-03-14", "2026-03-15", "2026-03-20", "2026-03-21", "2026-03-22", "2026-03-27", "2026-03-28", "2026-03-29", "2026-04-03", "2026-04-04", "2026-04-05", "2026-04-06", "2026-04-10", "2026-04-11", "2026-04-12", "2026-05-21", "2026-05-22", "2026-05-25", "2026-06-25", "2026-06-26", "2026-06-27", "2026-06-28", "2026-07-02", "2026-07-03", "2026-07-04", "2026-07-05", "2026-07-06", "2026-09-03", "2026-09-04", "2026-09-07", "2026-10-08", "2026-10-09", "2026-10-11", "2026-10-12", "2026-11-24", "2026-11-25", "2026-11-28", "2026-11-29", "2026-11-30", "2026-12-19", "2026-12-20", "2026-12-21", "2026-12-22", "2026-12-23", "2026-12-24", "2026-12-26", "2026-12-27", "2026-12-28", "2026-12-29", "2026-12-30", "2026-12-31", "2027-01-01", "2027-01-02", "2027-01-03", "2027-01-14", "2027-01-15", "2027-01-18", "2027-02-11", "2027-02-12", "2027-02-15", "2027-03-12", "2027-03-13", "2027-03-14", "2027-03-19", "2027-03-20", "2027-03-21", "2027-03-26", "2027-03-27", "2027-03-28", "2027-03-29", "2027-04-02", "2027-04-03", "2027-04-04"]
-            
-            res = await session.execute(select(SystemSetting).where(SystemSetting.key == "blackout_dates"))
-            if not res.scalar_one_or_none():
-                session.add(SystemSetting(key="blackout_dates", value=json.dumps(blackout_dates)))
-                session.add(SystemSetting(key="blackout_dates_enabled", value="true"))
-                await session.commit()
-                logger.info("Blackout dates seeded.")
-                
     except Exception as e:
         logger.warning(f"Startup seeding check failed: {e}")
 
     logger.info("Background scheduler disabled for Vercel - using GitHub Actions instead")
 
-async def verify_admin(
-    authorization: str = Header(None),
-    x_admin_pass: str = Header(None),
-    db: AsyncSession = Depends(get_db)
-):
-    """Verify admin access via JWT token (Authorization header) or password (X-Admin-Pass header)"""
-
-    # Try JWT first (Authorization: Bearer <token>)
-    if authorization and authorization.startswith("Bearer "):
-        token = authorization.replace("Bearer ", "")
-        payload = verify_token(token)
-        if payload and payload.get("admin") is True:
-            return True
-        else:
-            logger.warning("Invalid or expired JWT token")
-            raise HTTPException(status_code=401, detail="Invalid or expired token")
-
-    # Fall back to password auth
+async def verify_admin(x_admin_pass: str = Header(None), db: AsyncSession = Depends(get_db)):
     if not x_admin_pass:
-        logger.warning("Verify Admin: Missing credentials")
-        raise HTTPException(status_code=401, detail="Missing Admin Credentials")
-
+        logger.warning("Verify Admin: Missing Header")
+        raise HTTPException(status_code=401, detail="Missing Admin Password")
+    
     try:
         res = await db.execute(select(SystemSetting).where(SystemSetting.key == "admin_password"))
         setting = res.scalar_one_or_none()
-
-        # Secure fallback: Use ENV var or fail closed (no access)
-        stored_pass = setting.value if setting else os.environ.get("ADMIN_PASSWORD")
-
-        if not stored_pass:
-            logger.warning("Admin password not configured!")
-            raise HTTPException(status_code=403, detail="Admin access not configured")
-
+        stored_pass = setting.value if setting else "84798479Aa!"
+        
         if x_admin_pass != stored_pass:
             logger.warning(f"Verify Admin: Failed. Provided: '{x_admin_pass}' vs Stored: '{stored_pass}'")
             raise HTTPException(status_code=401, detail="Invalid Admin Password")
@@ -216,35 +119,6 @@ async def read_privacy(request: Request):
 @app.get("/admin", response_class=HTMLResponse)
 async def read_admin(request: Request):
     return templates.TemplateResponse("admin.html", {"request": request})
-
-@app.post("/api/heartbeat")
-async def heartbeat(background_tasks: BackgroundTasks):
-    """
-    Heartbeat endpoint called by GitHub Actions to trigger scraper checks.
-    """
-    scheduler = SchedulerLogic()
-    await scheduler.run_heartbeat(background_tasks)
-    return {"status": "ok", "timestamp": datetime.utcnow().isoformat()}
-
-@app.get("/sitemap.xml", response_class=HTMLResponse)
-async def get_sitemap():
-    base_url = "https://wildfares.com"
-    pages = ["", "features", "terms", "privacy"]
-    
-    xml = '<?xml version="1.0" encoding="UTF-8"?>\n'
-    xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
-    
-    for p in pages:
-        path = f"/{p}" if p else "/"
-        priority = "1.0" if not p else "0.8"
-        xml += f"""  <url>
-    <loc>{base_url}{path}</loc>
-    <changefreq>weekly</changefreq>
-    <priority>{priority}</priority>
-  </url>\n"""
-    
-    xml += '</urlset>'
-    return HTMLResponse(content=xml, media_type="application/xml")
 
 # API Routes
 
@@ -380,18 +254,13 @@ async def get_locations(db: AsyncSession = Depends(get_db)):
     try:
         res = await db.execute(select(Airport).order_by(Airport.city_name))
         airports = res.scalars().all()
-        
-        # Build map for is_international
-        intl_codes = {a['code'] for a in AIRPORTS_LIST if a.get('is_international')}
-        
         # Include City for grouping and Timezone for date logic
         return [
             {
                 "code": a.code,
                 "name": f"{a.city_name} [{a.code}]" if a.city_name else a.code,
                 "city": a.city_name,
-                "timezone": a.timezone,
-                "is_international": a.code in intl_codes
+                "timezone": a.timezone
             }
             for a in airports
         ]
@@ -566,67 +435,12 @@ async def get_uptime():
 @app.get("/api/public_config")
 async def get_public_config(db: AsyncSession = Depends(get_db)):
     res = await db.execute(select(SystemSetting).where(
-        or_(
-            SystemSetting.key == "announcement_enabled", 
-            SystemSetting.key == "announcement_html",
-            SystemSetting.key == "blackout_dates",
-            SystemSetting.key == "blackout_dates_enabled"
-        )
+        or_(SystemSetting.key == "announcement_enabled", SystemSetting.key == "announcement_html")
     ))
     settings = {s.key: s.value for s in res.scalars().all()}
     return settings
 
 # Admin API
-@app.post("/api/admin/login")
-async def admin_login(request: Request, db: AsyncSession = Depends(get_db)):
-    """Admin login endpoint - returns JWT token"""
-    data = await request.json()
-    password = data.get("password")
-
-    if not password:
-        raise HTTPException(status_code=400, detail="Password required")
-
-    try:
-        res = await db.execute(select(SystemSetting).where(SystemSetting.key == "admin_password"))
-        setting = res.scalar_one_or_none()
-        stored_pass = setting.value if setting else os.environ.get("ADMIN_PASSWORD")
-
-        if not stored_pass:
-            raise HTTPException(status_code=403, detail="Admin access not configured")
-
-        if password != stored_pass:
-            raise HTTPException(status_code=401, detail="Invalid password")
-
-        # Generate JWT token
-        token = create_access_token({"admin": True})
-        return {"token": token, "expires_in_days": JWT_EXPIRATION_DAYS}
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Login error: {e}")
-        raise HTTPException(status_code=500, detail="Login failed")
-
-@app.get("/api/admin/scraper_runs", dependencies=[Depends(verify_admin)])
-async def get_scraper_runs(db: AsyncSession = Depends(get_db)):
-    """Get last 20 scraper runs"""
-    stmt = select(ScraperRun).order_by(ScraperRun.started_at.desc()).limit(20)
-    res = await db.execute(stmt)
-    runs = res.scalars().all()
-
-    return [{
-        "id": run.id,
-        "started_at": run.started_at.isoformat() if run.started_at else None,
-        "completed_at": run.completed_at.isoformat() if run.completed_at else None,
-        "duration_seconds": run.duration_seconds,
-        "status": run.status,
-        "total_routes": run.total_routes,
-        "routes_scraped": run.routes_scraped,
-        "routes_skipped": run.routes_skipped,
-        "routes_failed": run.routes_failed,
-        "error_message": run.error_message
-    } for run in runs]
-
 @app.get("/api/settings", dependencies=[Depends(verify_admin)])
 async def get_settings(db: AsyncSession = Depends(get_db)):
     res = await db.execute(select(SystemSetting))
@@ -703,8 +517,6 @@ async def get_proxies(db: AsyncSession = Depends(get_db)):
 async def add_proxies(request: Request, background_tasks: BackgroundTasks, db: AsyncSession = Depends(get_db)):
     data = await request.json()
     raw_proxies = data.get("proxies", "").splitlines()
-    new_ids = []
-    
     for p in raw_proxies:
         p = p.strip()
         if not p: continue
@@ -717,40 +529,24 @@ async def add_proxies(request: Request, background_tasks: BackgroundTasks, db: A
             parts = p.split("://")
             if len(parts) == 2: proto, url_body = parts
             else: proto, url_body = "http", parts[0]
-            
-        # Check existing
         res = await db.execute(select(Proxy).where(Proxy.url == url_body))
         if not res.scalar_one_or_none():
-            proxy_obj = Proxy(url=url_body, protocol=proto, is_active=False)
-            db.add(proxy_obj)
-            await db.flush() # Populate ID
-            new_ids.append(proxy_obj.id)
-            
+            db.add(Proxy(url=url_body, protocol=proto, is_active=False))
     await db.commit()
-    
-    if new_ids:
-        background_tasks.add_task(check_proxies_task, new_ids)
-        
-    return {"status": "added", "count": len(new_ids)}
+    background_tasks.add_task(check_all_proxies)
+    return {"status": "added"}
 
-@app.post("/api/proxies/recheck", dependencies=[Depends(verify_admin)])
-async def recheck_proxies(background_tasks: BackgroundTasks):
-    background_tasks.add_task(check_proxies_task)
-    return {"status": "queued"}
-
-async def check_proxies_task(target_ids: List[int] = None):
-    # 1. Get IDs
+async def check_all_proxies():
+    # 1. Get all IDs first
     async with AsyncSession(engine) as db:
-        stmt = select(Proxy.id, Proxy.url, Proxy.protocol)
-        if target_ids:
-            stmt = stmt.where(Proxy.id.in_(target_ids))
-        res = await db.execute(stmt)
-        proxies_data = res.all()
+        res = await db.execute(select(Proxy.id, Proxy.url, Proxy.protocol))
+        proxies_data = res.all() # List of tuples: (id, url, protocol)
 
-    # 2. Define worker
-    async def check_single(pid, url, protocol):
+    # 2. Iterate and update individually
+    for pid, url, protocol in proxies_data:
         try:
             is_valid = await verify_proxy(url, protocol)
+            
             async with AsyncSession(engine) as db:
                 stmt = select(Proxy).where(Proxy.id == pid)
                 res = await db.execute(stmt)
@@ -761,11 +557,6 @@ async def check_proxies_task(target_ids: List[int] = None):
                     await db.commit()
         except Exception as e:
             logger.error(f"Error checking proxy {pid}: {e}")
-
-    # 3. Run
-    if proxies_data:
-        logger.info(f"Checking {len(proxies_data)} proxies...")
-        await asyncio.gather(*[check_single(p.id, p.url, p.protocol) for p in proxies_data])
 
 @app.delete("/api/proxies/{proxy_id}", dependencies=[Depends(verify_admin)])
 async def delete_proxy(proxy_id: int, db: AsyncSession = Depends(get_db)):
@@ -794,51 +585,20 @@ async def validate_routes_task(job_id: str):
         res = await session.execute(select(RoutePair.id, RoutePair.origin, RoutePair.destination))
         routes_data = res.all()
 
-        # Ensure all airports exist before we start validation logic
-        res_airports = await session.execute(select(Airport.code))
-        existing_codes = {r for r in res_airports.scalars().all()}
-        
-        missing_airports = []
-        for r in routes_data:
-            if r.origin not in existing_codes: missing_airports.append(r.origin)
-            if r.destination not in existing_codes: missing_airports.append(r.destination)
-        
-        if missing_airports:
-            # Filter duplicates
-            missing_airports = list(set(missing_airports))
-            to_insert = []
-            for code in missing_airports:
-                # Find in static list
-                found = next((a for a in AIRPORTS_LIST if a["code"] == code), None)
-                if found:
-                    to_insert.append({
-                         "code": found["code"], 
-                         "city_name": found["city"],
-                         "timezone": found.get("timezone", "UTC"),
-                         "latitude": found.get("lat"),
-                         "longitude": found.get("lon")
-                     })
-            
-            if to_insert:
-                from sqlalchemy import insert
-                await session.execute(insert(Airport).values(to_insert))
-                await session.commit()
-                logger.info(f"Seeded {len(to_insert)} missing airports during validation.")
-
     total = len(routes_data)
     if total == 0:
         JOBS[job_id]["status"] = "completed"
         JOBS[job_id]["message"] = "No routes to validate."
         return
 
-    # Prepare
-    intl_codes = {a['code'] for a in AIRPORTS_LIST if a.get('is_international')}
-    today_utc = datetime.utcnow()
+    today = datetime.utcnow().strftime("%Y-%m-%d")
+    tomorrow = (datetime.utcnow() + timedelta(days=1)).strftime("%Y-%m-%d")
     
     engine = ScraperEngine()
     async with SessionLocal() as tmp_session:
         sem = await engine.get_semaphore(tmp_session)
 
+    # Progress tracking
     completed_count = 0
     active_count = 0
     bad_count = 0
@@ -848,65 +608,55 @@ async def validate_routes_task(job_id: str):
         try:
             async with sem:
                 async with SessionLocal() as session:
-                    # Determine Window
-                    is_intl = origin in intl_codes or destination in intl_codes
-                    days_to_check = 11 if is_intl else 3
+                    # Perform search (network intensive)
+                    res = await engine.perform_search(origin, destination, today, session, force_refresh=True)
                     
-                    found_valid_flight = False
-                    
-                    for i in range(days_to_check):
-                        date_str = (today_utc + timedelta(days=i)).strftime("%Y-%m-%d")
-                        res = await engine.perform_search(origin, destination, date_str, session, force_refresh=True)
-                        
-                        # If no error, assume valid route exists (even if 0 flights, route is technically valid in system)
-                        # But usually we want to see if *any* flights appear over X days to confirm it's active
-                        # Frontier returns empty list if valid route but no inventory.
-                        # Returns error if route is invalid.
-                        
-                        if isinstance(res, dict) and "error" in res:
-                            # If 400/404/500, likely invalid route or blocked.
-                            # We count as "failure" for this day.
-                            pass 
+                    is_valid = True
+                    if isinstance(res, dict) and "error" in res:
+                        err_msg = res["error"]
+                        # Treat 400, 403, 404, 500 as potentially invalid or retryable
+                        # 400 often means 'Route invalid' or 'No flights' for this date
+                        if any(x in err_msg for x in ["400", "403", "404", "500"]):
+                            # Retry with tomorrow's date to be sure
+                            res2 = await engine.perform_search(origin, destination, tomorrow, session, force_refresh=True)
+                            if isinstance(res2, dict) and "error" in res2:
+                                is_valid = False # Both failed -> Invalid
+                            else:
+                                is_valid = True # Tomorrow worked -> Valid
                         else:
-                            # Success! Route exists.
-                            found_valid_flight = True
-                            break # Found one valid day, so route is valid
+                            # Other errors (timeouts, etc) might be temporary, but let's default to Valid to be safe
+                            # Or maybe Invalid? Let's keep Valid for now unless explicit error.
+                            is_valid = True
                     
-                    # Update DB
+                    # Update DB (short lived)
                     stmt = select(RoutePair).where(RoutePair.id == rid)
                     r_res = await session.execute(stmt)
                     route = r_res.scalar_one_or_none()
-                    
                     if route:
-                        route.is_active = found_valid_flight
-                        if not found_valid_flight:
+                        route.is_active = is_valid
+                        if not is_valid:
                             route.error_count += 1
                             bad_count += 1
                         else:
                             route.error_count = 0
                             active_count += 1
                         await session.commit()
-                        
         except Exception as e:
             logger.error(f"Validation failed for route {rid}: {e}")
-            bad_count += 1
+            bad_count += 1 # Assume bad if exception? or just skip counting? Let's count as bad.
         finally:
             completed_count += 1
+            # Update shared job state occasionally or always
             progress = int((completed_count / total) * 100)
             JOBS[job_id]["progress"] = progress
             JOBS[job_id]["message"] = f"Validated {completed_count}/{total} (Active: {active_count}, Bad: {bad_count})"
 
     # Launch all tasks
-    logger.info(f"Validating {total} routes with concurrency...")
     tasks = [validate_single(rid, origin, destination) for rid, origin, destination in routes_data]
     await asyncio.gather(*tasks)
 
     JOBS[job_id]["status"] = "completed"
-    JOBS[job_id]["message"] = f"Validation complete. Active: {active_count}, Bad: {bad_count}"
-    
-    # Chain Weather Update
-    logger.info("Triggering chained weather update...")
-    await update_weather_task()
+    JOBS[job_id]["message"] = f"Validation complete. Active: {active_count}, Bad: {bad_count}, Total: {total}"
 
 async def run_full_cache_task(job_id: str, scope: str):
     JOBS[job_id] = {"status": "running", "progress": 0, "message": "Starting full cache..."}
@@ -980,7 +730,7 @@ async def force_cache(request: Request, background_tasks: BackgroundTasks):
 async def scrape_frontier_routes(db: AsyncSession):
     url = "https://flights.flyfrontier.com/en/sitemap/city-to-city-flights/page-1"
     try:
-        async with httpx.AsyncClient(verify=True, timeout=30.0) as client:
+        async with httpx.AsyncClient(verify=False, timeout=30.0) as client:
             resp = await client.get(url)
             content = resp.text
             start_marker = '<script id="__NEXT_DATA__" type="application/json">'
@@ -1022,62 +772,41 @@ async def scrape_frontier_routes(db: AsyncSession):
 async def update_weather_task():
     logger.info("Updating Weather Data...")
     async with SessionLocal() as session:
-        # Clear old data first
-        logger.info("Clearing old weather table...")
-        await session.execute(delete(WeatherData))
-        await session.commit()
-
         async with httpx.AsyncClient() as client:
-            # Process in chunks to avoid hitting API rate limits but faster than sequential
-            chunk_size = 10
-            for i in range(0, len(AIRPORTS_LIST), chunk_size):
-                chunk = AIRPORTS_LIST[i:i + chunk_size]
-                tasks = []
-                for entry in chunk:
-                    code = entry["code"]
-                    lat = entry.get("lat")
-                    lon = entry.get("lon")
-                    if not lat or not lon: continue
-                    
-                    url = f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&daily=weathercode,temperature_2m_max&timezone=auto&forecast_days=16"
-                    tasks.append(client.get(url))
+            for idx, entry in enumerate(AIRPORTS_LIST):
+                code = entry["code"]
+                lat = entry.get("lat")
+                lon = entry.get("lon")
                 
-                # Execute chunk
-                responses = await asyncio.gather(*tasks, return_exceptions=True)
+                if not lat or not lon: continue
                 
-                for j, resp in enumerate(responses):
-                    if isinstance(resp, Exception):
-                        logger.error(f"Weather fetch error: {resp}")
-                        continue
-                        
+                try:
+                    url = f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&daily=weathercode,temperature_2m_max&timezone=auto"
+                    resp = await client.get(url, timeout=10.0)
                     if resp.status_code == 200:
                         data = resp.json()
                         daily = data.get("daily", {})
+                        
                         times = daily.get("time", [])
                         codes = daily.get("weathercode", [])
                         temps = daily.get("temperature_2m_max", [])
                         
-                        entry = chunk[j]
-                        code = entry["code"]
-                        
-                        for k, date_str in enumerate(times):
-                            # Upsert logic
+                        for i, date_str in enumerate(times):
                             stmt = select(WeatherData).where(WeatherData.airport_code == code, WeatherData.date == date_str)
                             res = await session.execute(stmt)
                             wd = res.scalar_one_or_none()
                             
                             if not wd:
-                                wd = WeatherData(airport_code=code, date=date_str, condition_code=codes[k], temp_high=temps[k])
+                                wd = WeatherData(airport_code=code, date=date_str, condition_code=codes[i], temp_high=temps[i])
                                 session.add(wd)
                             else:
-                                wd.condition_code = codes[k]
-                                wd.temp_high = temps[k]
+                                wd.condition_code = codes[i]
+                                wd.temp_high = temps[i]
                                 wd.updated_at = datetime.utcnow()
-                
-                await session.commit()
-                # Rate limit niceness
-                await asyncio.sleep(0.5)
-                
+                        
+                        await session.commit()
+                except Exception as e:
+                    logger.error(f"Weather update failed for {code}: {e}")
     logger.info("Weather Update Completed")
 
 @app.post("/api/update_routes", dependencies=[Depends(verify_admin)])
@@ -1109,9 +838,12 @@ async def run_manual_scrape_task(job_id: str):
             JOBS[job_id]["message"] = "No active routes found."
             return
 
-        # Identify International Airports
-        intl_codes = {a['code'] for a in AIRPORTS_LIST if a.get('is_international')}
-
+        today = datetime.utcnow().strftime("%Y-%m-%d")
+        tomorrow = (datetime.utcnow() + timedelta(days=1)).strftime("%Y-%m-%d")
+        dates_to_scrape = [today, tomorrow]
+        
+        total_tasks = len(routes_data) * len(dates_to_scrape)
+        
         engine = ScraperEngine()
         async with SessionLocal() as tmp_session:
             sem = await engine.get_semaphore(tmp_session)
@@ -1129,27 +861,14 @@ async def run_manual_scrape_task(job_id: str):
                 logger.error(f"Manual scrape failed for {origin}->{destination} on {date}: {e}")
             finally:
                 completed_count += 1
-                if total_tasks > 0:
-                    progress = int((completed_count / total_tasks) * 100)
-                    JOBS[job_id]["progress"] = progress
-                    JOBS[job_id]["message"] = f"Scraped {completed_count}/{total_tasks}"
+                progress = int((completed_count / total_tasks) * 100)
+                JOBS[job_id]["progress"] = progress
+                JOBS[job_id]["message"] = f"Scraped {completed_count}/{total_tasks}"
 
-        # Build Task List with Dynamic Windows
         tasks = []
-        # Use US/Pacific time as reference to ensure we cover "today" for all US zones
-        now_ref = datetime.now(pytz.timezone('America/Los_Angeles'))
-        
         for origin, destination in routes_data:
-            # Determine window size
-            window = 2 # Default: Today + Tomorrow
-            if origin in intl_codes or destination in intl_codes:
-                window = 10 # Extended for Intl
-            
-            for i in range(window):
-                date_str = (now_ref + timedelta(days=i)).strftime("%Y-%m-%d")
-                tasks.append(scrape_single(origin, destination, date_str))
-        
-        total_tasks = len(tasks)
+            for date in dates_to_scrape:
+                tasks.append(scrape_single(origin, destination, date))
         
         await asyncio.gather(*tasks)
         
@@ -1172,21 +891,6 @@ async def run_manual_scrape_task(job_id: str):
         JOBS[job_id]["status"] = "failed"
         JOBS[job_id]["message"] = str(e)
 
-@app.post("/api/admin/scrape_route", dependencies=[Depends(verify_admin)])
-async def admin_scrape_route(request: Request, db: AsyncSession = Depends(get_db)):
-    data = await request.json()
-    origin = data.get("origin")
-    destination = data.get("destination")
-    date = data.get("date")
-    
-    if not origin or not destination or not date:
-        raise HTTPException(status_code=400, detail="Missing origin, destination, or date")
-
-    engine = ScraperEngine()
-    # Force refresh ensures we actually hit the airline API
-    result = await engine.perform_search(origin.upper(), destination.upper(), date, db, force_refresh=True)
-    return result
-
 @app.post("/api/admin/run_scraper", dependencies=[Depends(verify_admin)])
 async def trigger_auto_scraper(background_tasks: BackgroundTasks):
     job_id = str(uuid.uuid4())
@@ -1201,34 +905,6 @@ async def get_cache_stats(db: AsyncSession = Depends(get_db)):
     res = await db.execute(select(func.count()).select_from(FlightCache))
     count = res.scalar_one()
     return {"total_flights": count}
-
-@app.get("/api/admin/routes_list", dependencies=[Depends(verify_admin)])
-async def get_admin_routes(db: AsyncSession = Depends(get_db)):
-    res = await db.execute(select(RoutePair).order_by(RoutePair.origin, RoutePair.destination))
-    routes = res.scalars().all()
-    return [{
-        "id": r.id,
-        "origin": r.origin,
-        "destination": r.destination,
-        "is_active": r.is_active,
-        "error_count": r.error_count,
-        "last_validated": r.last_validated.isoformat() if r.last_validated else None
-    } for r in routes]
-
-@app.post("/api/admin/routes/{route_id}/toggle", dependencies=[Depends(verify_admin)])
-async def toggle_route(route_id: int, db: AsyncSession = Depends(get_db)):
-    res = await db.execute(select(RoutePair).where(RoutePair.id == route_id))
-    route = res.scalar_one_or_none()
-    if not route:
-        raise HTTPException(status_code=404, detail="Route not found")
-    
-    route.is_active = not route.is_active
-    # Reset errors if re-enabling
-    if route.is_active:
-        route.error_count = 0
-        
-    await db.commit()
-    return {"status": "ok", "is_active": route.is_active}
 
 @app.get("/api/admin/cached_routes", dependencies=[Depends(verify_admin)])
 async def get_cached_routes(db: AsyncSession = Depends(get_db)):
@@ -1300,40 +976,3 @@ async def delete_weather_data_date(date_str: str, db: AsyncSession = Depends(get
     await db.execute(delete(WeatherData).where(WeatherData.date == date_str))
     await db.commit()
     return {"status": "deleted"}
-
-@app.get("/api/admin/seat_inventory", dependencies=[Depends(verify_admin)])
-async def get_seat_inventory(db: AsyncSession = Depends(get_db)):
-    # Fetch all cache entries
-    stmt = select(FlightCache)
-    res = await db.execute(stmt)
-    entries = res.scalars().all()
-    
-    inventory = []
-    
-    for e in entries:
-        flights = decompress_data(e.data)
-        if not flights: continue
-        
-        for f in flights:
-            flight_num = "Unknown"
-            if f.get("segments"):
-                flight_num = f["segments"][0].get("flightNumber", "Unknown")
-            
-            # Handle timestamp
-            updated_ts = e.created_at
-            if updated_ts and updated_ts.tzinfo is None:
-                updated_ts = pytz.UTC.localize(updated_ts)
-
-            inventory.append({
-                "date": e.travel_date,
-                "origin": e.origin,
-                "destination": e.destination,
-                "flight": flight_num,
-                "seats": f.get("seats_available") or 0,
-                "price": f.get("price", 0),
-                "updated": updated_ts.isoformat() if updated_ts else None
-            })
-            
-    # Sort by date, then origin
-    inventory.sort(key=lambda x: (x["date"], x["origin"]))
-    return inventory

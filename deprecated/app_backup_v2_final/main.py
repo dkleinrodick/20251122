@@ -30,13 +30,6 @@ from app.compression import decompress_data
 import jwt
 import os
 
-from app.auth import fastapi_users, current_active_user, get_user_manager, auth_backend, User
-from app.schemas import UserRead, UserCreate, UserUpdate
-from app.jobs import AutoScraper, MidnightScraper, ThreeWeekScraper
-from app.route_scraper import RouteScraper
-from app.weather_scraper import WeatherScraper
-from app.scheduler_logic import SchedulerLogic
-
 # Setup logging
 logging.basicConfig(
     level=logging.INFO,
@@ -73,33 +66,6 @@ def verify_token(token: str) -> Optional[dict]:
         return None
 
 app = FastAPI(title="WildFares")
-
-# Mount FastAPI Users authentication and management routers
-app.include_router(
-    fastapi_users.get_auth_router(auth_backend),
-    prefix="/auth/jwt",
-    tags=["auth"],
-)
-app.include_router(
-    fastapi_users.get_register_router(UserRead, UserCreate),
-    prefix="/auth",
-    tags=["auth"],
-)
-app.include_router(
-    fastapi_users.get_verify_router(UserRead),
-    prefix="/auth",
-    tags=["auth"],
-)
-app.include_router(
-    fastapi_users.get_reset_password_router(),
-    prefix="/auth",
-    tags=["auth"],
-)
-app.include_router(
-    fastapi_users.get_users_router(UserRead, UserUpdate),
-    prefix="/users",
-    tags=["users"],
-)
 
 # Static files disabled for serverless - use CDN or public folder instead
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
@@ -201,6 +167,14 @@ async def verify_admin(
 async def read_root(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
 
+@app.get("/v2")
+async def redirect_v2():
+    return RedirectResponse(url="/")
+
+@app.get("/v3", response_class=HTMLResponse)
+async def read_v3(request: Request):
+    return templates.TemplateResponse("index_v3.html", {"request": request})
+
 @app.get("/features", response_class=HTMLResponse)
 async def read_features(request: Request):
     return templates.TemplateResponse("marketing.html", {"request": request})
@@ -216,15 +190,6 @@ async def read_privacy(request: Request):
 @app.get("/admin", response_class=HTMLResponse)
 async def read_admin(request: Request):
     return templates.TemplateResponse("admin.html", {"request": request})
-
-@app.post("/api/heartbeat")
-async def heartbeat(background_tasks: BackgroundTasks):
-    """
-    Heartbeat endpoint called by GitHub Actions to trigger scraper checks.
-    """
-    scheduler = SchedulerLogic()
-    await scheduler.run_heartbeat(background_tasks)
-    return {"status": "ok", "timestamp": datetime.utcnow().isoformat()}
 
 @app.get("/sitemap.xml", response_class=HTMLResponse)
 async def get_sitemap():
