@@ -1511,6 +1511,35 @@ async def get_fare_snapshots(
         } if snap.min_price_gowild else None
     } for snap in snapshots]
 
+@app.post("/api/admin/snapshots/{snap_id}/redo", dependencies=[Depends(verify_admin)])
+async def redo_snapshot(snap_id: int, db: AsyncSession = Depends(get_db)):
+    """Redo a snapshot: Delete it and immediately re-scrape in 3week mode"""
+    # 1. Get Snapshot
+    stmt = select(FareSnapshot).where(FareSnapshot.id == snap_id)
+    res = await db.execute(stmt)
+    snap = res.scalar_one_or_none()
+    
+    if not snap:
+        raise HTTPException(status_code=404, detail="Snapshot not found")
+    
+    origin = snap.origin
+    dest = snap.destination
+    date = snap.travel_date
+    
+    # 2. Delete
+    await db.delete(snap)
+    await db.commit()
+    
+    # 3. Re-Scrape
+    engine = ScraperEngine()
+    # Mode='3week' ensures it saves a new FareSnapshot
+    result = await engine.perform_search(origin, dest, date, db, force_refresh=True, mode="3week")
+    
+    if isinstance(result, dict) and "error" in result:
+        raise HTTPException(status_code=500, detail=result["error"])
+        
+    return {"status": "redone", "origin": origin, "destination": dest, "date": date}
+
 @app.get("/api/admin/grouped_snapshots", dependencies=[Depends(verify_admin)])
 async def get_grouped_snapshots(db: AsyncSession = Depends(get_db)):
     """Get fare snapshots grouped by date -> origin -> destination for explorer view"""

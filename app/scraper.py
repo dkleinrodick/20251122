@@ -310,21 +310,47 @@ class AsyncScraperEngine:
                         # But capturing all data is better. Let's just do it if the table exists.
                         # "Output: Writes to two separate database tables." -> Implies always?
                         # Let's restrict to '3week' or explicit flag to avoid DB bloat from frequent AutoScraper runs.
-                        
+
                         if mode == '3week':
-                            # Extract summary metrics
+                            # Extract summary metrics for ALL fare types
+                            lowest_standard = None
+                            seats_standard = None
+                            lowest_den = None
+                            seats_den = None
                             lowest_gowild = None
                             seats_gowild = None
+
                             for f in flights:
+                                # Standard fare
+                                if 'standard' in f['fares']:
+                                    p = f['fares']['standard']['price']
+                                    s = f['fares']['standard']['seats']
+                                    if lowest_standard is None or (p is not None and p < lowest_standard):
+                                        lowest_standard = p
+                                        seats_standard = s
+
+                                # Den discount fare
+                                if 'den' in f['fares']:
+                                    p = f['fares']['den']['price']
+                                    s = f['fares']['den']['seats']
+                                    if lowest_den is None or (p is not None and p < lowest_den):
+                                        lowest_den = p
+                                        seats_den = s
+
+                                # GoWild fare
                                 if 'gowild' in f['fares']:
                                     p = f['fares']['gowild']['price']
                                     s = f['fares']['gowild']['seats']
                                     if lowest_gowild is None or (p is not None and p < lowest_gowild):
                                         lowest_gowild = p
-                                        seats_gowild = s # Take seats of cheapest flight
-                            
+                                        seats_gowild = s
+
                             db.add(FareSnapshot(
                                 origin=origin, destination=dest, travel_date=date_str,
+                                min_price_standard=lowest_standard,
+                                seats_standard=seats_standard,
+                                min_price_den=lowest_den,
+                                seats_den=seats_den,
                                 min_price_gowild=lowest_gowild,
                                 seats_gowild=seats_gowild,
                                 data=compress_data(flights) # Full blob
@@ -483,7 +509,7 @@ class ScraperEngine:
         limit = await engine._get_setting("scraper_worker_count", 20, int)
         return asyncio.Semaphore(limit)
 
-    async def perform_search(self, origin, dest, date, session: AsyncSession, force_refresh=False):
+    async def perform_search(self, origin, dest, date, session: AsyncSession, force_refresh=False, mode="ondemand"):
         # 1. Check cache if not forced
         if not force_refresh:
             stmt = select(FlightCache).where(
@@ -501,7 +527,7 @@ class ScraperEngine:
         # Note: process_queue handles settings loading
         
         task = {"origin": origin, "destination": dest, "date": date}
-        results = await engine.process_queue([task], mode="ondemand")
+        results = await engine.process_queue([task], mode=mode)
         
         if results["errors"] > 0:
              # Return error details from the first error

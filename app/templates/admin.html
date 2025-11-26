@@ -609,6 +609,7 @@
                                                 <th class="px-6 py-3 text-center">Standard</th>
                                                 <th class="px-6 py-3 text-center">Discount Den</th>
                                                 <th class="px-6 py-3 text-center">GoWild!</th>
+                                                <th class="px-6 py-3 text-right">Actions</th>
                                             </tr>
                                         </thead>
                                         <tbody class="divide-y divide-surface-100 text-xs">
@@ -637,6 +638,11 @@
                                                         <span class="text-[10px] text-surface-300 ml-1">({{ s.gowild.seats }} seats)</span>
                                                     </div>
                                                     <span v-else class="text-surface-400">-</span>
+                                                </td>
+                                                <td class="px-6 py-3 text-right">
+                                                    <button v-if="isToday(s.scraped_at)" @click="redoSnapshot(s.id)" class="px-2 py-1 bg-surface-200 hover:bg-brand-600 hover:text-white text-surface-900 rounded text-[10px] font-bold transition" title="Delete & Rescrape">
+                                                        <i class="ph-bold ph-arrows-clockwise"></i> Redo
+                                                    </button>
                                                 </td>
                                             </tr>
                                         </tbody>
@@ -1117,6 +1123,15 @@
                     } catch(e) { console.error(e); }
                 };
 
+                const redoSnapshot = async (id) => {
+                    if(!confirm("Redo this snapshot? It will be deleted and re-scraped.")) return;
+                    try {
+                        await axios.post(`/api/admin/snapshots/${id}/redo`, {}, { headers: getHeaders() });
+                        // Refresh list
+                        await inspectSnapshots(snapshotQuery.value.date, snapshotQuery.value.origin, snapshotQuery.value.destination);
+                    } catch(e) { alert("Failed to redo snapshot: " + (e.response?.data?.detail || e.message)); }
+                };
+
                 const openExplorer = async () => {
                     try {
                         const [f, w, s] = await Promise.all([
@@ -1233,7 +1248,7 @@
                     flightDetails, lookupQuery,
                     routeJob, manualScrape,
                     explorerMode, explorerData, expanded,
-                    selectedSnapshots, snapshotQuery, inspectSnapshots,
+                    selectedSnapshots, snapshotQuery, inspectSnapshots, redoSnapshot,
                     allRoutes, isLoadingRoutes, sortedRoutes, routeSort,
                     fetchData, fetchScraperRuns, fetchHeartbeats, fetchFlightDetails, fetchRoutes,
                     triggerScraper, runManualScrape, updateRoutes, clearCache, rebootBackend,
@@ -1263,6 +1278,14 @@
                             }
                         }
                         return max;
+                    },
+                    isToday: (iso) => {
+                        if (!iso) return false;
+                        const d = new Date(iso);
+                        const today = new Date();
+                        return d.getDate() === today.getDate() &&
+                               d.getMonth() === today.getMonth() &&
+                               d.getFullYear() === today.getFullYear();
                     }
                 };
             }
