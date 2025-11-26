@@ -458,7 +458,7 @@
                             </div>
                         </div>
 
-                        <!-- 2. RAW CACHE VIEW -->
+                            <!-- 2. RAW CACHE VIEW -->
                         <div v-if="explorerMode === 'flights'" class="bg-surface-50 rounded-2xl border border-surface-100 overflow-hidden">
                             <div class="divide-y divide-surface-100">
                                 <div v-for="(origins, date) in explorerData.flights" :key="date">
@@ -475,10 +475,21 @@
                                                 <span class="text-brand-500 font-bold text-xs">{{ origin }}</span>
                                                 <span class="text-[10px] text-surface-200">{{ Object.keys(dests).length }} dests</span>
                                             </div>
-                                            <div class="space-y-1 max-h-32 overflow-y-auto no-scrollbar">
-                                                <div v-for="(d, dest) in dests" :key="dest" class="flex justify-between text-[10px] text-surface-200">
-                                                    <span>{{ dest }}</span>
-                                                    <span class="text-white font-mono">{{ d.count }}</span>
+                                            <div class="space-y-1 max-h-48 overflow-y-auto custom-scrollbar">
+                                                <div v-for="(d, dest) in dests" :key="dest" 
+                                                     @click="inspectRoute(date, origin, dest)"
+                                                     class="flex justify-between items-center text-[10px] text-surface-200 p-2 hover:bg-surface-200/10 rounded-lg cursor-pointer group transition">
+                                                    <div class="flex flex-col">
+                                                        <span class="font-bold text-surface-300 group-hover:text-white flex items-center gap-1">
+                                                            {{ dest }}
+                                                            <i class="ph-bold ph-arrow-right text-[8px] opacity-0 group-hover:opacity-100 text-brand-400 transition-opacity"></i>
+                                                        </span>
+                                                        <span class="text-[8px] text-surface-400" v-if="d.updated">{{ formatTimeAgo(d.updated) }} ago</span>
+                                                    </div>
+                                                    <div class="flex flex-col items-end">
+                                                        <span class="text-emerald-400 font-bold" v-if="d.min_price">${{ d.min_price }}</span>
+                                                        <span class="text-surface-400 font-mono text-[9px]">{{ d.count }} flts</span>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
@@ -964,6 +975,12 @@
                     finally { loadingData.value = false; }
                 };
 
+                const inspectRoute = (date, origin, dest) => {
+                    lookupQuery.value = { origin, destination: dest, date, hasSearched: true };
+                    explorerMode.value = 'lookup';
+                    fetchFlightDetails();
+                };
+
                 const openExplorer = async () => {
                     try {
                         const [f, w] = await Promise.all([
@@ -1083,7 +1100,15 @@
                     triggerScraper, runManualScrape, updateRoutes, clearCache, rebootBackend,
                     saveSettings, toggleRoute,
                     newProxies, addProxies, recheckProxies, deleteAllProxies, deleteProxy,
-                    formatSmartTime, formatDuration, toggleExpand, deleteDate
+                    formatSmartTime, formatDuration, toggleExpand, deleteDate,
+                    inspectRoute, formatTimeAgo: (iso) => {
+                        if (!iso) return '-';
+                        const sec = Math.floor((new Date() - new Date(iso)) / 1000);
+                        if (sec < 60) return sec + 's';
+                        if (sec < 3600) return Math.floor(sec/60) + 'm';
+                        if (sec < 86400) return Math.floor(sec/3600) + 'h';
+                        return Math.floor(sec/86400) + 'd';
+                    }
                 };
             }
         }).mount('#app');

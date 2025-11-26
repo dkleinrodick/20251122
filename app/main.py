@@ -20,7 +20,7 @@ import httpx
 import re
 
 from app.database import init_db, get_db, engine, Base, SessionLocal
-from app.models import SystemSetting, Proxy, FlightCache, RoutePair, Airport, WeatherData, ScraperRun
+from app.models import SystemSetting, Proxy, FlightCache, RoutePair, Airport, WeatherData, ScraperRun, HeartbeatLog, FareSnapshot
 from app.scraper import ScraperEngine, verify_proxy
 from app.airports_data import AIRPORT_MAPPING, AIRPORTS_LIST
 # Scheduler disabled
@@ -607,15 +607,41 @@ async def admin_login(request: Request, db: AsyncSession = Depends(get_db)):
         logger.error(f"Login error: {e}")
         raise HTTPException(status_code=500, detail="Login failed")
 
+@app.get("/api/admin/heartbeats", dependencies=[Depends(verify_admin)])
+async def get_heartbeats(limit: int = 20, db: AsyncSession = Depends(get_db)):
+    """Get recent heartbeat logs with triggered scrapers"""
+    stmt = select(HeartbeatLog).order_by(HeartbeatLog.timestamp.desc()).limit(limit)
+    res = await db.execute(stmt)
+    heartbeats = res.scalars().all()
+
+    return [{
+        "id": hb.id,
+        "timestamp": hb.timestamp.isoformat() if hb.timestamp else None,
+        "scrapers_triggered": hb.scrapers_triggered or [],
+        "duration_ms": hb.duration_ms
+    } for hb in heartbeats]
+
 @app.get("/api/admin/scraper_runs", dependencies=[Depends(verify_admin)])
-async def get_scraper_runs(db: AsyncSession = Depends(get_db)):
-    """Get last 20 scraper runs"""
-    stmt = select(ScraperRun).order_by(ScraperRun.started_at.desc()).limit(20)
+async def get_scraper_runs(
+    job_type: Optional[str] = None,
+    limit: int = 20,
+    db: AsyncSession = Depends(get_db)
+):
+    """Get scraper runs, optionally filtered by job type"""
+    stmt = select(ScraperRun).order_by(ScraperRun.started_at.desc())
+
+    if job_type:
+        stmt = stmt.where(ScraperRun.job_type == job_type)
+
+    stmt = stmt.limit(limit)
     res = await db.execute(stmt)
     runs = res.scalars().all()
 
     return [{
         "id": run.id,
+        "job_type": run.job_type,
+        "heartbeat_id": run.heartbeat_id,
+        "mode": run.mode,
         "started_at": run.started_at.isoformat() if run.started_at else None,
         "completed_at": run.completed_at.isoformat() if run.completed_at else None,
         "duration_seconds": run.duration_seconds,
@@ -624,7 +650,8 @@ async def get_scraper_runs(db: AsyncSession = Depends(get_db)):
         "routes_scraped": run.routes_scraped,
         "routes_skipped": run.routes_skipped,
         "routes_failed": run.routes_failed,
-        "error_message": run.error_message
+        "error_message": run.error_message,
+        "details": run.details
     } for run in runs]
 
 @app.get("/api/settings", dependencies=[Depends(verify_admin)])
@@ -1195,6 +1222,39 @@ async def trigger_auto_scraper(background_tasks: BackgroundTasks):
     background_tasks.add_task(run_manual_scrape_task, job_id)
     return {"status": "started", "job_id": job_id}
 
+@app.post("/api/admin/trigger_scraper", dependencies=[Depends(verify_admin)])
+async def trigger_specific_scraper(
+    request: Request,
+    background_tasks: BackgroundTasks
+):
+    """Manually trigger a specific scraper job"""
+    data = await request.json()
+    scraper_type = data.get("scraper_type")  # AutoScraper, MidnightScraper, 3WeekScraper, RouteScraper, WeatherScraper
+
+    if not scraper_type:
+        raise HTTPException(status_code=400, detail="scraper_type required")
+
+    # Map scraper types to job classes
+    scraper_map = {
+        "AutoScraper": AutoScraper,
+        "MidnightScraper": MidnightScraper,
+        "3WeekScraper": ThreeWeekScraper,
+        "RouteScraper": RouteScraper,
+        "WeatherScraper": WeatherScraper
+    }
+
+    if scraper_type not in scraper_map:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid scraper_type. Must be one of: {', '.join(scraper_map.keys())}"
+        )
+
+    job_class = scraper_map[scraper_type]
+    job = job_class()
+    background_tasks.add_task(job.run, heartbeat_id=None, mode="manual")
+
+    return {"status": "triggered", "scraper_type": scraper_type}
+
 @app.get("/api/admin/cache_stats", dependencies=[Depends(verify_admin)])
 async def get_cache_stats(db: AsyncSession = Depends(get_db)):
     # Count total rows in FlightCache
@@ -1252,6 +1312,18 @@ async def get_cached_routes(db: AsyncSession = Depends(get_db)):
         flights = decompress_data(e.data)
         flight_count = len(flights) if flights else 0
         
+        # Calculate min price for summary
+        min_price = None
+        if flights:
+            all_prices = []
+            for f in flights:
+                fares = f.get("fares", {})
+                for f_type in ["standard", "den", "gowild"]:
+                    if f_type in fares and fares[f_type].get("price") is not None:
+                        all_prices.append(fares[f_type]["price"])
+            if all_prices:
+                min_price = min(all_prices)
+        
         # Ensure UTC for frontend conversion
         ts = e.created_at
         if ts and ts.tzinfo is None:
@@ -1260,6 +1332,7 @@ async def get_cached_routes(db: AsyncSession = Depends(get_db)):
         # Return enriched object
         grouped[date][e.origin][e.destination] = {
             "count": flight_count,
+            "min_price": min_price,
             "updated": ts.isoformat() if ts else None
         }
         
@@ -1307,18 +1380,18 @@ async def get_seat_inventory(db: AsyncSession = Depends(get_db)):
     stmt = select(FlightCache)
     res = await db.execute(stmt)
     entries = res.scalars().all()
-    
+
     inventory = []
-    
+
     for e in entries:
         flights = decompress_data(e.data)
         if not flights: continue
-        
+
         for f in flights:
             flight_num = "Unknown"
             if f.get("segments"):
                 flight_num = f["segments"][0].get("flightNumber", "Unknown")
-            
+
             # Handle timestamp
             updated_ts = e.created_at
             if updated_ts and updated_ts.tzinfo is None:
@@ -1333,7 +1406,107 @@ async def get_seat_inventory(db: AsyncSession = Depends(get_db)):
                 "price": f.get("price", 0),
                 "updated": updated_ts.isoformat() if updated_ts else None
             })
-            
+
     # Sort by date, then origin
     inventory.sort(key=lambda x: (x["date"], x["origin"]))
     return inventory
+
+@app.get("/api/admin/flight_details", dependencies=[Depends(verify_admin)])
+async def get_flight_details(
+    origin: Optional[str] = None,
+    destination: Optional[str] = None,
+    date: Optional[str] = None,
+    db: AsyncSession = Depends(get_db)
+):
+    """Get detailed flight data with all fare types and seat counts"""
+    stmt = select(FlightCache)
+
+    if origin:
+        stmt = stmt.where(FlightCache.origin == origin.upper())
+    if destination:
+        stmt = stmt.where(FlightCache.destination == destination.upper())
+    if date:
+        stmt = stmt.where(FlightCache.travel_date == date)
+
+    res = await db.execute(stmt)
+    entries = res.scalars().all()
+
+    results = []
+    for e in entries:
+        flights = decompress_data(e.data)
+        if not flights: continue
+
+        # Handle timestamp
+        updated_ts = e.created_at
+        if updated_ts and updated_ts.tzinfo is None:
+            updated_ts = pytz.UTC.localize(updated_ts)
+
+        for f in flights:
+            # Extract fare details
+            fares = f.get("fares", {})
+            fare_details = {}
+
+            for fare_type in ["standard", "den", "gowild"]:
+                if fare_type in fares:
+                    fare_details[fare_type] = {
+                        "price": fares[fare_type].get("price"),
+                        "seats": fares[fare_type].get("seats")
+                    }
+
+            flight_info = {
+                "route": f"{e.origin}-{e.destination}",
+                "date": e.travel_date,
+                "departure": f.get("departure"),
+                "arrival": f.get("arrival"),
+                "duration": f.get("duration"),
+                "stops": f.get("stops", 0),
+                "fares": fare_details,
+                "segments": f.get("segments", []),
+                "layover_airports": f.get("layover_airports", []),
+                "has_long_layover": f.get("has_long_layover", False),
+                "last_scraped": updated_ts.isoformat() if updated_ts else None
+            }
+            results.append(flight_info)
+
+    return results
+
+@app.get("/api/admin/fare_snapshots", dependencies=[Depends(verify_admin)])
+async def get_fare_snapshots(
+    origin: Optional[str] = None,
+    destination: Optional[str] = None,
+    date: Optional[str] = None,
+    limit: int = 100,
+    db: AsyncSession = Depends(get_db)
+):
+    """Get fare snapshot history for analytics"""
+    stmt = select(FareSnapshot).order_by(FareSnapshot.scraped_at.desc())
+
+    if origin:
+        stmt = stmt.where(FareSnapshot.origin == origin.upper())
+    if destination:
+        stmt = stmt.where(FareSnapshot.destination == destination.upper())
+    if date:
+        stmt = stmt.where(FareSnapshot.travel_date == date)
+
+    stmt = stmt.limit(limit)
+    res = await db.execute(stmt)
+    snapshots = res.scalars().all()
+
+    return [{
+        "id": snap.id,
+        "route": f"{snap.origin}-{snap.destination}",
+        "travel_date": snap.travel_date,
+        "scraped_at": snap.scraped_at.isoformat() if snap.scraped_at else None,
+        "standard": {
+            "min_price": snap.min_price_standard,
+            "seats": snap.seats_standard
+        } if snap.min_price_standard else None,
+        "den": {
+            "min_price": snap.min_price_den,
+            "seats": snap.seats_den
+        } if snap.min_price_den else None,
+        "gowild": {
+            "min_price": snap.min_price_gowild,
+            "seats": snap.seats_gowild
+        } if snap.min_price_gowild else None
+    } for snap in snapshots]
