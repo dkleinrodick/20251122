@@ -339,8 +339,18 @@ class RouteScraper:
                                 break # Found a valid day, stop checking
                             except httpx.HTTPStatusError as http_err:
                                 if http_err.response.status_code == 400:
-                                    # 400 usually means route invalid OR date invalid for route.
-                                    pass
+                                    # Check if market is invalid to skip further dates
+                                    try:
+                                        err_data = http_err.response.json()
+                                        msg = err_data.get("message", "").lower()
+                                        if "does not exist" in msg:
+                                            # "The market X - Y does not exist"
+                                            logger.info(f"[INVALID MARKET] {origin}-{dest} - Stopping checks.")
+                                            result["status"] = "invalid"
+                                            break
+                                    except:
+                                        pass
+                                    logger.warning(f"[WARN] {origin}-{dest} ({http_err.response.status_code})")
                                 else:
                                     logger.warning(f"[WARN] {origin}-{dest} ({http_err.response.status_code})")
                             except Exception:
