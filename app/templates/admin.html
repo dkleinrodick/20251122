@@ -533,13 +533,55 @@
                             </div>
                         </div>
                         
-                        <!-- 4. FARE HISTORY (Placeholder for FareSnapshot) -->
-                        <div v-if="explorerMode === 'fare_history'" class="text-center py-12 text-surface-200">
-                             <div class="max-w-md mx-auto bg-surface-50 rounded-xl p-8 border border-surface-100">
-                                 <i class="ph-bold ph-chart-line text-4xl mb-4 text-surface-300"></i>
-                                 <h3 class="font-bold text-white mb-2">Fare History Analytics</h3>
-                                 <p class="text-xs text-surface-300">Historical pricing data is being collected. Visual charts coming in next update.</p>
-                             </div>
+                        <!-- 4. FARE HISTORY VIEW -->
+                        <div v-if="explorerMode === 'fare_history'" class="bg-surface-50 rounded-2xl border border-surface-100 overflow-hidden">
+                            <div class="divide-y divide-surface-100">
+                                <div v-for="(origins, date) in explorerData.snapshots" :key="date">
+                                    <div @click="toggleExpand(date)" class="px-6 py-4 hover:bg-surface-100 cursor-pointer flex justify-between items-center transition">
+                                        <div class="flex items-center gap-4">
+                                            <span class="font-mono font-bold text-white text-sm">{{ date }}</span>
+                                            <span class="text-[10px] text-surface-300 font-mono hidden sm:block" v-if="getLastUpdateForDate(origins)">
+                                                Updated {{ formatTimeAgo(getLastUpdateForDate(origins)) }} ago
+                                            </span>
+                                        </div>
+                                        <div class="flex items-center gap-4">
+                                            <span class="text-xs font-bold text-surface-200">{{ Object.keys(origins).length }} Origins</span>
+                                            <!-- Snapshots are permanent history, maybe don't allow delete from here easily -->
+                                        </div>
+                                    </div>
+                                    <div v-if="expanded[date]" class="bg-surface-900/50 p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 border-t border-surface-100">
+                                        <div v-for="(dests, origin) in origins" :key="origin" class="bg-surface-50 border border-surface-100 rounded-lg p-3">
+                                            <div class="flex justify-between items-center mb-2 border-b border-surface-100 pb-2">
+                                                <div>
+                                                    <span class="text-brand-500 font-bold text-xs">{{ origin }}</span>
+                                                    <span class="text-[8px] text-surface-400 ml-2" v-if="getLastUpdateForOrigin(dests)">
+                                                        {{ formatTimeAgo(getLastUpdateForOrigin(dests)) }} ago
+                                                    </span>
+                                                </div>
+                                                <span class="text-[10px] text-surface-200">{{ Object.keys(dests).length }} dests</span>
+                                            </div>
+                                            <div class="space-y-1 max-h-48 overflow-y-auto custom-scrollbar">
+                                                <div v-for="(d, dest) in dests" :key="dest" 
+                                                     class="flex justify-between items-center text-[10px] text-surface-200 p-2 hover:bg-surface-200/10 rounded-lg transition">
+                                                    <div class="flex flex-col">
+                                                        <span class="font-bold text-surface-300">{{ dest }}</span>
+                                                        <span class="text-[8px] text-surface-400" v-if="d.updated">
+                                                            {{ formatSmartTime(d.updated) }} ({{ formatTimeAgo(d.updated) }} ago)
+                                                        </span>
+                                                    </div>
+                                                    <div class="flex flex-col items-end">
+                                                        <span class="text-emerald-400 font-bold" v-if="d.latest_price">${{ d.latest_price }}</span>
+                                                        <span class="text-surface-400 font-mono text-[9px]">{{ d.count }} snaps</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div v-if="Object.keys(explorerData.snapshots).length === 0" class="p-8 text-center text-surface-200 text-xs">
+                                    No historical snapshots found.
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -804,7 +846,7 @@
 
                 // Explorer Data
                 const explorerMode = ref('lookup'); // lookup, flights, weather, fare_history
-                const explorerData = ref({ flights: {}, weather: {} });
+                const explorerData = ref({ flights: {}, weather: {}, snapshots: {} });
                 const expanded = ref({});
                 const lookupQuery = ref({ origin: '', destination: '', date: '', hasSearched: false });
                 const flightDetails = ref([]);
@@ -995,12 +1037,14 @@
 
                 const openExplorer = async () => {
                     try {
-                        const [f, w] = await Promise.all([
+                        const [f, w, s] = await Promise.all([
                             axios.get('/api/admin/cached_routes', { headers: getHeaders() }),
-                            axios.get('/api/admin/weather_data', { headers: getHeaders() })
+                            axios.get('/api/admin/weather_data', { headers: getHeaders() }),
+                            axios.get('/api/admin/grouped_snapshots', { headers: getHeaders() })
                         ]);
                         explorerData.value.flights = f.data;
                         explorerData.value.weather = w.data;
+                        explorerData.value.snapshots = s.data;
                     } catch(e){}
                 };
                 

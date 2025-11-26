@@ -1510,3 +1510,29 @@ async def get_fare_snapshots(
             "seats": snap.seats_gowild
         } if snap.min_price_gowild else None
     } for snap in snapshots]
+
+@app.get("/api/admin/grouped_snapshots", dependencies=[Depends(verify_admin)])
+async def get_grouped_snapshots(db: AsyncSession = Depends(get_db)):
+    """Get fare snapshots grouped by date -> origin -> destination for explorer view"""
+    stmt = select(FareSnapshot).order_by(FareSnapshot.scraped_at.desc())
+    res = await db.execute(stmt)
+    snapshots = res.scalars().all()
+    
+    grouped = {}
+    
+    for s in snapshots:
+        date = s.travel_date
+        if date not in grouped: grouped[date] = {}
+        if s.origin not in grouped[date]: grouped[date][s.origin] = {}
+        
+        if s.destination not in grouped[date][s.origin]:
+            # Initialize with this snapshot (since we sorted desc, first one is latest)
+            grouped[date][s.origin][s.destination] = {
+                "count": 0,
+                "latest_price": s.min_price_standard or s.min_price_den or s.min_price_gowild,
+                "updated": s.scraped_at.isoformat() if s.scraped_at else None
+            }
+            
+        grouped[date][s.origin][s.destination]["count"] += 1
+        
+    return grouped
