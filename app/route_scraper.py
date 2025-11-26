@@ -319,7 +319,7 @@ class RouteScraper:
                     result = {"id": route_id, "status": "invalid"} # Default to invalid until proven valid
                     
                     # Extended window to catch weekly flights (Tu/Th only etc)
-                    days_to_check = 14 if (origin in intl_codes or destination in intl_codes) else 7
+                    days_to_check = 14 if (origin in intl_codes or dest in intl_codes) else 7
                     
                     try:
                         await client.authenticate()
@@ -372,29 +372,43 @@ class RouteScraper:
                 valid_pct = int((validated_count / processed_count * 100)) if processed_count > 0 else 0
                 update_job(self.job_id, progress=pct_complete, message=f"Validating {processed_count}/{total} (Valid: {validated_count} - {valid_pct}%)")
                 
-                tasks = [check_route(r) for r in batch]
-                results = await asyncio.gather(*tasks)
-                
-                valid_ids = [r["id"] for r in results if r["status"] == "valid"]
-                invalid_ids = [r["id"] for r in results if r["status"] == "invalid"]
-                
-                if valid_ids:
-                    await session.execute(
-                        update(RoutePair)
-                        .where(RoutePair.id.in_(valid_ids))
-                        .values(is_active=True, last_validated=datetime.now(pytz.UTC), error_count=0)
-                    )
-                    validated_count += len(valid_ids)
-                
-                if invalid_ids:
-                    await session.execute(
-                        update(RoutePair)
-                        .where(RoutePair.id.in_(invalid_ids))
-                        .values(is_active=False, last_validated=datetime.now(pytz.UTC))
-                    )
+                try:
+                    tasks = [check_route(r) for r in batch]
+                    results = await asyncio.gather(*tasks, return_exceptions=True)
+                    
+                    valid_ids = []
+                    invalid_ids = []
+                    
+                    for res in results:
+                        if isinstance(res, Exception):
+                            logger.error(f"Batch worker exception: {res}")
+                            continue
+                        if res["status"] == "valid":
+                            valid_ids.append(res["id"])
+                        elif res["status"] == "invalid":
+                            invalid_ids.append(res["id"])
+                    
+                    if valid_ids:
+                        await session.execute(
+                            update(RoutePair)
+                            .where(RoutePair.id.in_(valid_ids))
+                            .values(is_active=True, last_validated=datetime.now(pytz.UTC), error_count=0)
+                        )
+                        validated_count += len(valid_ids)
+                    
+                    if invalid_ids:
+                        await session.execute(
+                            update(RoutePair)
+                            .where(RoutePair.id.in_(invalid_ids))
+                            .values(is_active=False, last_validated=datetime.now(pytz.UTC))
+                        )
 
-                await session.commit()
-                processed_count += len(batch)
+                    await session.commit()
+                    processed_count += len(batch)
+                    
+                except Exception as e:
+                    logger.error(f"Batch processing failed: {e}")
+                    traceback.print_exc()
 
             logger.info("Validation complete.")
             return validated_count
