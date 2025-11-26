@@ -314,7 +314,8 @@ class RouteScraper:
                     
                     result = {"id": route_id, "status": "invalid"} # Default to invalid until proven valid
                     
-                    days_to_check = 11 if (origin in intl_codes or destination in intl_codes) else 3
+                    # Extended window to catch weekly flights (Tu/Th only etc)
+                    days_to_check = 14 if (origin in intl_codes or destination in intl_codes) else 7
                     
                     try:
                         await client.authenticate()
@@ -335,13 +336,10 @@ class RouteScraper:
                             except httpx.HTTPStatusError as http_err:
                                 if http_err.response.status_code == 400:
                                     # 400 usually means route invalid OR date invalid for route.
-                                    # We keep trying other days.
                                     pass
                                 else:
-                                    # 503/403 etc - treat as skip or keep trying?
                                     logger.warning(f"[WARN] {origin}-{dest} ({http_err.response.status_code})")
                             except Exception:
-                                # Network error, proxy error, etc.
                                 pass
                         
                         if result["status"] == "invalid":
@@ -357,12 +355,18 @@ class RouteScraper:
 
             # Process in batches
             batch_size = 200 
+            processed_count = 0
+            
             for i in range(0, total, batch_size):
                 if stop_check and stop_check(): break
                 
                 batch = routes_data[i:i + batch_size]
                 logger.info(f"Processing validation batch {i+1}-{min(i+batch_size, total)} of {total}")
-                update_job(self.job_id, progress=int((i/total)*100), message=f"Validating {i+1}/{total}")
+                
+                # Calculate current stats for UI
+                pct_complete = int((processed_count / total) * 100)
+                valid_pct = int((validated_count / processed_count * 100)) if processed_count > 0 else 0
+                update_job(self.job_id, progress=pct_complete, message=f"Validating {processed_count}/{total} (Valid: {validated_count} - {valid_pct}%)")
                 
                 tasks = [check_route(r) for r in batch]
                 results = await asyncio.gather(*tasks)
@@ -386,6 +390,7 @@ class RouteScraper:
                     )
 
                 await session.commit()
+                processed_count += len(batch)
 
             logger.info("Validation complete.")
             return validated_count
