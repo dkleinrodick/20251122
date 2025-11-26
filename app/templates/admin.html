@@ -463,7 +463,12 @@
                             <div class="divide-y divide-surface-100">
                                 <div v-for="(origins, date) in explorerData.flights" :key="date">
                                     <div @click="toggleExpand(date)" class="px-6 py-4 hover:bg-surface-100 cursor-pointer flex justify-between items-center transition">
-                                        <span class="font-mono font-bold text-white text-sm">{{ date }}</span>
+                                        <div class="flex items-center gap-4">
+                                            <span class="font-mono font-bold text-white text-sm">{{ date }}</span>
+                                            <span class="text-[10px] text-surface-300 font-mono hidden sm:block" v-if="getLastUpdateForDate(origins)">
+                                                Updated {{ formatTimeAgo(getLastUpdateForDate(origins)) }} ago
+                                            </span>
+                                        </div>
                                         <div class="flex items-center gap-4">
                                             <span class="text-xs font-bold text-surface-200">{{ Object.keys(origins).length }} Origins</span>
                                             <button @click.stop="deleteDate('cached_routes', date)" class="text-surface-200 hover:text-rose-500"><i class="ph-bold ph-trash"></i></button>
@@ -472,7 +477,12 @@
                                     <div v-if="expanded[date]" class="bg-surface-900/50 p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 border-t border-surface-100">
                                         <div v-for="(dests, origin) in origins" :key="origin" class="bg-surface-50 border border-surface-100 rounded-lg p-3">
                                             <div class="flex justify-between items-center mb-2 border-b border-surface-100 pb-2">
-                                                <span class="text-brand-500 font-bold text-xs">{{ origin }}</span>
+                                                <div>
+                                                    <span class="text-brand-500 font-bold text-xs">{{ origin }}</span>
+                                                    <span class="text-[8px] text-surface-400 ml-2" v-if="getLastUpdateForOrigin(dests)">
+                                                        {{ formatTimeAgo(getLastUpdateForOrigin(dests)) }} ago
+                                                    </span>
+                                                </div>
                                                 <span class="text-[10px] text-surface-200">{{ Object.keys(dests).length }} dests</span>
                                             </div>
                                             <div class="space-y-1 max-h-48 overflow-y-auto custom-scrollbar">
@@ -484,7 +494,9 @@
                                                             {{ dest }}
                                                             <i class="ph-bold ph-arrow-right text-[8px] opacity-0 group-hover:opacity-100 text-brand-400 transition-opacity"></i>
                                                         </span>
-                                                        <span class="text-[8px] text-surface-400" v-if="d.updated">{{ formatTimeAgo(d.updated) }} ago</span>
+                                                        <span class="text-[8px] text-surface-400" v-if="d.updated">
+                                                            {{ formatSmartTime(d.updated) }} ({{ formatTimeAgo(d.updated) }} ago)
+                                                        </span>
                                                     </div>
                                                     <div class="flex flex-col items-end">
                                                         <span class="text-emerald-400 font-bold" v-if="d.min_price">${{ d.min_price }}</span>
@@ -1108,6 +1120,22 @@
                         if (sec < 3600) return Math.floor(sec/60) + 'm';
                         if (sec < 86400) return Math.floor(sec/3600) + 'h';
                         return Math.floor(sec/86400) + 'd';
+                    },
+                    getLastUpdateForOrigin: (dests) => {
+                        let max = null;
+                        for (const d of Object.values(dests)) {
+                            if (d.updated && (!max || d.updated > max)) max = d.updated;
+                        }
+                        return max;
+                    },
+                    getLastUpdateForDate: (origins) => {
+                        let max = null;
+                        for (const dests of Object.values(origins)) {
+                            for (const d of Object.values(dests)) {
+                                if (d.updated && (!max || d.updated > max)) max = d.updated;
+                            }
+                        }
+                        return max;
                     }
                 };
             }
