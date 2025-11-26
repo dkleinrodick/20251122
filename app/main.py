@@ -813,137 +813,160 @@ async def clear_flight_cache(db: AsyncSession = Depends(get_db)):
     return {"status": "cache_cleared"}
 
 async def validate_routes_task(job_id: str):
-    update_job(job_id, status="running", progress=0, message="Starting validation...")
-    
-    # 1. Sync Airports
-    async with SessionLocal() as session:
-        res = await session.execute(select(Airport.code))
-        existing_codes = {r for r in res.scalars().all()}
+    try:
+        update_job(job_id, status="running", progress=0, message="Initializing validation...")
         
-        to_insert = []
-        for a in AIRPORTS_LIST:
-            if a["code"] not in existing_codes:
-                to_insert.append({
-                     "code": a["code"], 
-                     "city_name": a["city"],
-                     "timezone": a.get("timezone", "UTC"),
-                     "latitude": a.get("lat"),
-                     "longitude": a.get("lon")
-                 })
-        
-        if to_insert:
-            from sqlalchemy import insert
-            await session.execute(insert(Airport).values(to_insert))
-            await session.commit()
-            logger.info(f"Route Validator: Seeded {len(to_insert)} new airports.")
-
-    # 2. Fetch routes
-    async with SessionLocal() as session:
-        res = await session.execute(select(RoutePair.id, RoutePair.origin, RoutePair.destination))
-        routes_data = res.all()
-
-    total = len(routes_data)
-    if total == 0:
-        complete_job(job_id, message="No routes to validate.")
-        return
-
-    # 3. Setup Workers & Queue
-    # Get concurrency from settings
-    async with SessionLocal() as session:
-        engine = AsyncScraperEngine(session)
-        max_workers = await engine._get_setting("scraper_worker_count", 20, int)
-
-    queue = asyncio.Queue()
-    for r in routes_data:
-        queue.put_nowait(r)
-
-    # Metrics
-    stats = {"active": 0, "bad": 0, "completed": 0}
-    intl_codes = {a['code'] for a in AIRPORTS_LIST if a.get('is_international')}
-    today_utc = datetime.utcnow()
-    
-    # Shared Scraper Engine Wrapper
-    scraper = ScraperEngine()
-
-    async def worker(name):
-        while True:
-            if check_stop(job_id): break
-            try:
-                route = queue.get_nowait()
-            except asyncio.QueueEmpty:
-                break
-            
-            rid, origin, destination = route
-            
-            try:
-                async with SessionLocal() as session:
-                    days_to_check = 11 if (origin in intl_codes or destination in intl_codes) else 3
-                    found_valid = False
-                    
-                    for i in range(days_to_check):
-                        if check_stop(job_id): break
-                        date_str = (today_utc + timedelta(days=i)).strftime("%Y-%m-%d")
-                        
-                        # Perform search (ignore jitter for speed)
-                        res = await scraper.perform_search(
-                            origin, destination, date_str, session, 
-                            force_refresh=True, ignore_jitter=True, 
-                            stop_check=lambda: check_stop(job_id)
-                        )
-                        
-                        if isinstance(res, dict) and "error" in res:
-                            pass
-                        else:
-                            found_valid = True
-                            break
-                    
-                    if check_stop(job_id): 
-                        queue.task_done()
-                        break
-
-                    # Update Route Status
-                    stmt = select(RoutePair).where(RoutePair.id == rid)
-                    r_res = await session.execute(stmt)
-                    route_obj = r_res.scalar_one_or_none()
-                    
-                    if route_obj:
-                        route_obj.is_active = found_valid
-                        route_obj.last_validated = datetime.utcnow()
-                        if found_valid:
-                            route_obj.error_count = 0
-                            stats["active"] += 1
-                        else:
-                            route_obj.error_count += 1
-                            stats["bad"] += 1
-                        await session.commit()
-            
-            except Exception as e:
-                logger.error(f"Validator worker error: {e}")
-                stats["bad"] += 1
-            finally:
-                stats["completed"] += 1
-                queue.task_done()
+        # 1. Sync Airports
+        try:
+            async with SessionLocal() as session:
+                res = await session.execute(select(Airport.code))
+                existing_codes = {r for r in res.scalars().all()}
                 
-                # Update progress occasionally
-                if stats["completed"] % 5 == 0:
-                    pct = int((stats["completed"] / total) * 100)
-                    update_job(job_id, progress=pct, message=f"Validated {stats['completed']}/{total} (Active: {stats['active']}, Bad: {stats['bad']})")
+                to_insert = []
+                for a in AIRPORTS_LIST:
+                    if a["code"] not in existing_codes:
+                        to_insert.append({
+                             "code": a["code"], 
+                             "city_name": a["city"],
+                             "timezone": a.get("timezone", "UTC"),
+                             "latitude": a.get("lat"),
+                             "longitude": a.get("lon")
+                         })
+                
+                if to_insert:
+                    from sqlalchemy import insert
+                    await session.execute(insert(Airport).values(to_insert))
+                    await session.commit()
+                    logger.info(f"Route Validator: Seeded {len(to_insert)} new airports.")
+        except Exception as e:
+            logger.error(f"Airport sync failed: {e}")
+            # Continue anyway
 
-    # Spawn Workers
-    workers = []
-    for i in range(max_workers):
-        workers.append(asyncio.create_task(worker(f"Validator-{i}")))
-    
-    # Wait
-    await asyncio.gather(*workers)
-    
-    if check_stop(job_id):
-        update_job(job_id, status="cancelled", message="Validation cancelled.")
-    else:
-        complete_job(job_id, message=f"Validation complete. Active: {stats['active']}, Bad: {stats['bad']}")
-        # Chain Weather
-        logger.info("Triggering chained weather update...")
-        await update_weather_task()
+        # 2. Fetch routes
+        async with SessionLocal() as session:
+            res = await session.execute(select(RoutePair.id, RoutePair.origin, RoutePair.destination))
+            routes_data = res.all()
+
+        total = len(routes_data)
+        if total == 0:
+            complete_job(job_id, message="No routes to validate.")
+            return
+
+        # 3. Setup Workers & Queue
+        async with SessionLocal() as session:
+            engine = AsyncScraperEngine(session)
+            max_workers = await engine._get_setting("scraper_worker_count", 20, int)
+            # Safety clamp
+            max_workers = max(1, min(max_workers, 50))
+
+        queue = asyncio.Queue()
+        for r in routes_data:
+            queue.put_nowait(r)
+
+        update_job(job_id, message=f"Validating {total} routes with {max_workers} workers...")
+
+        # Metrics
+        stats = {"active": 0, "bad": 0, "completed": 0}
+        intl_codes = {a['code'] for a in AIRPORTS_LIST if a.get('is_international')}
+        today_utc = datetime.utcnow()
+        
+        # Shared Scraper Wrapper
+        scraper = ScraperEngine()
+
+        async def worker(name):
+            while True:
+                if check_stop(job_id): break
+                try:
+                    route = queue.get_nowait()
+                except asyncio.QueueEmpty:
+                    break
+                
+                rid, origin, destination = route
+                
+                try:
+                    # Use a fresh session per task to avoid concurrency issues
+                    async with SessionLocal() as session:
+                        days_to_check = 11 if (origin in intl_codes or destination in intl_codes) else 3
+                        found_valid = False
+                        
+                        for i in range(days_to_check):
+                            if check_stop(job_id): break
+                            date_str = (today_utc + timedelta(days=i)).strftime("%Y-%m-%d")
+                            
+                            # Perform search (ignore jitter for speed)
+                            res = await scraper.perform_search(
+                                origin, destination, date_str, session, 
+                                force_refresh=True, ignore_jitter=True, 
+                                mode="ondemand",
+                                stop_check=lambda: check_stop(job_id)
+                            )
+                            
+                            if isinstance(res, dict) and "error" in res:
+                                # 400 error etc
+                                pass
+                            elif res.get("flights"): # Must have flights to be valid? Or just no error?
+                                # Frontier returns [] flights for valid route but no inventory.
+                                # Scraper returns {"flights": []} on success.
+                                # Error key exists on failure.
+                                found_valid = True
+                                break
+                            else:
+                                # Empty list = valid route (just no seats)
+                                found_valid = True
+                                break
+                        
+                        if check_stop(job_id): 
+                            queue.task_done()
+                            break
+
+                        # Update Route Status
+                        stmt = select(RoutePair).where(RoutePair.id == rid)
+                        r_res = await session.execute(stmt)
+                        route_obj = r_res.scalar_one_or_none()
+                        
+                        if route_obj:
+                            route_obj.is_active = found_valid
+                            route_obj.last_validated = datetime.utcnow()
+                            if found_valid:
+                                route_obj.error_count = 0
+                                stats["active"] += 1
+                            else:
+                                route_obj.error_count += 1
+                                stats["bad"] += 1
+                            await session.commit()
+                
+                except Exception as e:
+                    logger.error(f"Validator worker error: {e}")
+                    stats["bad"] += 1
+                finally:
+                    stats["completed"] += 1
+                    queue.task_done()
+                    
+                    # Update progress frequently
+                    if stats["completed"] % 2 == 0 or stats["completed"] == total:
+                        pct = int((stats["completed"] / total) * 100)
+                        update_job(job_id, progress=pct, message=f"Validated {stats['completed']}/{total} (Active: {stats['active']}, Bad: {stats['bad']})")
+
+        # Spawn Workers
+        workers = []
+        for i in range(max_workers):
+            workers.append(asyncio.create_task(worker(f"Validator-{i}")))
+        
+        # Wait
+        await asyncio.gather(*workers)
+        
+        if check_stop(job_id):
+            update_job(job_id, status="cancelled", message="Validation cancelled.")
+        else:
+            complete_job(job_id, message=f"Validation complete. Active: {stats['active']}, Bad: {stats['bad']}")
+            # Chain Weather
+            logger.info("Triggering chained weather update...")
+            await update_weather_task()
+            
+    except Exception as e:
+        logger.error(f"Validate routes task failed: {e}")
+        update_job(job_id, status="failed", message=f"Error: {str(e)}")
+        traceback.print_exc()
 
 async def run_full_cache_task(job_id: str, scope: str):
     JOBS[job_id] = {"status": "running", "progress": 0, "message": "Starting full cache..."}
