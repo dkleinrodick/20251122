@@ -816,31 +816,60 @@ async def validate_routes_task(job_id: str):
     try:
         update_job(job_id, status="running", progress=0, message="Initializing validation...")
         
-        # 1. Sync Airports
-        try:
-            async with SessionLocal() as session:
-                res = await session.execute(select(Airport.code))
-                existing_codes = {r for r in res.scalars().all()}
+    # 1. Sync Airports (Upsert Logic)
+    try:
+        async with SessionLocal() as session:
+            # Fetch all existing airports into a dict for comparison
+            res = await session.execute(select(Airport))
+            existing_map = {a.code: a for a in res.scalars().all()}
+            
+            to_add = []
+            updates = 0
+            
+            for a_data in AIRPORTS_LIST:
+                code = a_data["code"]
+                if code in existing_map:
+                    # Update existing if changed
+                    obj = existing_map[code]
+                    changed = False
+                    if obj.city_name != a_data["city"]:
+                        obj.city_name = a_data["city"]
+                        changed = True
+                    if obj.timezone != a_data.get("timezone", "UTC"):
+                        obj.timezone = a_data.get("timezone", "UTC")
+                        changed = True
+                    if obj.latitude != a_data.get("lat"):
+                        obj.latitude = a_data.get("lat")
+                        changed = True
+                    if obj.longitude != a_data.get("lon"):
+                        obj.longitude = a_data.get("lon")
+                        changed = True
+                    
+                    if changed:
+                        updates += 1
+                else:
+                    # Insert new
+                    to_add.append({
+                         "code": code, 
+                         "city_name": a_data["city"],
+                         "timezone": a_data.get("timezone", "UTC"),
+                         "latitude": a_data.get("lat"),
+                         "longitude": a_data.get("lon")
+                     })
+            
+            if to_add:
+                from sqlalchemy import insert
+                await session.execute(insert(Airport).values(to_add))
                 
-                to_insert = []
-                for a in AIRPORTS_LIST:
-                    if a["code"] not in existing_codes:
-                        to_insert.append({
-                             "code": a["code"], 
-                             "city_name": a["city"],
-                             "timezone": a.get("timezone", "UTC"),
-                             "latitude": a.get("lat"),
-                             "longitude": a.get("lon")
-                         })
+            if to_add or updates > 0:
+                await session.commit()
+                logger.info(f"Route Validator: Seeded {len(to_add)} new, Updated {updates} existing airports.")
+            else:
+                logger.info("Route Validator: Airports up to date.")
                 
-                if to_insert:
-                    from sqlalchemy import insert
-                    await session.execute(insert(Airport).values(to_insert))
-                    await session.commit()
-                    logger.info(f"Route Validator: Seeded {len(to_insert)} new airports.")
-        except Exception as e:
-            logger.error(f"Airport sync failed: {e}")
-            # Continue anyway
+    except Exception as e:
+        logger.error(f"Airport sync failed: {e}")
+        # Continue anyway
 
         # 2. Fetch routes
         async with SessionLocal() as session:
