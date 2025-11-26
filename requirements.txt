@@ -1,22 +1,24 @@
 # Core Framework
-fastapi==0.104.1
-uvicorn==0.24.0
+fastapi>=0.109.0
+uvicorn==0.38.0
 
 # HTTP Client
 httpx==0.25.1
 
-# Database (PostgreSQL/Supabase)
-sqlalchemy==2.0.23
-asyncpg==0.28.0
+# Database
+sqlalchemy>=2.0.36
+asyncpg>=0.29.0
+aiosqlite>=0.19.0
 
 # Data Validation
 pydantic>=2.5.0
+email-validator==2.3.0
 
 # Templating
 jinja2==3.1.2
 
 # File Uploads
-python-multipart==0.0.6
+python-multipart==0.0.20
 
 # Timezone Support
 pytz==2023.3
@@ -25,4 +27,7 @@ pytz==2023.3
 python-dotenv
 
 # JWT Authentication
-pyjwt==2.8.0
+pyjwt==2.10.1
+
+# FastAPI Users for User Authentication
+fastapi-users[sqlalchemy]==15.0.1
