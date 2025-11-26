@@ -295,7 +295,11 @@ class RouteScraper:
             # Fetch concurrency setting
             setting = await session.execute(select(SystemSetting).where(SystemSetting.key == "scraper_worker_count"))
             setting = setting.scalar_one_or_none()
-            max_concurrent = int(setting.value) if setting else 20
+            val = int(setting.value) if setting and setting.value and setting.value.isdigit() else 20
+            max_concurrent = max(1, min(val, 50)) # Safety clamp
+            
+            logger.info(f"Route Scraper: Using {max_concurrent} concurrent workers.")
+            update_job(self.job_id, message=f"Validating with {max_concurrent} workers...")
             
             sem = asyncio.Semaphore(max_concurrent)
             
