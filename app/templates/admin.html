@@ -680,7 +680,7 @@
                                             <toggle-switch v-model="settings.schedule_auto_enabled" label="Enable Auto Scraper"></toggle-switch>
                                             <div class="grid grid-cols-2 gap-4">
                                                 <input-group v-model="settings.schedule_auto_interval" label="Interval (Min)" type="number"></input-group>
-                                                <input-group v-model="settings.max_concurrent_requests" label="Max Workers" type="number"></input-group>
+                                                <input-group v-model="settings.scraper_worker_count" label="Max Workers" type="number"></input-group>
                                             </div>
                                             <input-group v-model="settings.scraper_stale_minutes" label="Stale Data Threshold (Min)" type="number" placeholder="60"></input-group>
                                         </div>
