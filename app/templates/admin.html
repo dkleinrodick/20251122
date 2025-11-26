@@ -749,6 +749,22 @@
                                         <h4 class="text-xs font-bold text-surface-200 uppercase mb-4">Debug</h4>
                                         <toggle-switch v-model="settings.debug_logging_enabled" label="Enable Debug Logging"></toggle-switch>
                                     </div>
+
+                                    <!-- Frontend -->
+                                    <div>
+                                        <h4 class="text-xs font-bold text-surface-200 uppercase mb-4">Frontend</h4>
+                                        <div class="space-y-4">
+                                            <toggle-switch v-model="settings.scraper_popup_enabled" label="Show Scraper Status Popup"></toggle-switch>
+                                            
+                                            <div class="space-y-3">
+                                                <toggle-switch v-model="settings.announcement_enabled" label="Show Announcement Bar"></toggle-switch>
+                                                <div v-if="settings.announcement_enabled === 'true'" class="animate-fade-in">
+                                                    <label class="block text-[10px] font-bold text-surface-200 uppercase mb-1">Announcement HTML</label>
+                                                    <textarea v-model="settings.announcement_html" class="w-full bg-surface-900 border border-surface-100 rounded-lg px-3 py-2 text-white text-xs font-mono outline-none focus:border-brand-500 transition h-24" placeholder="<p>Maintenance Mode</p>"></textarea>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
 
