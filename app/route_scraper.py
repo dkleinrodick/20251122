@@ -7,7 +7,7 @@ import httpx
 import re
 import json
 import pytz
-from sqlalchemy import select, or_, and_, update
+from sqlalchemy import select, or_, and_, update, insert
 from app.database import SessionLocal
 from app.models import RoutePair, Airport, SystemSetting, ScraperRun
 from app.airports_data import AIRPORTS_LIST, AIRPORT_MAPPING
@@ -66,6 +66,10 @@ class RouteScraper:
                 update_job(self.job_id, status="cancelled", message="Cancelled before start")
             else:
                 logger.info("Starting RouteScraper Job...")
+                
+                # Step 0: Sync Airports
+                await self.sync_airports()
+                
                 discovered = await self.discover_routes(stop_check)
                 
                 if stop_check():
@@ -109,6 +113,62 @@ class RouteScraper:
                 run_log.details = stats
 
                 await session.commit()
+
+    async def sync_airports(self):
+        logger.info("Step 0: Syncing Airports...")
+        update_job(self.job_id, message="Syncing Airports...")
+        try:
+            async with SessionLocal() as session:
+                # Fetch all existing airports into a dict for comparison
+                res = await session.execute(select(Airport))
+                existing_map = {a.code: a for a in res.scalars().all()}
+                
+                to_add = []
+                updates = 0
+                
+                for a_data in AIRPORTS_LIST:
+                    code = a_data["code"]
+                    if code in existing_map:
+                        # Update existing if changed
+                        obj = existing_map[code]
+                        changed = False
+                        if obj.city_name != a_data["city"]:
+                            obj.city_name = a_data["city"]
+                            changed = True
+                        if obj.timezone != a_data.get("timezone", "UTC"):
+                            obj.timezone = a_data.get("timezone", "UTC")
+                            changed = True
+                        if obj.latitude != a_data.get("lat"):
+                            obj.latitude = a_data.get("lat")
+                            changed = True
+                        if obj.longitude != a_data.get("lon"):
+                            obj.longitude = a_data.get("lon")
+                            changed = True
+                        
+                        if changed:
+                            updates += 1
+                    else:
+                        # Insert new
+                        to_add.append({
+                             "code": code, 
+                             "city_name": a_data["city"],
+                             "timezone": a_data.get("timezone", "UTC"),
+                             "latitude": a_data.get("lat"),
+                             "longitude": a_data.get("lon")
+                         })
+                
+                if to_add:
+                    await session.execute(insert(Airport).values(to_add))
+                    
+                if to_add or updates > 0:
+                    await session.commit()
+                    logger.info(f"Route Scraper: Seeded {len(to_add)} new, Updated {updates} existing airports.")
+                else:
+                    logger.info("Route Scraper: Airports up to date.")
+                    
+        except Exception as e:
+            logger.error(f"Airport sync failed: {e}")
+            # Continue anyway
 
     async def discover_routes(self, stop_check=None):
         logger.info("Step 1: Discovering Routes from Sitemap...")
