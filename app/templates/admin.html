@@ -106,7 +106,6 @@
                 <!-- Top Bar -->
                 <header class="h-16 border-b border-surface-100 flex items-center justify-between px-4 lg:px-6 bg-surface-900/95 backdrop-blur z-10 flex-shrink-0">
                     <div class="flex items-center gap-3">
-                        <!-- Mobile Menu Button could go here -->
                         <h2 class="text-lg font-bold text-white">{{ currentTabLabel }}</h2>
                     </div>
                     <div class="flex items-center gap-3">
@@ -154,9 +153,17 @@
                                         
                                         <div class="h-px bg-surface-100 my-2"></div>
                                         
+                                        <!-- System Controls with Stop -->
                                         <div>
                                             <action-button icon="ph-arrows-clockwise" label="Update Route Map" @click="updateRoutes" :loading="routeJob.status === 'running'" :subtext="routeJob.message"></action-button>
                                             <button v-if="routeJob.status === 'running'" @click="stopJob(routeJob.job_id)" class="w-full mt-1 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 rounded-lg text-xs font-bold transition">
+                                                Stop Job
+                                            </button>
+                                        </div>
+                                        
+                                        <div>
+                                            <action-button icon="ph-play" label="Trigger Auto Scraper" @click="runAutoScraper" :loading="autoScraperJob.status === 'running'" :subtext="autoScraperJob.message"></action-button>
+                                            <button v-if="autoScraperJob.status === 'running'" @click="stopJob(autoScraperJob.job_id)" class="w-full mt-1 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 rounded-lg text-xs font-bold transition">
                                                 Stop Job
                                             </button>
                                         </div>
@@ -214,7 +221,6 @@
                                                     <span class="text-[10px] text-surface-200 font-mono w-12 text-right">{{ formatDuration(run.duration_seconds) }}</span>
                                                 </div>
                                             </div>
-                                            <!-- Stats Bar -->
                                             <div class="flex gap-4 text-[10px] text-surface-300 border-t border-surface-100/50 pt-2 mt-2">
                                                 <span>Total: <b class="text-white">{{ run.total_routes || 0 }}</b></span>
                                                 <span>Scraped: <b class="text-emerald-400">{{ run.routes_scraped || 0 }}</b></span>
@@ -254,7 +260,6 @@
                                                         <span v-else class="text-surface-200 italic text-[10px]">None</span>
                                                     </td>
                                                 </tr>
-                                                <tr v-if="heartbeats.length === 0"><td colspan="3" class="px-4 py-4 text-center text-surface-200">No heartbeats recorded</td></tr>
                                             </tbody>
                                         </table>
                                     </div>
@@ -265,6 +270,7 @@
 
                     <!-- SCRAPER TOOL TAB -->
                     <div v-if="activeTab === 'scraper'" class="max-w-4xl mx-auto animate-fade-in">
+                        <!-- ... (Scraper Tool Content, Unchanged) ... -->
                         <div class="bg-surface-50 rounded-2xl border border-surface-100 overflow-hidden shadow-lg">
                             <div class="p-6 border-b border-surface-100">
                                 <h3 class="text-lg font-bold text-white">Targeted Scraper</h3>
@@ -290,7 +296,6 @@
                                     <span>{{ manualScrape.loading ? 'Scraping Live Data...' : 'Run Scraper' }}</span>
                                 </button>
 
-                                <!-- Result -->
                                 <div v-if="manualScrape.result" class="mt-6 animate-fade-in">
                                     <div class="bg-surface-900 rounded-xl border border-surface-100 overflow-hidden">
                                         <div class="bg-surface-100/50 px-4 py-2 flex justify-between items-center border-b border-surface-100">
@@ -311,6 +316,7 @@
 
                     <!-- ROUTES MANAGER -->
                     <div v-if="activeTab === 'routes'" class="max-w-6xl mx-auto animate-fade-in">
+                        <!-- ... (Routes Manager Content) ... -->
                         <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
                             <h3 class="text-xl font-bold text-white">Route Manager</h3>
                             <div class="flex bg-surface-50 rounded-lg p-1 border border-surface-100 shadow-sm gap-1">
@@ -362,6 +368,7 @@
 
                     <!-- DATA EXPLORER TAB (Enhanced) -->
                     <div v-if="activeTab === 'data'" class="max-w-7xl mx-auto animate-fade-in">
+                        <!-- ... (Data Explorer Content, Unchanged structure, just checking syntax) ... -->
                         <div class="flex flex-col md:flex-row justify-between md:items-center mb-6 gap-4">
                             <div class="flex gap-2 overflow-x-auto pb-2 md:pb-0">
                                 <button @click="explorerMode = 'lookup'" :class="explorerMode === 'lookup' ? 'bg-brand-600 text-white' : 'bg-surface-50 text-surface-200 hover:text-white'" class="px-4 py-2 rounded-lg text-xs font-bold transition whitespace-nowrap shadow-sm"><i class="ph-bold ph-magnifying-glass mr-1"></i> Flight Lookup</button>
@@ -370,10 +377,10 @@
                                 <button @click="explorerMode = 'fare_history'" :class="explorerMode === 'fare_history' ? 'bg-purple-600/80 text-white' : 'bg-surface-50 text-surface-200 hover:text-white'" class="px-4 py-2 rounded-lg text-xs font-bold transition whitespace-nowrap shadow-sm"><i class="ph-bold ph-chart-line mr-1"></i> Fare History</button>
                             </div>
                         </div>
-
-                        <!-- 1. FLIGHT LOOKUP (New Detailed View) -->
+                        <!-- ... Sub-views (Lookup, Flights, Weather, Snapshots) omitted for brevity but assuming correct ... -->
+                        <!-- I am overwriting so I will paste them all back in to be safe -->
+                        <!-- 1. FLIGHT LOOKUP -->
                         <div v-if="explorerMode === 'lookup'" class="space-y-6">
-                            <!-- Search Bar -->
                             <div class="bg-surface-50 rounded-2xl border border-surface-100 p-4 flex flex-col md:flex-row gap-4 items-end md:items-center">
                                 <div class="w-full md:w-32">
                                     <label class="text-[10px] font-bold text-surface-200 uppercase mb-1 block">Origin</label>
@@ -392,8 +399,6 @@
                                     <span v-else>Search Cache</span>
                                 </button>
                             </div>
-
-                            <!-- Results -->
                             <div v-if="flightDetails.length > 0" class="grid grid-cols-1 gap-4">
                                 <div v-for="(f, i) in flightDetails" :key="i" class="bg-surface-50 rounded-xl border border-surface-100 overflow-hidden">
                                     <div class="bg-surface-100/30 px-4 py-3 border-b border-surface-100 flex justify-between items-center">
@@ -403,110 +408,39 @@
                                         </div>
                                         <span class="text-[10px] text-surface-200 font-mono">Last Scraped: {{ formatSmartTime(f.last_scraped) }}</span>
                                     </div>
-                                    
                                     <div class="p-4 grid grid-cols-1 md:grid-cols-3 gap-4">
-                                        <!-- Flight Info -->
                                         <div class="space-y-2">
-                                            <div class="flex justify-between text-xs border-b border-surface-100/50 pb-1">
-                                                <span class="text-surface-200">Time</span>
-                                                <span class="font-bold text-white">{{ f.departure }} - {{ f.arrival }}</span>
-                                            </div>
-                                            <div class="flex justify-between text-xs border-b border-surface-100/50 pb-1">
-                                                <span class="text-surface-200">Duration</span>
-                                                <span class="text-white">{{ f.duration }}</span>
-                                            </div>
-                                            <div class="flex justify-between text-xs">
-                                                <span class="text-surface-200">Stops</span>
-                                                <span :class="f.stops > 0 ? 'text-orange-400' : 'text-emerald-400'" class="font-bold">{{ f.stops === 0 ? 'Nonstop' : f.stops + ' Stop' }}</span>
-                                            </div>
-                                            <div v-if="f.layover_airports && f.layover_airports.length" class="text-[10px] text-surface-200 pt-1">
-                                                via {{ f.layover_airports.join(', ') }}
-                                            </div>
+                                            <div class="flex justify-between text-xs border-b border-surface-100/50 pb-1"><span class="text-surface-200">Time</span><span class="font-bold text-white">{{ f.departure }} - {{ f.arrival }}</span></div>
+                                            <div class="flex justify-between text-xs border-b border-surface-100/50 pb-1"><span class="text-surface-200">Duration</span><span class="text-white">{{ f.duration }}</span></div>
+                                            <div class="flex justify-between text-xs"><span class="text-surface-200">Stops</span><span :class="f.stops > 0 ? 'text-orange-400' : 'text-emerald-400'" class="font-bold">{{ f.stops === 0 ? 'Nonstop' : f.stops + ' Stop' }}</span></div>
+                                            <div v-if="f.layover_airports && f.layover_airports.length" class="text-[10px] text-surface-200 pt-1">via {{ f.layover_airports.join(', ') }}</div>
                                         </div>
-
-                                        <!-- Fares Grid -->
                                         <div class="md:col-span-2 grid grid-cols-3 gap-2">
-                                            <!-- Standard -->
-                                            <div class="bg-surface-900 rounded-lg p-3 border border-surface-100 text-center">
-                                                <div class="text-[10px] text-surface-200 uppercase mb-1">Standard</div>
-                                                <div v-if="f.fares.standard" class="space-y-1">
-                                                    <div class="text-lg font-bold text-white">${{ f.fares.standard.price }}</div>
-                                                    <div class="text-[10px]" :class="f.fares.standard.seats < 5 ? 'text-rose-400' : 'text-emerald-400'">{{ f.fares.standard.seats }} seats</div>
-                                                </div>
-                                                <div v-else class="text-xs text-surface-200 italic py-2">N/A</div>
-                                            </div>
-                                            <!-- DEN -->
-                                            <div class="bg-surface-900 rounded-lg p-3 border border-surface-100 text-center relative overflow-hidden">
-                                                <div class="absolute top-0 right-0 bg-brand-600 text-white text-[8px] px-1.5 py-0.5 rounded-bl">DEAL</div>
-                                                <div class="text-[10px] text-surface-200 uppercase mb-1">Discount Den</div>
-                                                <div v-if="f.fares.den" class="space-y-1">
-                                                    <div class="text-lg font-bold text-brand-400">${{ f.fares.den.price }}</div>
-                                                    <div class="text-[10px]" :class="f.fares.den.seats < 5 ? 'text-rose-400' : 'text-emerald-400'">{{ f.fares.den.seats }} seats</div>
-                                                </div>
-                                                <div v-else class="text-xs text-surface-200 italic py-2">N/A</div>
-                                            </div>
-                                            <!-- GoWild -->
-                                            <div class="bg-surface-900 rounded-lg p-3 border border-surface-100 text-center border-purple-500/20 bg-purple-500/5">
-                                                <div class="text-[10px] text-purple-300 uppercase mb-1">GoWild!</div>
-                                                <div v-if="f.fares.gowild" class="space-y-1">
-                                                    <div class="text-lg font-bold text-purple-400">${{ f.fares.gowild.price }}</div>
-                                                    <div class="text-[10px]" :class="f.fares.gowild.seats < 5 ? 'text-rose-400' : 'text-emerald-400'">{{ f.fares.gowild.seats }} seats</div>
-                                                </div>
-                                                <div v-else class="text-xs text-surface-200 italic py-2">N/A</div>
-                                            </div>
+                                            <div class="bg-surface-900 rounded-lg p-3 border border-surface-100 text-center"><div class="text-[10px] text-surface-200 uppercase mb-1">Standard</div><div v-if="f.fares.standard" class="space-y-1"><div class="text-lg font-bold text-white">${{ f.fares.standard.price }}</div><div class="text-[10px]" :class="f.fares.standard.seats < 5 ? 'text-rose-400' : 'text-emerald-400'">{{ f.fares.standard.seats }} seats</div></div><div v-else class="text-xs text-surface-200 italic py-2">N/A</div></div>
+                                            <div class="bg-surface-900 rounded-lg p-3 border border-surface-100 text-center relative overflow-hidden"><div class="absolute top-0 right-0 bg-brand-600 text-white text-[8px] px-1.5 py-0.5 rounded-bl">DEAL</div><div class="text-[10px] text-surface-200 uppercase mb-1">Discount Den</div><div v-if="f.fares.den" class="space-y-1"><div class="text-lg font-bold text-brand-400">${{ f.fares.den.price }}</div><div class="text-[10px]" :class="f.fares.den.seats < 5 ? 'text-rose-400' : 'text-emerald-400'">{{ f.fares.den.seats }} seats</div></div><div v-else class="text-xs text-surface-200 italic py-2">N/A</div></div>
+                                            <div class="bg-surface-900 rounded-lg p-3 border border-surface-100 text-center border-purple-500/20 bg-purple-500/5"><div class="text-[10px] text-purple-300 uppercase mb-1">GoWild!</div><div v-if="f.fares.gowild" class="space-y-1"><div class="text-lg font-bold text-purple-400">${{ f.fares.gowild.price }}</div><div class="text-[10px]" :class="f.fares.gowild.seats < 5 ? 'text-rose-400' : 'text-emerald-400'">{{ f.fares.gowild.seats }} seats</div></div><div v-else class="text-xs text-surface-200 italic py-2">N/A</div></div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
-                            <div v-else-if="lookupQuery.hasSearched" class="text-center py-12 text-surface-200">
-                                No flights found in cache matching criteria.
-                            </div>
+                            <div v-else-if="lookupQuery.hasSearched" class="text-center py-12 text-surface-200">No flights found in cache matching criteria.</div>
                         </div>
 
-                            <!-- 2. RAW CACHE VIEW -->
+                        <!-- 2. RAW CACHE -->
                         <div v-if="explorerMode === 'flights'" class="bg-surface-50 rounded-2xl border border-surface-100 overflow-hidden">
                             <div class="divide-y divide-surface-100">
                                 <div v-for="(origins, date) in explorerData.flights" :key="date">
                                     <div @click="toggleExpand(date)" class="px-6 py-4 hover:bg-surface-100 cursor-pointer flex justify-between items-center transition">
-                                        <div class="flex items-center gap-4">
-                                            <span class="font-mono font-bold text-white text-sm">{{ date }}</span>
-                                            <span class="text-[10px] text-surface-300 font-mono hidden sm:block" v-if="getLastUpdateForDate(origins)">
-                                                Updated {{ formatTimeAgo(getLastUpdateForDate(origins)) }} ago
-                                            </span>
-                                        </div>
-                                        <div class="flex items-center gap-4">
-                                            <span class="text-xs font-bold text-surface-200">{{ Object.keys(origins).length }} Origins</span>
-                                            <button @click.stop="deleteDate('cached_routes', date)" class="text-surface-200 hover:text-rose-500"><i class="ph-bold ph-trash"></i></button>
-                                        </div>
+                                        <div class="flex items-center gap-4"><span class="font-mono font-bold text-white text-sm">{{ date }}</span><span class="text-[10px] text-surface-300 font-mono hidden sm:block" v-if="getLastUpdateForDate(origins)">Updated {{ formatTimeAgo(getLastUpdateForDate(origins)) }} ago</span></div>
+                                        <div class="flex items-center gap-4"><span class="text-xs font-bold text-surface-200">{{ Object.keys(origins).length }} Origins</span><button @click.stop="deleteDate('cached_routes', date)" class="text-surface-200 hover:text-rose-500"><i class="ph-bold ph-trash"></i></button></div>
                                     </div>
                                     <div v-if="expanded[date]" class="bg-surface-900/50 p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 border-t border-surface-100">
                                         <div v-for="(dests, origin) in origins" :key="origin" class="bg-surface-50 border border-surface-100 rounded-lg p-3">
-                                            <div class="flex justify-between items-center mb-2 border-b border-surface-100 pb-2">
-                                                <div>
-                                                    <span class="text-brand-500 font-bold text-xs">{{ origin }}</span>
-                                                    <span class="text-[8px] text-surface-400 ml-2" v-if="getLastUpdateForOrigin(dests)">
-                                                        {{ formatTimeAgo(getLastUpdateForOrigin(dests)) }} ago
-                                                    </span>
-                                                </div>
-                                                <span class="text-[10px] text-surface-200">{{ Object.keys(dests).length }} dests</span>
-                                            </div>
+                                            <div class="flex justify-between items-center mb-2 border-b border-surface-100 pb-2"><div><span class="text-brand-500 font-bold text-xs">{{ origin }}</span><span class="text-[8px] text-surface-400 ml-2" v-if="getLastUpdateForOrigin(dests)">{{ formatTimeAgo(getLastUpdateForOrigin(dests)) }} ago</span></div><span class="text-[10px] text-surface-200">{{ Object.keys(dests).length }} dests</span></div>
                                             <div class="space-y-1 max-h-48 overflow-y-auto custom-scrollbar">
-                                                <div v-for="(d, dest) in dests" :key="dest" 
-                                                     @click="inspectRoute(date, origin, dest)"
-                                                     class="flex justify-between items-center text-[10px] text-surface-200 p-2 hover:bg-surface-200/10 rounded-lg cursor-pointer group transition">
-                                                    <div class="flex flex-col">
-                                                        <span class="font-bold text-surface-300 group-hover:text-white flex items-center gap-1">
-                                                            {{ dest }}
-                                                            <i class="ph-bold ph-arrow-right text-[8px] opacity-0 group-hover:opacity-100 text-brand-400 transition-opacity"></i>
-                                                        </span>
-                                                        <span class="text-[8px] text-surface-400" v-if="d.updated">
-                                                            {{ formatSmartTime(d.updated) }} ({{ formatTimeAgo(d.updated) }} ago)
-                                                        </span>
-                                                    </div>
-                                                    <div class="flex flex-col items-end">
-                                                        <span class="text-emerald-400 font-bold" v-if="d.min_price">${{ d.min_price }}</span>
-                                                        <span class="text-surface-400 font-mono text-[9px]">{{ d.count }} flts</span>
-                                                    </div>
+                                                <div v-for="(d, dest) in dests" :key="dest" @click="inspectRoute(date, origin, dest)" class="flex justify-between items-center text-[10px] text-surface-200 p-2 hover:bg-surface-200/10 rounded-lg cursor-pointer group transition">
+                                                    <div class="flex flex-col"><span class="font-bold text-surface-300 group-hover:text-white flex items-center gap-1">{{ dest }}<i class="ph-bold ph-arrow-right text-[8px] opacity-0 group-hover:opacity-100 text-brand-400 transition-opacity"></i></span><span class="text-[8px] text-surface-400" v-if="d.updated">{{ formatSmartTime(d.updated) }} ({{ formatTimeAgo(d.updated) }} ago)</span></div>
+                                                    <div class="flex flex-col items-end"><span class="text-emerald-400 font-bold" v-if="d.min_price">${{ d.min_price }}</span><span class="text-surface-400 font-mono text-[9px]">{{ d.count }} flts</span></div>
                                                 </div>
                                             </div>
                                         </div>
@@ -515,100 +449,53 @@
                             </div>
                         </div>
 
-                        <!-- 3. WEATHER VIEW -->
+                        <!-- 3. WEATHER -->
                         <div v-if="explorerMode === 'weather'" class="bg-surface-50 rounded-2xl border border-surface-100 overflow-hidden">
                              <div class="divide-y divide-surface-100">
                                 <div v-for="(airports, date) in explorerData.weather" :key="date">
                                     <div @click="toggleExpand(date)" class="px-6 py-4 hover:bg-surface-100 cursor-pointer flex justify-between items-center transition">
                                         <span class="font-mono font-bold text-white text-sm">{{ date }}</span>
-                                        <div class="flex items-center gap-4">
-                                            <span class="text-xs font-bold text-surface-200">{{ airports.length }} Airports</span>
-                                            <button @click.stop="deleteDate('weather_data', date)" class="text-surface-200 hover:text-rose-500"><i class="ph-bold ph-trash"></i></button>
-                                        </div>
+                                        <div class="flex items-center gap-4"><span class="text-xs font-bold text-surface-200">{{ airports.length }} Airports</span><button @click.stop="deleteDate('weather_data', date)" class="text-surface-200 hover:text-rose-500"><i class="ph-bold ph-trash"></i></button></div>
                                     </div>
                                     <div v-if="expanded[date]" class="bg-surface-900/50 p-4 border-t border-surface-100">
                                         <div class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2">
-                                            <div v-for="a in airports" :key="a.airport" class="bg-surface-50 p-2 rounded text-center border border-surface-100">
-                                                <div class="text-xs font-bold text-white">{{ a.airport }}</div>
-                                                <div class="text-[10px] text-surface-200">{{ a.temp }}° ({{ a.condition }})</div>
-                                            </div>
+                                            <div v-for="a in airports" :key="a.airport" class="bg-surface-50 p-2 rounded text-center border border-surface-100"><div class="text-xs font-bold text-white">{{ a.airport }}</div><div class="text-[10px] text-surface-200">{{ a.temp }}° ({{ a.condition }})</div></div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                        
-                        <!-- 4. FARE HISTORY VIEW -->
+
+                        <!-- 4. FARE HISTORY -->
                         <div v-if="explorerMode === 'fare_history'" class="bg-surface-50 rounded-2xl border border-surface-100 overflow-hidden">
                             <div class="divide-y divide-surface-100">
                                 <div v-for="(origins, date) in explorerData.snapshots" :key="date">
                                     <div @click="toggleExpand(date)" class="px-6 py-4 hover:bg-surface-100 cursor-pointer flex justify-between items-center transition">
-                                        <div class="flex items-center gap-4">
-                                            <span class="font-mono font-bold text-white text-sm">{{ date }}</span>
-                                            <span class="text-[10px] text-surface-300 font-mono hidden sm:block" v-if="getLastUpdateForDate(origins)">
-                                                Updated {{ formatTimeAgo(getLastUpdateForDate(origins)) }} ago
-                                            </span>
-                                        </div>
-                                        <div class="flex items-center gap-4">
-                                            <span class="text-xs font-bold text-surface-200">{{ Object.keys(origins).length }} Origins</span>
-                                            <!-- Redo Day Button -->
-                                            <button @click.stop="redoSnapshotDate(date)" class="text-surface-200 hover:text-brand-400" title="Redo today's scans for this date">
-                                                <i class="ph-bold ph-arrows-clockwise"></i>
-                                            </button>
-                                            <!-- Snapshots are permanent history, maybe don't allow delete from here easily -->
-                                        </div>
+                                        <div class="flex items-center gap-4"><span class="font-mono font-bold text-white text-sm">{{ date }}</span><span class="text-[10px] text-surface-300 font-mono hidden sm:block" v-if="getLastUpdateForDate(origins)">Updated {{ formatTimeAgo(getLastUpdateForDate(origins)) }} ago</span></div>
+                                        <div class="flex items-center gap-4"><span class="text-xs font-bold text-surface-200">{{ Object.keys(origins).length }} Origins</span><button @click.stop="redoSnapshotDate(date)" class="text-surface-200 hover:text-brand-400" title="Redo today's scans for this date"><i class="ph-bold ph-arrows-clockwise"></i></button></div>
                                     </div>
                                     <div v-if="expanded[date]" class="bg-surface-900/50 p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 border-t border-surface-100">
                                         <div v-for="(dests, origin) in origins" :key="origin" class="bg-surface-50 border border-surface-100 rounded-lg p-3">
-                                            <div class="flex justify-between items-center mb-2 border-b border-surface-100 pb-2">
-                                                <div>
-                                                    <span class="text-brand-500 font-bold text-xs">{{ origin }}</span>
-                                                    <span class="text-[8px] text-surface-400 ml-2" v-if="getLastUpdateForOrigin(dests)">
-                                                        {{ formatTimeAgo(getLastUpdateForOrigin(dests)) }} ago
-                                                    </span>
-                                                </div>
-                                                <span class="text-[10px] text-surface-200">{{ Object.keys(dests).length }} dests</span>
-                                            </div>
+                                            <div class="flex justify-between items-center mb-2 border-b border-surface-100 pb-2"><div><span class="text-brand-500 font-bold text-xs">{{ origin }}</span><span class="text-[8px] text-surface-400 ml-2" v-if="getLastUpdateForOrigin(dests)">{{ formatTimeAgo(getLastUpdateForOrigin(dests)) }} ago</span></div><span class="text-[10px] text-surface-200">{{ Object.keys(dests).length }} dests</span></div>
                                             <div class="space-y-1 max-h-48 overflow-y-auto custom-scrollbar">
-                                                <div v-for="(d, dest) in dests" :key="dest" 
-                                                     @click="inspectSnapshots(date, origin, dest)"
-                                                     class="flex justify-between items-center text-[10px] text-surface-200 p-2 hover:bg-surface-200/10 rounded-lg transition cursor-pointer group">
-                                                    <div class="flex flex-col">
-                                                        <span class="font-bold text-surface-300 group-hover:text-white flex items-center gap-1">
-                                                            {{ dest }}
-                                                            <i class="ph-bold ph-caret-right text-[8px] opacity-0 group-hover:opacity-100 text-purple-400 transition-opacity"></i>
-                                                        </span>
-                                                        <span class="text-[8px] text-surface-400" v-if="d.updated">
-                                                            {{ formatSmartTime(d.updated) }} ({{ formatTimeAgo(d.updated) }} ago)
-                                                        </span>
-                                                    </div>
-                                                    <div class="flex flex-col items-end">
-                                                        <span class="text-emerald-400 font-bold" v-if="d.latest_price">${{ d.latest_price }}</span>
-                                                        <span class="text-surface-400 font-mono text-[9px]">{{ d.count }} snaps</span>
-                                                    </div>
+                                                <div v-for="(d, dest) in dests" :key="dest" @click="inspectSnapshots(date, origin, dest)" class="flex justify-between items-center text-[10px] text-surface-200 p-2 hover:bg-surface-200/10 rounded-lg transition cursor-pointer group">
+                                                    <div class="flex flex-col"><span class="font-bold text-surface-300 group-hover:text-white flex items-center gap-1">{{ dest }}<i class="ph-bold ph-caret-right text-[8px] opacity-0 group-hover:opacity-100 text-purple-400 transition-opacity"></i></span><span class="text-[8px] text-surface-400" v-if="d.updated">{{ formatSmartTime(d.updated) }} ({{ formatTimeAgo(d.updated) }} ago)</span></div>
+                                                    <div class="flex flex-col items-end"><span class="text-emerald-400 font-bold" v-if="d.latest_price">${{ d.latest_price }}</span><span class="text-surface-400 font-mono text-[9px]">{{ d.count }} snaps</span></div>
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
-                                <div v-if="Object.keys(explorerData.snapshots).length === 0" class="p-8 text-center text-surface-200 text-xs">
-                                    No historical snapshots found.
-                                </div>
+                                <div v-if="Object.keys(explorerData.snapshots).length === 0" class="p-8 text-center text-surface-200 text-xs">No historical snapshots found.</div>
                             </div>
                         </div>
 
-                        <!-- 5. SNAPSHOT LIST (Drill-down) -->
+                        <!-- 5. SNAPSHOT LIST -->
                         <div v-if="explorerMode === 'snapshot_list'" class="space-y-4">
                             <div class="flex items-center gap-4">
-                                <button @click="explorerMode = 'fare_history'" class="px-4 py-2 bg-surface-100 hover:bg-surface-200 text-white rounded-lg text-xs font-bold transition flex items-center gap-2">
-                                    <i class="ph-bold ph-arrow-left"></i> Back
-                                </button>
-                                <div class="text-sm font-bold text-white">
-                                    {{ snapshotQuery.origin }} <i class="ph-bold ph-arrow-right text-surface-400 mx-1"></i> {{ snapshotQuery.destination }}
-                                    <span class="text-surface-300 ml-2 font-mono bg-surface-100 px-2 py-0.5 rounded text-xs">{{ snapshotQuery.date }}</span>
-                                </div>
+                                <button @click="explorerMode = 'fare_history'" class="px-4 py-2 bg-surface-100 hover:bg-surface-200 text-white rounded-lg text-xs font-bold transition flex items-center gap-2"><i class="ph-bold ph-arrow-left"></i> Back</button>
+                                <div class="text-sm font-bold text-white">{{ snapshotQuery.origin }} <i class="ph-bold ph-arrow-right text-surface-400 mx-1"></i> {{ snapshotQuery.destination }}<span class="text-surface-300 ml-2 font-mono bg-surface-100 px-2 py-0.5 rounded text-xs">{{ snapshotQuery.date }}</span></div>
                             </div>
-
                             <div class="bg-surface-50 rounded-2xl border border-surface-100 overflow-hidden">
                                 <div class="overflow-x-auto">
                                     <table class="w-full text-left border-collapse">
@@ -623,192 +510,82 @@
                                         </thead>
                                         <tbody class="divide-y divide-surface-100 text-xs">
                                             <tr v-for="s in selectedSnapshots" :key="s.id" class="hover:bg-surface-100/50 transition">
-                                                <td class="px-6 py-3">
-                                                    <div class="text-white font-mono">{{ formatSmartTime(s.scraped_at) }}</div>
-                                                    <div class="text-[10px] text-surface-300">{{ formatTimeAgo(s.scraped_at) }} ago</div>
-                                                </td>
-                                                <td class="px-6 py-3 text-center">
-                                                    <div v-if="s.standard">
-                                                        <span class="text-white font-bold">${{ s.standard.min_price }}</span>
-                                                        <span class="text-[10px] text-surface-300 ml-1">({{ s.standard.seats }} seats)</span>
-                                                    </div>
-                                                    <span v-else class="text-surface-400">-</span>
-                                                </td>
-                                                <td class="px-6 py-3 text-center">
-                                                    <div v-if="s.den">
-                                                        <span class="text-brand-400 font-bold">${{ s.den.min_price }}</span>
-                                                        <span class="text-[10px] text-surface-300 ml-1">({{ s.den.seats }} seats)</span>
-                                                    </div>
-                                                    <span v-else class="text-surface-400">-</span>
-                                                </td>
-                                                <td class="px-6 py-3 text-center">
-                                                    <div v-if="s.gowild">
-                                                        <span class="text-purple-400 font-bold">${{ s.gowild.min_price }}</span>
-                                                        <span class="text-[10px] text-surface-300 ml-1">({{ s.gowild.seats }} seats)</span>
-                                                    </div>
-                                                    <span v-else class="text-surface-400">-</span>
-                                                </td>
-                                                <td class="px-6 py-3 text-right">
-                                                    <button v-if="isToday(s.scraped_at)" @click="redoSnapshot(s.id)" class="px-2 py-1 bg-surface-200 hover:bg-brand-600 hover:text-white text-surface-900 rounded text-[10px] font-bold transition" title="Delete & Rescrape">
-                                                        <i class="ph-bold ph-arrows-clockwise"></i> Redo
-                                                    </button>
-                                                </td>
+                                                <td class="px-6 py-3"><div class="text-white font-mono">{{ formatSmartTime(s.scraped_at) }}</div><div class="text-[10px] text-surface-300">{{ formatTimeAgo(s.scraped_at) }} ago</div></td>
+                                                <td class="px-6 py-3 text-center"><div v-if="s.standard"><span class="text-white font-bold">${{ s.standard.min_price }}</span><span class="text-[10px] text-surface-300 ml-1">({{ s.standard.seats }} seats)</span></div><span v-else class="text-surface-400">-</span></td>
+                                                <td class="px-6 py-3 text-center"><div v-if="s.den"><span class="text-brand-400 font-bold">${{ s.den.min_price }}</span><span class="text-[10px] text-surface-300 ml-1">({{ s.den.seats }} seats)</span></div><span v-else class="text-surface-400">-</span></td>
+                                                <td class="px-6 py-3 text-center"><div v-if="s.gowild"><span class="text-purple-400 font-bold">${{ s.gowild.min_price }}</span><span class="text-[10px] text-surface-300 ml-1">({{ s.gowild.seats }} seats)</span></div><span v-else class="text-surface-400">-</span></td>
+                                                <td class="px-6 py-3 text-right"><button v-if="isToday(s.scraped_at)" @click="redoSnapshot(s.id)" class="px-2 py-1 bg-surface-200 hover:bg-brand-600 hover:text-white text-surface-900 rounded text-[10px] font-bold transition" title="Delete & Rescrape"><i class="ph-bold ph-arrows-clockwise"></i> Redo</button></td>
                                             </tr>
                                         </tbody>
                                     </table>
                                 </div>
-                                <div v-if="selectedSnapshots.length === 0" class="p-8 text-center text-surface-200 text-xs">
-                                    No detailed snapshots found for this selection.
-                                </div>
+                                <div v-if="selectedSnapshots.length === 0" class="p-8 text-center text-surface-200 text-xs">No detailed snapshots found for this selection.</div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- SETTINGS TAB (Updated with Midnight) -->
+                    <!-- SETTINGS TAB -->
                     <div v-if="activeTab === 'settings'" class="max-w-7xl mx-auto animate-fade-in space-y-8">
                         <div class="bg-surface-50 rounded-2xl border border-surface-100 p-6">
                             <h3 class="text-lg font-bold text-white mb-6 border-b border-surface-100 pb-4">System Configuration</h3>
-
                             <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
                                 <!-- LEFT COLUMN -->
                                 <div class="space-y-8">
-                                    <div class="bg-surface-900 rounded-lg p-4 border border-brand-500/30">
-                                        <h5 class="text-xs font-bold text-brand-400 uppercase tracking-wider mb-1 flex items-center gap-2">
-                                            <i class="ph-bold ph-robot"></i> Automated Scrapers
-                                        </h5>
-                                    </div>
-
-                                    <!-- Auto Scraper -->
+                                    <div class="bg-surface-900 rounded-lg p-4 border border-brand-500/30"><h5 class="text-xs font-bold text-brand-400 uppercase tracking-wider mb-1 flex items-center gap-2"><i class="ph-bold ph-robot"></i> Automated Scrapers</h5></div>
                                     <div>
                                         <h4 class="text-xs font-bold text-surface-200 uppercase mb-4">Auto Scraper</h4>
                                         <div class="space-y-4">
                                             <toggle-switch v-model="settings.schedule_auto_enabled" label="Enable Auto Scraper"></toggle-switch>
-                                            <div class="grid grid-cols-2 gap-4">
-                                                <input-group v-model="settings.schedule_auto_interval" label="Interval (Min)" type="number"></input-group>
-                                                <input-group v-model="settings.scraper_worker_count" label="Max Workers" type="number" placeholder="20"></input-group>
-                                            </div>
+                                            <div class="grid grid-cols-2 gap-4"><input-group v-model="settings.schedule_auto_interval" label="Interval (Min)" type="number"></input-group><input-group v-model="settings.scraper_worker_count" label="Max Workers" type="number" placeholder="20"></input-group></div>
                                             <input-group v-model="settings.scraper_stale_minutes" label="Stale Data Threshold (Min)" type="number" placeholder="60"></input-group>
                                         </div>
                                     </div>
-
-                                    <!-- Midnight Scraper (UPDATED) -->
                                     <div>
                                         <h4 class="text-xs font-bold text-surface-200 uppercase mb-4 text-purple-400">Midnight Scraper</h4>
                                         <div class="space-y-4 p-4 rounded-xl bg-purple-500/5 border border-purple-500/10">
                                             <toggle-switch v-model="settings.schedule_midnight_enabled" label="Enable Midnight Scraper"></toggle-switch>
-                                            <div class="grid grid-cols-2 gap-4">
-                                                <input-group v-model="settings.midnight_check_duration" label="Run Duration (Min)" type="number" placeholder="30"></input-group>
-                                                <input-group v-model="settings.midnight_check_interval" label="Check Interval (Min)" type="number" placeholder="2"></input-group>
-                                            </div>
+                                            <div class="grid grid-cols-2 gap-4"><input-group v-model="settings.midnight_check_duration" label="Run Duration (Min)" type="number" placeholder="30"></input-group><input-group v-model="settings.midnight_check_interval" label="Check Interval (Min)" type="number" placeholder="2"></input-group></div>
                                         </div>
                                     </div>
-
-                                    <!-- Weather -->
                                     <div>
                                         <h4 class="text-xs font-bold text-surface-200 uppercase mb-4">Weather Scraper</h4>
-                                        <div class="space-y-4">
-                                            <toggle-switch v-model="settings.schedule_weather_enabled" label="Enable Weather Scraper"></toggle-switch>
-                                            <input-group v-model="settings.schedule_weather_time" label="Run Time (UTC)" type="time"></input-group>
-                                        </div>
+                                        <div class="space-y-4"><toggle-switch v-model="settings.schedule_weather_enabled" label="Enable Weather Scraper"></toggle-switch><input-group v-model="settings.schedule_weather_time" label="Run Time (UTC)" type="time"></input-group></div>
                                     </div>
                                 </div>
-
                                 <!-- RIGHT COLUMN -->
                                 <div class="space-y-8">
-                                    <div class="bg-surface-900 rounded-lg p-4 border border-surface-100">
-                                        <h5 class="text-xs font-bold text-surface-300 uppercase tracking-wider mb-1 flex items-center gap-2">
-                                            <i class="ph-bold ph-sliders"></i> Advanced Config
-                                        </h5>
-                                    </div>
-
-                                    <!-- 3-Week & Route Sync -->
+                                    <div class="bg-surface-900 rounded-lg p-4 border border-surface-100"><h5 class="text-xs font-bold text-surface-300 uppercase tracking-wider mb-1 flex items-center gap-2"><i class="ph-bold ph-sliders"></i> Advanced Config</h5></div>
                                     <div class="grid grid-cols-2 gap-6">
-                                        <div>
-                                            <h4 class="text-xs font-bold text-surface-200 uppercase mb-4">3-Week Scraper</h4>
-                                            <div class="space-y-2">
-                                                <toggle-switch v-model="settings.schedule_3week_enabled" label="Enable"></toggle-switch>
-                                                <input-group v-model="settings.schedule_3week_time" label="Time (UTC)" type="time"></input-group>
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <h4 class="text-xs font-bold text-surface-200 uppercase mb-4">Route Sync</h4>
-                                            <div class="space-y-2">
-                                                <toggle-switch v-model="settings.schedule_route_sync_enabled" label="Enable"></toggle-switch>
-                                                <input-group v-model="settings.schedule_route_sync_time" label="Time (UTC)" type="time"></input-group>
-                                            </div>
-                                        </div>
+                                        <div><h4 class="text-xs font-bold text-surface-200 uppercase mb-4">3-Week Scraper</h4><div class="space-y-2"><toggle-switch v-model="settings.schedule_3week_enabled" label="Enable"></toggle-switch><input-group v-model="settings.schedule_3week_time" label="Time (UTC)" type="time"></input-group></div></div>
+                                        <div><h4 class="text-xs font-bold text-surface-200 uppercase mb-4">Route Sync</h4><div class="space-y-2"><toggle-switch v-model="settings.schedule_route_sync_enabled" label="Enable"></toggle-switch><input-group v-model="settings.schedule_route_sync_time" label="Time (UTC)" type="time"></input-group></div></div>
                                     </div>
-
-                                    <!-- Cache & Proxy -->
                                     <div>
                                         <h4 class="text-xs font-bold text-surface-200 uppercase mb-4">Cache & Proxy</h4>
-                                        <div class="space-y-4">
-                                            <input-group v-model="settings.cache_duration_minutes" label="Cache TTL (Minutes)" type="number"></input-group>
-                                            <toggle-switch v-model="settings.proxy_enabled" label="Enable Proxies"></toggle-switch>
-                                            <toggle-switch v-model="settings.scraper_jitter_enabled" label="Enable Stealth Jitter"></toggle-switch>
-                                        </div>
+                                        <div class="space-y-4"><input-group v-model="settings.cache_duration_minutes" label="Cache TTL (Minutes)" type="number"></input-group><toggle-switch v-model="settings.proxy_enabled" label="Enable Proxies"></toggle-switch><toggle-switch v-model="settings.scraper_jitter_enabled" label="Enable Stealth Jitter"></toggle-switch></div>
                                     </div>
-                                    
-                                    <!-- Debug -->
-                                    <div>
-                                        <h4 class="text-xs font-bold text-surface-200 uppercase mb-4">Debug</h4>
-                                        <toggle-switch v-model="settings.debug_logging_enabled" label="Enable Debug Logging"></toggle-switch>
-                                    </div>
-
-                                    <!-- Frontend -->
+                                    <div><h4 class="text-xs font-bold text-surface-200 uppercase mb-4">Debug</h4><toggle-switch v-model="settings.debug_logging_enabled" label="Enable Debug Logging"></toggle-switch></div>
                                     <div>
                                         <h4 class="text-xs font-bold text-surface-200 uppercase mb-4">Frontend</h4>
                                         <div class="space-y-4">
                                             <toggle-switch v-model="settings.scraper_popup_enabled" label="Show Scraper Status Popup"></toggle-switch>
-                                            
-                                            <div class="space-y-3">
-                                                <toggle-switch v-model="settings.announcement_enabled" label="Show Announcement Bar"></toggle-switch>
-                                                <div v-if="settings.announcement_enabled === 'true'" class="animate-fade-in">
-                                                    <label class="block text-[10px] font-bold text-surface-200 uppercase mb-1">Announcement HTML</label>
-                                                    <textarea v-model="settings.announcement_html" class="w-full bg-surface-900 border border-surface-100 rounded-lg px-3 py-2 text-white text-xs font-mono outline-none focus:border-brand-500 transition h-24" placeholder="<p>Maintenance Mode</p>"></textarea>
-                                                </div>
-                                            </div>
+                                            <div class="space-y-3"><toggle-switch v-model="settings.announcement_enabled" label="Show Announcement Bar"></toggle-switch><div v-if="settings.announcement_enabled === 'true'" class="animate-fade-in"><label class="block text-[10px] font-bold text-surface-200 uppercase mb-1">Announcement HTML</label><textarea v-model="settings.announcement_html" class="w-full bg-surface-900 border border-surface-100 rounded-lg px-3 py-2 text-white text-xs font-mono outline-none focus:border-brand-500 transition h-24" placeholder="<p>Maintenance Mode</p>"></textarea></div></div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
-
-                            <div class="mt-8 pt-6 border-t border-surface-100 flex justify-end gap-4">
-                                <button @click="fetchData" class="bg-surface-100 text-white font-bold py-2.5 px-6 rounded-lg hover:bg-surface-200 transition">Reset</button>
-                                <button @click="saveSettings" class="bg-brand-600 text-white font-bold py-2.5 px-8 rounded-lg hover:bg-brand-500 transition shadow-lg shadow-brand-500/20">Save All Settings</button>
-                            </div>
+                            <div class="mt-8 pt-6 border-t border-surface-100 flex justify-end gap-4"><button @click="fetchData" class="bg-surface-100 text-white font-bold py-2.5 px-6 rounded-lg hover:bg-surface-200 transition">Reset</button><button @click="saveSettings" class="bg-brand-600 text-white font-bold py-2.5 px-8 rounded-lg hover:bg-brand-500 transition shadow-lg shadow-brand-500/20">Save All Settings</button></div>
                         </div>
-                        
-                         <!-- Proxies Section -->
                         <div class="bg-surface-50 rounded-2xl border border-surface-100 p-6">
-                            <div class="flex justify-between items-center mb-6 border-b border-surface-100 pb-4">
-                                <h3 class="text-lg font-bold text-white">Proxies</h3>
-                                <div class="flex gap-4">
-                                    <button @click="recheckProxies" class="text-xs font-bold text-brand-400 hover:text-brand-300 transition">Recheck</button>
-                                    <button @click="deleteAllProxies" class="text-xs font-bold text-rose-400 hover:text-rose-300 transition">Delete All</button>
-                                </div>
-                            </div>
-                            <div class="flex flex-col md:flex-row gap-3 mb-4">
-                                <textarea v-model="newProxies" placeholder="host:port:user:pass (one per line)" class="flex-1 bg-surface-900 border border-surface-100 rounded-lg px-3 py-2.5 text-white text-xs font-mono outline-none focus:border-brand-500 min-h-[80px]"></textarea>
-                                <button @click="addProxies" class="bg-brand-600 text-white font-bold px-6 py-2 rounded-lg hover:bg-brand-500 transition flex items-center justify-center shadow-lg shadow-brand-500/20">Add</button>
-                            </div>
+                            <div class="flex justify-between items-center mb-6 border-b border-surface-100 pb-4"><h3 class="text-lg font-bold text-white">Proxies</h3><div class="flex gap-4"><button @click="recheckProxies" class="text-xs font-bold text-brand-400 hover:text-brand-300 transition">Recheck</button><button @click="deleteAllProxies" class="text-xs font-bold text-rose-400 hover:text-rose-300 transition">Delete All</button></div></div>
+                            <div class="flex flex-col md:flex-row gap-3 mb-4"><textarea v-model="newProxies" placeholder="host:port:user:pass (one per line)" class="flex-1 bg-surface-900 border border-surface-100 rounded-lg px-3 py-2.5 text-white text-xs font-mono outline-none focus:border-brand-500 min-h-[80px]"></textarea><button @click="addProxies" class="bg-brand-600 text-white font-bold px-6 py-2 rounded-lg hover:bg-brand-500 transition flex items-center justify-center shadow-lg shadow-brand-500/20">Add</button></div>
                             <div class="space-y-2 max-h-64 overflow-y-auto custom-scrollbar">
-                                <div v-for="p in proxies" :key="p.id" class="flex justify-between items-start bg-surface-900 p-3 rounded-lg border border-surface-100">
-                                    <div class="flex items-start gap-3 overflow-hidden">
-                                        <div class="w-2 h-2 rounded-full flex-shrink-0 mt-1" :class="p.is_active ? 'bg-emerald-500' : 'bg-rose-500'"></div>
-                                        <span class="text-xs font-mono text-surface-200 break-all">{{ p.url }}</span>
-                                    </div>
-                                    <button @click="deleteProxy(p.id)" class="text-surface-200 hover:text-rose-400 ml-2"><i class="ph-bold ph-trash"></i></button>
-                                </div>
+                                <div v-for="p in proxies" :key="p.id" class="flex justify-between items-start bg-surface-900 p-3 rounded-lg border border-surface-100"><div class="flex items-start gap-3 overflow-hidden"><div class="w-2 h-2 rounded-full flex-shrink-0 mt-1" :class="p.is_active ? 'bg-emerald-500' : 'bg-rose-500'"></div><span class="text-xs font-mono text-surface-200 break-all">{{ p.url }}</span></div><button @click="deleteProxy(p.id)" class="text-surface-200 hover:text-rose-400 ml-2"><i class="ph-bold ph-trash"></i></button></div>
                                 <div v-if="proxies.length === 0" class="text-center text-xs text-surface-200 py-4">No proxies defined.</div>
                             </div>
                         </div>
                     </div>
-
                 </main>
             </div>
-
-            <!-- BOTTOM NAV (Mobile) -->
             <div class="lg:hidden fixed bottom-0 left-0 w-full bg-surface-50 border-t border-surface-100 flex justify-around items-center pb-safe z-30 shadow-2xl">
                 <nav-button-mobile v-for="tab in tabs" :key="tab.id" :item="tab" :active="activeTab === tab.id" @click="activeTab = tab.id"></nav-button-mobile>
             </div>
@@ -820,89 +597,13 @@
         {% raw %}
         const { createApp, ref, computed, watch, onMounted } = Vue;
 
-        // --- Shared Components ---
-        const NavButton = {
-            props: ['item', 'active'],
-            template: `
-                <button class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 text-sm font-bold group"
-                    :class="active ? 'bg-brand-600 text-white shadow-lg shadow-brand-500/20' : 'text-surface-200 hover:bg-surface-100 hover:text-white'">
-                    <i :class="[item.icon, 'text-xl']"></i>
-                    <span>{{ item.label }}</span>
-                </button>
-            `
-        };
+        const NavButton = { props: ['item', 'active'], template: `<button class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 text-sm font-bold group" :class="active ? 'bg-brand-600 text-white shadow-lg shadow-brand-500/20' : 'text-surface-200 hover:bg-surface-100 hover:text-white'"><i :class="[item.icon, 'text-xl']"></i><span>{{ item.label }}</span></button>` };
+        const NavButtonMobile = { props: ['item', 'active'], template: `<button class="flex flex-col items-center justify-center p-3 w-full transition-all duration-200" :class="active ? 'text-brand-500' : 'text-surface-200'"><i :class="[item.icon, active ? 'ph-fill' : 'ph-bold', 'text-2xl mb-1']"></i><span class="text-[10px] font-bold">{{ item.label }}</span></button>` };
+        const KpiCard = { props: ['icon', 'color', 'value', 'label'], template: `<div class="bg-surface-50 p-4 rounded-2xl border border-surface-100 flex flex-col justify-between h-24 lg:h-28 shadow-sm"><div class="w-8 h-8 rounded-lg flex items-center justify-center text-white" :class="'bg-'+color+'-500'"><i :class="['ph-bold', icon]"></i></div><div><div class="text-lg lg:text-xl font-bold text-white truncate">{{ value }}</div><div class="text-[10px] font-bold text-surface-200 uppercase tracking-wide">{{ label }}</div></div></div>` };
+        const ActionButton = { props: ['icon', 'label', 'loading', 'subtext', 'compact'], template: `<button class="w-full flex items-center justify-between rounded-xl bg-surface-100 hover:bg-surface-200 border border-surface-100 transition text-white text-sm font-bold group disabled:opacity-50" :class="compact ? 'p-2.5 text-xs' : 'p-3.5'" :disabled="loading"><div class="flex items-center gap-3"><div v-if="loading" class="animate-spin"><i class="ph-bold ph-spinner"></i></div><i v-else :class="['ph-bold', icon, 'text-surface-200 group-hover:text-white transition']"></i><div class="text-left"><div>{{ label }}</div><div v-if="subtext" class="text-[10px] text-surface-200 font-normal">{{ subtext }}</div></div></div><i v-if="!compact" class="ph-bold ph-caret-right text-surface-200 group-hover:translate-x-1 transition"></i></button>` };
+        const ToggleSwitch = { props: ['modelValue', 'label'], emits: ['update:modelValue'], template: `<label class="flex items-center justify-between cursor-pointer group"><span class="text-xs font-bold text-surface-200 group-hover:text-white transition">{{ label }}</span><div class="relative inline-flex items-center"><input type="checkbox" :checked="modelValue === 'true'" @change="$emit('update:modelValue', $event.target.checked ? 'true' : 'false')" class="sr-only peer"><div class="w-9 h-5 bg-surface-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-brand-500"></div></div></label>` };
+        const InputGroup = { props: ['modelValue', 'label', 'type', 'placeholder'], emits: ['update:modelValue'], template: `<div><label class="block text-[10px] font-bold text-surface-200 uppercase mb-1">{{ label }}</label><input :value="modelValue" @input="$emit('update:modelValue', $event.target.value)" :type="type" :placeholder="placeholder" class="w-full bg-surface-900 border border-surface-100 rounded-lg px-3 py-2 text-white text-xs outline-none focus:border-brand-500 transition"></div>` };
 
-        const NavButtonMobile = {
-            props: ['item', 'active'],
-            template: `
-                <button class="flex flex-col items-center justify-center p-3 w-full transition-all duration-200"
-                    :class="active ? 'text-brand-500' : 'text-surface-200'">
-                    <i :class="[item.icon, active ? 'ph-fill' : 'ph-bold', 'text-2xl mb-1']"></i>
-                    <span class="text-[10px] font-bold">{{ item.label }}</span>
-                </button>
-            `
-        };
-
-        const KpiCard = {
-            props: ['icon', 'color', 'value', 'label'],
-            template: `
-                <div class="bg-surface-50 p-4 rounded-2xl border border-surface-100 flex flex-col justify-between h-24 lg:h-28 shadow-sm">
-                    <div class="w-8 h-8 rounded-lg flex items-center justify-center text-white" :class="'bg-'+color+'-500'">
-                        <i :class="['ph-bold', icon]"></i>
-                    </div>
-                    <div>
-                        <div class="text-lg lg:text-xl font-bold text-white truncate">{{ value }}</div>
-                        <div class="text-[10px] font-bold text-surface-200 uppercase tracking-wide">{{ label }}</div>
-                    </div>
-                </div>
-            `
-        };
-
-        const ActionButton = {
-            props: ['icon', 'label', 'loading', 'subtext', 'compact'],
-            template: `
-                <button class="w-full flex items-center justify-between rounded-xl bg-surface-100 hover:bg-surface-200 border border-surface-100 transition text-white text-sm font-bold group disabled:opacity-50" 
-                    :class="compact ? 'p-2.5 text-xs' : 'p-3.5'"
-                    :disabled="loading">
-                    <div class="flex items-center gap-3">
-                        <div v-if="loading" class="animate-spin"><i class="ph-bold ph-spinner"></i></div>
-                        <i v-else :class="['ph-bold', icon, 'text-surface-200 group-hover:text-white transition']"></i>
-                        <div class="text-left">
-                            <div>{{ label }}</div>
-                            <div v-if="subtext" class="text-[10px] text-surface-200 font-normal">{{ subtext }}</div>
-                        </div>
-                    </div>
-                    <i v-if="!compact" class="ph-bold ph-caret-right text-surface-200 group-hover:translate-x-1 transition"></i>
-                </button>
-            `
-        };
-
-        const ToggleSwitch = {
-            props: ['modelValue', 'label'],
-            emits: ['update:modelValue'],
-            template: `
-                <label class="flex items-center justify-between cursor-pointer group">
-                    <span class="text-xs font-bold text-surface-200 group-hover:text-white transition">{{ label }}</span>
-                    <div class="relative inline-flex items-center">
-                        <input type="checkbox" :checked="modelValue === 'true'" @change="$emit('update:modelValue', $event.target.checked ? 'true' : 'false')" class="sr-only peer">
-                        <div class="w-9 h-5 bg-surface-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-brand-500"></div>
-                    </div>
-                </label>
-            `
-        };
-
-        const InputGroup = {
-            props: ['modelValue', 'label', 'type', 'placeholder'],
-            emits: ['update:modelValue'],
-            template: `
-                <div>
-                    <label class="block text-[10px] font-bold text-surface-200 uppercase mb-1">{{ label }}</label>
-                    <input :value="modelValue" @input="$emit('update:modelValue', $event.target.value)" :type="type" :placeholder="placeholder" class="w-full bg-surface-900 border border-surface-100 rounded-lg px-3 py-2 text-white text-xs outline-none focus:border-brand-500 transition">
-                </div>
-            `
-        };
-
-        // --- Main App ---
         createApp({
             components: { NavButton, NavButtonMobile, KpiCard, ActionButton, ToggleSwitch, InputGroup },
             setup() {
@@ -911,430 +612,81 @@
                 const loginError = ref('');
                 const activeTab = ref('dashboard');
                 const loadingData = ref(false);
-
-                // Config
-                const tabs = [
-                    { id: 'dashboard', label: 'Dashboard', icon: 'ph-squares-four' },
-                    { id: 'scraper', label: 'Scraper Tool', icon: 'ph-wrench' },
-                    { id: 'routes', label: 'Routes', icon: 'ph-path' },
-                    { id: 'data', label: 'Data', icon: 'ph-database' },
-                    { id: 'settings', label: 'Settings', icon: 'ph-gear' },
-                ];
-
-                // State
+                const tabs = [{ id: 'dashboard', label: 'Dashboard', icon: 'ph-squares-four' }, { id: 'scraper', label: 'Scraper Tool', icon: 'ph-wrench' }, { id: 'routes', label: 'Routes', icon: 'ph-path' }, { id: 'data', label: 'Data', icon: 'ph-database' }, { id: 'settings', label: 'Settings', icon: 'ph-gear' }];
                 const token = ref(localStorage.getItem('adminToken') || '');
                 const settings = ref({});
                 const proxies = ref([]);
                 const newProxies = ref('');
                 const cacheCount = ref(0);
                 const uptimeSeconds = ref(0);
-                
-                // Dashboard Data
                 const scraperRuns = ref([]);
                 const scraperTypeFilter = ref('');
                 const heartbeats = ref([]);
-                
-                // Routes Data
                 const allRoutes = ref([]);
                 const isLoadingRoutes = ref(false);
                 const routeSort = ref('errors');
                 const routeJob = ref({ status: 'idle', message: '', job_id: null });
                 const autoScraperJob = ref({ status: 'idle', message: null, job_id: null });
-
-                // Data Explorer
-                const explorerMode = ref('lookup'); // lookup, flights, weather, fare_history
+                const explorerMode = ref('lookup');
                 const explorerData = ref({ flights: {}, weather: {}, snapshots: {} });
                 const expanded = ref({});
                 const lookupQuery = ref({ origin: '', destination: '', date: '', hasSearched: false });
                 const flightDetails = ref([]);
-                
-                // Snapshot Drilldown
                 const selectedSnapshots = ref([]);
                 const snapshotQuery = ref({ origin: '', destination: '', date: '' });
-
-                // Manual Scraper
                 const manualScrape = ref({ origin: '', destination: '', date: new Date().toISOString().split('T')[0], loading: false, result: null, error: null });
 
-                // Computed
                 const activeProxiesCount = computed(() => proxies.value.filter(p => p.is_active).length);
-                const uptimeString = computed(() => {
-                    const h = Math.floor(uptimeSeconds.value / 3600);
-                    const m = Math.floor((uptimeSeconds.value % 3600) / 60);
-                    return `${h}h ${m}m`;
-                });
+                const uptimeString = computed(() => { const h = Math.floor(uptimeSeconds.value / 3600); const m = Math.floor((uptimeSeconds.value % 3600) / 60); return `${h}h ${m}m`; });
                 const currentTabLabel = computed(() => tabs.find(t => t.id === activeTab.value)?.label || 'Dashboard');
                 const sortedRoutes = computed(() => {
                     const list = [...allRoutes.value];
-                    if (routeSort.value === 'origin') {
-                        list.sort((a, b) => a.origin.localeCompare(b.origin) || a.destination.localeCompare(b.destination));
-                    } else {
-                        list.sort((a, b) => b.error_count - a.error_count || a.origin.localeCompare(b.origin));
-                    }
+                    if (routeSort.value === 'origin') list.sort((a, b) => a.origin.localeCompare(b.origin) || a.destination.localeCompare(b.destination));
+                    else list.sort((a, b) => b.error_count - a.error_count || a.origin.localeCompare(b.origin));
                     return list;
                 });
 
-                // --- Methods ---
-                const getHeaders = () => {
-                    if (token.value) return { 'Authorization': `Bearer ${token.value}` };
-                    return { 'X-Admin-Pass': password.value };
-                };
-
-                const login = async () => {
-                    try {
-                        const res = await axios.post('/api/admin/login', { password: password.value });
-                        token.value = res.data.token;
-                        localStorage.setItem('adminToken', token.value);
-                        authenticated.value = true;
-                        password.value = '';
-                        init();
-                    } catch (e) {
-                        loginError.value = "Access Denied";
-                        setTimeout(() => loginError.value = '', 3000);
-                    }
-                };
-
-                const checkAuth = async () => {
-                    if (!token.value) return;
-                    try {
-                        await axios.get('/api/settings', { headers: getHeaders() });
-                        authenticated.value = true;
-                        init();
-                    } catch (e) {
-                        localStorage.removeItem('adminToken');
-                        token.value = '';
-                    }
-                };
-
-                const logout = () => {
-                    authenticated.value = false;
-                    token.value = '';
-                    localStorage.removeItem('adminToken');
-                };
-
-                const init = () => {
-                    fetchData();
-                    setInterval(fetchUptime, 30000);
-                    fetchUptime();
-                };
-
-                // --- Data Fetching ---
-                const fetchData = async () => {
-                    loadingData.value = true;
-                    try {
-                        const [sRes, cRes, pRes] = await Promise.all([
-                            axios.get('/api/settings', { headers: getHeaders() }),
-                            axios.get('/api/admin/cache_stats', { headers: getHeaders() }),
-                            axios.get('/api/proxies', { headers: getHeaders() })
-                        ]);
-                        settings.value = sRes.data;
-                        cacheCount.value = cRes.data.total_flights;
-                        proxies.value = pRes.data;
-                        
-                        // Dashboard Specifics
-                        if (activeTab.value === 'dashboard') {
-                            fetchScraperRuns();
-                            fetchHeartbeats();
-                        }
-                        // Routes
-                        if (activeTab.value === 'routes') fetchRoutes();
-                        
-                    } catch(e) { console.error(e); }
-                    finally { loadingData.value = false; }
-                };
-
-                const fetchScraperRuns = async () => {
-                    try {
-                        const params = { limit: 20 };
-                        if (scraperTypeFilter.value) params.job_type = scraperTypeFilter.value;
-                        const res = await axios.get('/api/admin/scraper_runs', { params, headers: getHeaders() });
-                        scraperRuns.value = res.data;
-                    } catch(e){}
-                };
-
-                const fetchHeartbeats = async () => {
-                    try {
-                        const res = await axios.get('/api/admin/heartbeats', { params: { limit: 10 }, headers: getHeaders() });
-                        heartbeats.value = res.data;
-                    } catch(e){}
-                };
-
-                const fetchUptime = async () => {
-                    try {
-                        const res = await axios.get('/api/admin/uptime');
-                        uptimeSeconds.value = res.data.uptime_seconds;
-                    } catch(e){}
-                };
-
-                const fetchRoutes = async () => {
-                    isLoadingRoutes.value = true;
-                    try {
-                        const res = await axios.get('/api/admin/routes_list', { headers: getHeaders() });
-                        allRoutes.value = res.data;
-                    } catch(e){}
-                    finally { isLoadingRoutes.value = false; }
-                };
-
-                // Actions
-                const runAutoScraper = async () => {
-                    if(!confirm("Start Auto Scraper?")) return;
-                    const res = await axios.post('/api/admin/run_scraper', {}, { headers: getHeaders() });
-                    autoScraperJob.value = { status: 'running', message: 'Starting...', job_id: res.data.job_id };
-                    pollJob(res.data.job_id, (job) => {
-                        autoScraperJob.value = { ...job, job_id: res.data.job_id };
-                        if(job.status === 'completed') fetchData();
-                    });
-                };
-
-                const updateRoutes = async () => {
-                    const res = await axios.post('/api/update_routes', {}, { headers: getHeaders() });
-                    routeJob.value = { status: 'running', message: 'Updating...', job_id: res.data.job_id };
-                    pollJob(res.data.job_id, (job) => {
-                        routeJob.value = { ...job, job_id: res.data.job_id };
-                        if(job.status === 'completed') fetchData();
-                    });
-                };
-
-                const stopJob = async (id) => {
-                    if(!confirm("Stop this job?")) return;
-                    try {
-                        await axios.post(`/api/admin/jobs/${id}/stop`, {}, { headers: getHeaders() });
-                    } catch(e) { alert("Failed to stop job"); }
-                };
-
-                const triggerWeatherUpdate = async () => {
-                    if(!confirm("Clear Flight Cache?")) return;
-                    await axios.post('/api/admin/clear_cache', {}, { headers: getHeaders() });
-                    fetchData();
-                };
-
-                const rebootBackend = async () => {
-                    if(!confirm("Reboot Service?")) return;
-                    await axios.post('/api/admin/reboot', {}, { headers: getHeaders() });
-                };
-                
-                const saveSettings = async () => {
-                    try {
-                        await axios.post('/api/settings', settings.value, { headers: getHeaders() });
-                        alert("Settings Saved");
-                    } catch(e) { alert("Error saving settings"); }
-                };
-
-                // --- Data Explorer ---
-                const fetchFlightDetails = async () => {
-                    if (!lookupQuery.value.origin || !lookupQuery.value.destination) {
-                        alert("Enter Origin and Destination");
-                        return;
-                    }
-                    loadingData.value = true;
-                    lookupQuery.value.hasSearched = true;
-                    flightDetails.value = [];
-                    try {
-                        const params = { origin: lookupQuery.value.origin, destination: lookupQuery.value.destination };
-                        if (lookupQuery.value.date) params.date = lookupQuery.value.date;
-                        
-                        const res = await axios.get('/api/admin/flight_details', { params, headers: getHeaders() });
-                        flightDetails.value = res.data;
-                    } catch(e) { console.error(e); }
-                    finally { loadingData.value = false; }
-                };
-
-                const inspectRoute = (date, origin, dest) => {
-                    lookupQuery.value = { origin, destination: dest, date, hasSearched: true };
-                    explorerMode.value = 'lookup';
-                    fetchFlightDetails();
-                };
-                
-                const inspectSnapshots = async (date, origin, dest) => {
-                    snapshotQuery.value = { origin, destination: dest, date };
-                    selectedSnapshots.value = [];
-                    explorerMode.value = 'snapshot_list';
-                    
-                    try {
-                        const res = await axios.get('/api/admin/fare_snapshots', {
-                            params: { origin, destination: dest, date, limit: 50 },
-                            headers: getHeaders()
-                        });
-                        selectedSnapshots.value = res.data;
-                    } catch(e) { console.error(e); }
-                };
-
-                const redoSnapshot = async (id) => {
-                    if(!confirm("Redo this snapshot? It will be deleted and re-scraped.")) return;
-                    try {
-                        await axios.post(`/api/admin/snapshots/${id}/redo`, {}, { headers: getHeaders() });
-                        // Refresh list
-                        await inspectSnapshots(snapshotQuery.value.date, snapshotQuery.value.origin, snapshotQuery.value.destination);
-                    } catch(e) { alert("Failed to redo snapshot: " + (e.response?.data?.detail || e.message)); }
-                };
-
-                const redoSnapshotDate = async (date) => {
-                    if(!confirm(`Redo ALL snapshots for ${date} collected TODAY? This deletes them and re-queues them.`)) return;
-                    try {
-                        const res = await axios.post('/api/admin/snapshots/redo_date', { date }, { headers: getHeaders() });
-                        if(res.data.status === 'skipped') {
-                            alert(res.data.message);
-                        } else {
-                            alert(`Redo Started. Job ID: ${res.data.job_id}. ${res.data.count} snapshots queued.`);
-                        }
-                    } catch(e) { alert("Failed: " + e.message); }
-                };
-
-                const openExplorer = async () => {
-                    try {
-                        const [f, w, s] = await Promise.all([
-                            axios.get('/api/admin/cached_routes', { headers: getHeaders() }),
-                            axios.get('/api/admin/weather_data', { headers: getHeaders() }),
-                            axios.get('/api/admin/grouped_snapshots', { headers: getHeaders() })
-                        ]);
-                        explorerData.value.flights = f.data;
-                        explorerData.value.weather = w.data;
-                        explorerData.value.snapshots = s.data;
-                    } catch(e){}
-                };
-                
-                const deleteDate = async (type, date) => {
-                    if(!confirm(`Delete ${type} for ${date}?`)) return;
-                    await axios.delete(`/api/admin/${type}/${date}`, { headers: getHeaders() });
-                    openExplorer();
-                };
-
-                // --- Scraper Tool ---
-                const runManualScrape = async () => {
-                    manualScrape.value.loading = true;
-                    manualScrape.value.result = null;
-                    manualScrape.value.error = null;
-                    try {
-                        const res = await axios.post('/api/admin/scrape_route', {
-                            origin: manualScrape.value.origin,
-                            destination: manualScrape.value.destination,
-                            date: manualScrape.value.date
-                        }, { headers: getHeaders() });
-                        manualScrape.value.result = res.data;
-                        fetchData(); 
-                    } catch (e) {
-                        manualScrape.value.error = e.response?.data?.detail || e.message;
-                    } finally {
-                        manualScrape.value.loading = false;
-                    }
-                };
-                
-                // --- Routes ---
-                const toggleRoute = async (route) => {
-                    route.is_active = !route.is_active;
-                    try {
-                        await axios.post(`/api/admin/routes/${route.id}/toggle`, {}, { headers: getHeaders() });
-                        if (route.is_active) route.error_count = 0;
-                    } catch (e) { route.is_active = !route.is_active; }
-                };
-
-                // --- Proxies ---
-                const fetchProxies = async () => {
-                    const res = await axios.get('/api/proxies', { headers: getHeaders() });
-                    proxies.value = res.data;
-                };
-                const addProxies = async () => {
-                    if(!newProxies.value) return;
-                    await axios.post('/api/proxies', { proxies: newProxies.value }, { headers: getHeaders() });
-                    newProxies.value = '';
-                    fetchProxies();
-                };
-                const recheckProxies = async () => {
-                    if(!confirm("Recheck all?")) return;
-                    await axios.post('/api/proxies/recheck', {}, { headers: getHeaders() });
-                    alert("Recheck queued");
-                };
-                const deleteAllProxies = async () => {
-                    if(!confirm("Delete ALL?")) return;
-                    await axios.delete('/api/proxies', { headers: getHeaders() });
-                    fetchProxies();
-                };
-                const deleteProxy = async (id) => {
-                    await axios.delete(`/api/proxies/${id}`, { headers: getHeaders() });
-                    fetchProxies();
-                };
-                
-                // --- Utils ---
-                const pollJob = (id, cb) => {
-                    const intv = setInterval(async () => {
-                        try {
-                            const res = await axios.get(`/api/jobs/${id}`);
-                            cb(res.data);
-                            if(res.data.status === 'completed' || res.data.status === 'failed') clearInterval(intv);
-                        } catch(e) { clearInterval(intv); }
-                    }, 1000);
-                };
-                const formatSmartTime = (iso) => {
-                    if(!iso) return '-';
-                    const d = new Date(iso);
-                    return d.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
-                };
-                const formatDuration = (seconds) => {
-                    if (!seconds) return '-';
-                    if (seconds < 60) return seconds.toFixed(1) + 's';
-                    return (seconds / 60).toFixed(1) + 'm';
-                };
+                const getHeaders = () => token.value ? { 'Authorization': `Bearer ${token.value}` } : { 'X-Admin-Pass': password.value };
+                const login = async () => { try { const res = await axios.post('/api/admin/login', { password: password.value }); token.value = res.data.token; localStorage.setItem('adminToken', token.value); authenticated.value = true; password.value = ''; init(); } catch (e) { loginError.value = "Access Denied"; setTimeout(() => loginError.value = '', 3000); } };
+                const checkAuth = async () => { if (!token.value) return; try { await axios.get('/api/settings', { headers: getHeaders() }); authenticated.value = true; init(); } catch (e) { localStorage.removeItem('adminToken'); token.value = ''; } };
+                const logout = () => { authenticated.value = false; token.value = ''; localStorage.removeItem('adminToken'); };
+                const init = () => { fetchData(); setInterval(fetchUptime, 30000); fetchUptime(); };
+                const fetchData = async () => { loadingData.value = true; try { const [sRes, cRes, pRes] = await Promise.all([axios.get('/api/settings', { headers: getHeaders() }), axios.get('/api/admin/cache_stats', { headers: getHeaders() }), axios.get('/api/proxies', { headers: getHeaders() })]); settings.value = sRes.data; cacheCount.value = cRes.data.total_flights; proxies.value = pRes.data; if (activeTab.value === 'dashboard') { fetchScraperRuns(); fetchHeartbeats(); } if (activeTab.value === 'routes') fetchRoutes(); } catch(e) { console.error(e); } finally { loadingData.value = false; } };
+                const fetchScraperRuns = async () => { try { const params = { limit: 20 }; if (scraperTypeFilter.value) params.job_type = scraperTypeFilter.value; const res = await axios.get('/api/admin/scraper_runs', { params, headers: getHeaders() }); scraperRuns.value = res.data; } catch(e){} };
+                const fetchHeartbeats = async () => { try { const res = await axios.get('/api/admin/heartbeats', { params: { limit: 10 }, headers: getHeaders() }); heartbeats.value = res.data; } catch(e){} };
+                const fetchUptime = async () => { try { const res = await axios.get('/api/admin/uptime'); uptimeSeconds.value = res.data.uptime_seconds; } catch(e){} };
+                const fetchRoutes = async () => { isLoadingRoutes.value = true; try { const res = await axios.get('/api/admin/routes_list', { headers: getHeaders() }); allRoutes.value = res.data; } catch(e){} finally { isLoadingRoutes.value = false; } };
+                const runAutoScraper = async () => { if(!confirm("Start Auto Scraper?")) return; const res = await axios.post('/api/admin/run_scraper', {}, { headers: getHeaders() }); autoScraperJob.value = { status: 'running', message: 'Starting...', job_id: res.data.job_id }; pollJob(res.data.job_id, (job) => { autoScraperJob.value = { ...job, job_id: res.data.job_id }; if(job.status === 'completed') fetchData(); }); };
+                const updateRoutes = async () => { const res = await axios.post('/api/update_routes', {}, { headers: getHeaders() }); routeJob.value = { status: 'running', message: 'Updating...', job_id: res.data.job_id }; pollJob(res.data.job_id, (job) => { routeJob.value = { ...job, job_id: res.data.job_id }; if(job.status === 'completed') fetchData(); }); };
+                const stopJob = async (id) => { if(!confirm("Stop this job?")) return; try { await axios.post(`/api/admin/jobs/${id}/stop`, {}, { headers: getHeaders() }); } catch(e) { alert("Failed to stop job"); } };
+                const triggerWeatherUpdate = async () => { if(!confirm("Clear Flight Cache?")) return; await axios.post('/api/admin/clear_cache', {}, { headers: getHeaders() }); fetchData(); };
+                const rebootBackend = async () => { if(!confirm("Reboot Service?")) return; await axios.post('/api/admin/reboot', {}, { headers: getHeaders() }); };
+                const saveSettings = async () => { try { await axios.post('/api/settings', settings.value, { headers: getHeaders() }); alert("Settings Saved"); } catch(e) { alert("Error saving settings"); } };
+                const fetchFlightDetails = async () => { if (!lookupQuery.value.origin || !lookupQuery.value.destination) { alert("Enter Origin and Destination"); return; } loadingData.value = true; lookupQuery.value.hasSearched = true; flightDetails.value = []; try { const params = { origin: lookupQuery.value.origin, destination: lookupQuery.value.destination }; if (lookupQuery.value.date) params.date = lookupQuery.value.date; const res = await axios.get('/api/admin/flight_details', { params, headers: getHeaders() }); flightDetails.value = res.data; } catch(e) { console.error(e); } finally { loadingData.value = false; } };
+                const inspectRoute = (date, origin, dest) => { lookupQuery.value = { origin, destination: dest, date, hasSearched: true }; explorerMode.value = 'lookup'; fetchFlightDetails(); };
+                const inspectSnapshots = async (date, origin, dest) => { snapshotQuery.value = { origin, destination: dest, date }; selectedSnapshots.value = []; explorerMode.value = 'snapshot_list'; try { const res = await axios.get('/api/admin/fare_snapshots', { params: { origin, destination: dest, date, limit: 50 }, headers: getHeaders() }); selectedSnapshots.value = res.data; } catch(e) { console.error(e); } };
+                const redoSnapshot = async (id) => { if(!confirm("Redo this snapshot? It will be deleted and re-scraped.")) return; try { await axios.post(`/api/admin/snapshots/${id}/redo`, {}, { headers: getHeaders() }); await inspectSnapshots(snapshotQuery.value.date, snapshotQuery.value.origin, snapshotQuery.value.destination); } catch(e) { alert("Failed to redo snapshot: " + (e.response?.data?.detail || e.message)); } };
+                const redoSnapshotDate = async (date) => { if(!confirm(`Redo ALL snapshots for ${date} collected TODAY? This deletes them and re-queues them.`)) return; try { const res = await axios.post('/api/admin/snapshots/redo_date', { date }, { headers: getHeaders() }); if(res.data.status === 'skipped') { alert(res.data.message); } else { alert(`Redo Started. Job ID: ${res.data.job_id}. ${res.data.count} snapshots queued.`); } } catch(e) { alert("Failed: " + e.message); } };
+                const openExplorer = async () => { try { const [f, w, s] = await Promise.all([axios.get('/api/admin/cached_routes', { headers: getHeaders() }), axios.get('/api/admin/weather_data', { headers: getHeaders() }), axios.get('/api/admin/grouped_snapshots', { headers: getHeaders() })]); explorerData.value.flights = f.data; explorerData.value.weather = w.data; explorerData.value.snapshots = s.data; } catch(e){} };
+                const deleteDate = async (type, date) => { if(!confirm(`Delete ${type} for ${date}?`)) return; await axios.delete(`/api/admin/${type}/${date}`, { headers: getHeaders() }); openExplorer(); };
+                const runManualScrape = async () => { manualScrape.value.loading = true; manualScrape.value.result = null; manualScrape.value.error = null; try { const res = await axios.post('/api/admin/scrape_route', { origin: manualScrape.value.origin, destination: manualScrape.value.destination, date: manualScrape.value.date }, { headers: getHeaders() }); manualScrape.value.result = res.data; fetchData(); } catch (e) { manualScrape.value.error = e.response?.data?.detail || e.message; } finally { manualScrape.value.loading = false; } };
+                const toggleRoute = async (route) => { route.is_active = !route.is_active; try { await axios.post(`/api/admin/routes/${route.id}/toggle`, {}, { headers: getHeaders() }); if (route.is_active) route.error_count = 0; } catch (e) { route.is_active = !route.is_active; } };
+                const fetchProxies = async () => { const res = await axios.get('/api/proxies', { headers: getHeaders() }); proxies.value = res.data; };
+                const addProxies = async () => { if(!newProxies.value) return; await axios.post('/api/proxies', { proxies: newProxies.value }, { headers: getHeaders() }); newProxies.value = ''; fetchProxies(); };
+                const recheckProxies = async () => { if(!confirm("Recheck all?")) return; await axios.post('/api/proxies/recheck', {}, { headers: getHeaders() }); alert("Recheck queued"); };
+                const deleteAllProxies = async () => { if(!confirm("Delete ALL?")) return; await axios.delete('/api/proxies', { headers: getHeaders() }); fetchProxies(); };
+                const deleteProxy = async (id) => { await axios.delete(`/api/proxies/${id}`, { headers: getHeaders() }); fetchProxies(); };
+                const pollJob = (id, cb) => { const intv = setInterval(async () => { try { const res = await axios.get(`/api/jobs/${id}`); cb(res.data); if(res.data.status === 'completed' || res.data.status === 'failed') clearInterval(intv); } catch(e) { clearInterval(intv); } }, 1000); };
+                const formatSmartTime = (iso) => { if(!iso) return '-'; const d = new Date(iso); return d.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }); };
+                const formatDuration = (seconds) => { if (!seconds) return '-'; if (seconds < 60) return seconds.toFixed(1) + 's'; return (seconds / 60).toFixed(1) + 'm'; };
                 const toggleExpand = (key) => expanded.value[key] = !expanded.value[key];
+                const triggerScraper = async (type) => { if(!confirm(`Manually trigger ${type}?`)) return; try { await axios.post('/api/admin/trigger_scraper', { scraper_type: type }, { headers: getHeaders() }); alert(`${type} Queued`); setTimeout(fetchScraperRuns, 1000); } catch(e) { alert("Failed to trigger scraper"); } };
+                const clearCache = async () => { if(!confirm("Clear Flight Cache?")) return; await axios.post('/api/admin/clear_cache', {}, { headers: getHeaders() }); fetchData(); };
 
-                // --- Watchers & Hooks ---
-                watch(activeTab, (val) => {
-                    if (val === 'data') openExplorer();
-                    if (val === 'settings') fetchProxies();
-                    if (val === 'routes') fetchRoutes();
-                    if (val === 'dashboard') { fetchScraperRuns(); fetchHeartbeats(); }
-                });
+                watch(activeTab, (val) => { if (val === 'data') openExplorer(); if (val === 'settings') fetchProxies(); if (val === 'routes') fetchRoutes(); if (val === 'dashboard') { fetchScraperRuns(); fetchHeartbeats(); } });
+                onMounted(() => { checkAuth(); });
 
-                onMounted(() => {
-                    checkAuth();
-                });
-
-                return {
-                    authenticated, password, login, loginError, logout,
-                    activeTab, tabs, currentTabLabel, loadingData,
-                    settings, proxies, cacheCount, activeProxiesCount, uptimeString,
-                    heartbeats, scraperRuns, scraperTypeFilter,
-                    flightDetails, lookupQuery,
-                    routeJob, autoScraperJob, manualScrape,
-                    explorerMode, explorerData, expanded,
-                    selectedSnapshots, snapshotQuery, inspectSnapshots, redoSnapshot, redoSnapshotDate,
-                    allRoutes, isLoadingRoutes, sortedRoutes, routeSort,
-                    fetchData, fetchScraperRuns, fetchHeartbeats, fetchFlightDetails, fetchRoutes,
-                    triggerScraper, runManualScrape, updateRoutes, stopJob, clearCache, rebootBackend,
-                    saveSettings, toggleRoute,
-                    newProxies, addProxies, recheckProxies, deleteAllProxies, deleteProxy,
-                    formatSmartTime, formatDuration, toggleExpand, deleteDate,
-                    inspectRoute, formatTimeAgo: (iso) => {
-                        if (!iso) return '-';
-                        const sec = Math.floor((new Date() - new Date(iso)) / 1000);
-                        if (sec < 60) return sec + 's';
-                        if (sec < 3600) return Math.floor(sec/60) + 'm';
-                        if (sec < 86400) return Math.floor(sec/3600) + 'h';
-                        return Math.floor(sec/86400) + 'd';
-                    },
-                    getLastUpdateForOrigin: (dests) => {
-                        let max = null;
-                        for (const d of Object.values(dests)) {
-                            if (d.updated && (!max || d.updated > max)) max = d.updated;
-                        }
-                        return max;
-                    },
-                    getLastUpdateForDate: (origins) => {
-                        let max = null;
-                        for (const dests of Object.values(origins)) {
-                            for (const d of Object.values(dests)) {
-                                if (d.updated && (!max || d.updated > max)) max = d.updated;
-                            }
-                        }
-                        return max;
-                    },
-                    isToday: (iso) => {
-                        if (!iso) return false;
-                        const d = new Date(iso);
-                        const today = new Date();
-                        return d.getDate() === today.getDate() &&
-                               d.getMonth() === today.getMonth() &&
-                               d.getFullYear() === today.getFullYear();
-                    }
-                };
+                return { authenticated, password, login, loginError, logout, activeTab, tabs, currentTabLabel, loadingData, settings, proxies, cacheCount, activeProxiesCount, uptimeString, heartbeats, scraperRuns, scraperTypeFilter, flightDetails, lookupQuery, routeJob, autoScraperJob, manualScrape, explorerMode, explorerData, expanded, selectedSnapshots, snapshotQuery, inspectSnapshots, redoSnapshot, redoSnapshotDate, allRoutes, isLoadingRoutes, sortedRoutes, routeSort, fetchData, fetchScraperRuns, fetchHeartbeats, fetchFlightDetails, fetchRoutes, triggerScraper, runManualScrape, updateRoutes, stopJob, clearCache, rebootBackend, saveSettings, toggleRoute, newProxies, addProxies, recheckProxies, deleteAllProxies, deleteProxy, formatSmartTime, formatDuration, toggleExpand, deleteDate, inspectRoute, formatTimeAgo: (iso) => { if (!iso) return '-'; const sec = Math.floor((new Date() - new Date(iso)) / 1000); if (sec < 60) return sec + 's'; if (sec < 3600) return Math.floor(sec/60) + 'm'; if (sec < 86400) return Math.floor(sec/3600) + 'h'; return Math.floor(sec/86400) + 'd'; }, getLastUpdateForOrigin: (dests) => { let max = null; for (const d of Object.values(dests)) { if (d.updated && (!max || d.updated > max)) max = d.updated; } return max; }, getLastUpdateForDate: (origins) => { let max = null; for (const dests of Object.values(origins)) { for (const d of Object.values(dests)) { if (d.updated && (!max || d.updated > max)) max = d.updated; } } return max; }, isToday: (iso) => { if (!iso) return false; const d = new Date(iso); const today = new Date(); return d.getDate() === today.getDate() && d.getMonth() === today.getMonth() && d.getFullYear() === today.getFullYear(); } };
             }
         }).mount('#app');
         {% endraw %}
