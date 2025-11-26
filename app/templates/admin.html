@@ -562,9 +562,13 @@
                                             </div>
                                             <div class="space-y-1 max-h-48 overflow-y-auto custom-scrollbar">
                                                 <div v-for="(d, dest) in dests" :key="dest" 
-                                                     class="flex justify-between items-center text-[10px] text-surface-200 p-2 hover:bg-surface-200/10 rounded-lg transition">
+                                                     @click="inspectSnapshots(date, origin, dest)"
+                                                     class="flex justify-between items-center text-[10px] text-surface-200 p-2 hover:bg-surface-200/10 rounded-lg transition cursor-pointer group">
                                                     <div class="flex flex-col">
-                                                        <span class="font-bold text-surface-300">{{ dest }}</span>
+                                                        <span class="font-bold text-surface-300 group-hover:text-white flex items-center gap-1">
+                                                            {{ dest }}
+                                                            <i class="ph-bold ph-caret-right text-[8px] opacity-0 group-hover:opacity-100 text-purple-400 transition-opacity"></i>
+                                                        </span>
                                                         <span class="text-[8px] text-surface-400" v-if="d.updated">
                                                             {{ formatSmartTime(d.updated) }} ({{ formatTimeAgo(d.updated) }} ago)
                                                         </span>
@@ -580,6 +584,66 @@
                                 </div>
                                 <div v-if="Object.keys(explorerData.snapshots).length === 0" class="p-8 text-center text-surface-200 text-xs">
                                     No historical snapshots found.
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 5. SNAPSHOT LIST (Drill-down) -->
+                        <div v-if="explorerMode === 'snapshot_list'" class="space-y-4">
+                            <div class="flex items-center gap-4">
+                                <button @click="explorerMode = 'fare_history'" class="px-4 py-2 bg-surface-100 hover:bg-surface-200 text-white rounded-lg text-xs font-bold transition flex items-center gap-2">
+                                    <i class="ph-bold ph-arrow-left"></i> Back
+                                </button>
+                                <div class="text-sm font-bold text-white">
+                                    {{ snapshotQuery.origin }} <i class="ph-bold ph-arrow-right text-surface-400 mx-1"></i> {{ snapshotQuery.destination }}
+                                    <span class="text-surface-300 ml-2 font-mono bg-surface-100 px-2 py-0.5 rounded text-xs">{{ snapshotQuery.date }}</span>
+                                </div>
+                            </div>
+
+                            <div class="bg-surface-50 rounded-2xl border border-surface-100 overflow-hidden">
+                                <div class="overflow-x-auto">
+                                    <table class="w-full text-left border-collapse">
+                                        <thead>
+                                            <tr class="bg-surface-100 text-[10px] font-bold text-surface-200 uppercase">
+                                                <th class="px-6 py-3">Scraped Time</th>
+                                                <th class="px-6 py-3 text-center">Standard</th>
+                                                <th class="px-6 py-3 text-center">Discount Den</th>
+                                                <th class="px-6 py-3 text-center">GoWild!</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="divide-y divide-surface-100 text-xs">
+                                            <tr v-for="s in selectedSnapshots" :key="s.id" class="hover:bg-surface-100/50 transition">
+                                                <td class="px-6 py-3">
+                                                    <div class="text-white font-mono">{{ formatSmartTime(s.scraped_at) }}</div>
+                                                    <div class="text-[10px] text-surface-300">{{ formatTimeAgo(s.scraped_at) }} ago</div>
+                                                </td>
+                                                <td class="px-6 py-3 text-center">
+                                                    <div v-if="s.standard">
+                                                        <span class="text-white font-bold">${{ s.standard.min_price }}</span>
+                                                        <span class="text-[10px] text-surface-300 ml-1">({{ s.standard.seats }} seats)</span>
+                                                    </div>
+                                                    <span v-else class="text-surface-400">-</span>
+                                                </td>
+                                                <td class="px-6 py-3 text-center">
+                                                    <div v-if="s.den">
+                                                        <span class="text-brand-400 font-bold">${{ s.den.min_price }}</span>
+                                                        <span class="text-[10px] text-surface-300 ml-1">({{ s.den.seats }} seats)</span>
+                                                    </div>
+                                                    <span v-else class="text-surface-400">-</span>
+                                                </td>
+                                                <td class="px-6 py-3 text-center">
+                                                    <div v-if="s.gowild">
+                                                        <span class="text-purple-400 font-bold">${{ s.gowild.min_price }}</span>
+                                                        <span class="text-[10px] text-surface-300 ml-1">({{ s.gowild.seats }} seats)</span>
+                                                    </div>
+                                                    <span v-else class="text-surface-400">-</span>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div v-if="selectedSnapshots.length === 0" class="p-8 text-center text-surface-200 text-xs">
+                                    No detailed snapshots found for this selection.
                                 </div>
                             </div>
                         </div>
@@ -850,6 +914,10 @@
                 const expanded = ref({});
                 const lookupQuery = ref({ origin: '', destination: '', date: '', hasSearched: false });
                 const flightDetails = ref([]);
+                
+                // Snapshot Drilldown
+                const selectedSnapshots = ref([]);
+                const snapshotQuery = ref({ origin: '', destination: '', date: '' });
 
                 // Manual Scraper
                 const manualScrape = ref({ origin: '', destination: '', date: new Date().toISOString().split('T')[0], loading: false, result: null, error: null });
@@ -1034,6 +1102,20 @@
                     explorerMode.value = 'lookup';
                     fetchFlightDetails();
                 };
+                
+                const inspectSnapshots = async (date, origin, dest) => {
+                    snapshotQuery.value = { origin, destination: dest, date };
+                    selectedSnapshots.value = [];
+                    explorerMode.value = 'snapshot_list';
+                    
+                    try {
+                        const res = await axios.get('/api/admin/fare_snapshots', {
+                            params: { origin, destination: dest, date, limit: 50 },
+                            headers: getHeaders()
+                        });
+                        selectedSnapshots.value = res.data;
+                    } catch(e) { console.error(e); }
+                };
 
                 const openExplorer = async () => {
                     try {
@@ -1151,6 +1233,7 @@
                     flightDetails, lookupQuery,
                     routeJob, manualScrape,
                     explorerMode, explorerData, expanded,
+                    selectedSnapshots, snapshotQuery, inspectSnapshots,
                     allRoutes, isLoadingRoutes, sortedRoutes, routeSort,
                     fetchData, fetchScraperRuns, fetchHeartbeats, fetchFlightDetails, fetchRoutes,
                     triggerScraper, runManualScrape, updateRoutes, clearCache, rebootBackend,
