@@ -23,6 +23,10 @@
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
         ::-webkit-scrollbar-thumb:hover { background: #475569; }
+        
+        /* Utility */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
     <script>
         tailwind.config = {
@@ -33,7 +37,8 @@
                         surface: { 
                             50: '#1e293b', // Card BG
                             100: '#334155', // Border/Hover
-                            200: '#475569', // Text Muted
+                            200: '#94a3b8', // Text Muted
+                            300: '#cbd5e1', // Text Normal
                             900: '#0f172a' // Main BG
                         }
                     }
@@ -46,65 +51,67 @@
     <div id="app" class="h-full flex flex-col relative">
         {% raw %}
 
-        <!-- LOGIN -->
-        <div v-if="!authenticated" class="absolute inset-0 z-50 bg-surface-900 flex items-center justify-center p-4">
-            <div class="w-full max-w-sm bg-surface-50 rounded-2xl border border-surface-100 shadow-2xl p-8">
-                <div class="flex flex-col items-center mb-8">
-                    <div class="w-12 h-12 bg-brand-500 rounded-xl flex items-center justify-center text-white shadow-lg shadow-brand-500/20 mb-4">
-                        <i class="ph-bold ph-lock-key text-2xl"></i>
+        <!-- LOGIN MODAL -->
+        <transition name="fade">
+            <div v-if="!authenticated" class="absolute inset-0 z-50 bg-surface-900 flex items-center justify-center p-4">
+                <div class="w-full max-w-sm bg-surface-50 rounded-2xl border border-surface-100 shadow-2xl p-8">
+                    <div class="flex flex-col items-center mb-8">
+                        <div class="w-12 h-12 bg-brand-500 rounded-xl flex items-center justify-center text-white shadow-lg shadow-brand-500/20 mb-4">
+                            <i class="ph-bold ph-lock-key text-2xl"></i>
+                        </div>
+                        <h1 class="text-xl font-bold text-white">Admin Access</h1>
                     </div>
-                    <h1 class="text-xl font-bold text-white">Admin Access</h1>
-                </div>
-                <div class="space-y-4">
-                    <input v-model="password" type="password" class="w-full bg-surface-900 border border-surface-100 rounded-xl px-4 py-3.5 text-white focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition placeholder:text-surface-200" placeholder="Enter Access Key" @keyup.enter="login">
-                    <button @click="login" class="w-full bg-brand-600 hover:bg-brand-500 text-white font-bold py-3.5 rounded-xl transition shadow-lg shadow-brand-500/20 active:scale-95">Unlock</button>
-                    <p v-if="loginError" class="text-center text-rose-500 text-xs font-bold mt-2 animate-pulse">{{ loginError }}</p>
+                    <div class="space-y-4">
+                        <input v-model="password" type="password" class="w-full bg-surface-900 border border-surface-100 rounded-xl px-4 py-3.5 text-white focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition placeholder:text-surface-200" placeholder="Enter Access Key" @keyup.enter="login">
+                        <button @click="login" class="w-full bg-brand-600 hover:bg-brand-500 text-white font-bold py-3.5 rounded-xl transition shadow-lg shadow-brand-500/20 active:scale-95">Unlock</button>
+                        <p v-if="loginError" class="text-center text-rose-500 text-xs font-bold mt-2 animate-pulse">{{ loginError }}</p>
+                    </div>
                 </div>
             </div>
-        </div>
+        </transition>
 
         <!-- APP LAYOUT -->
         <div v-else class="flex h-full flex-col lg:flex-row">
             
-            <!-- SIDEBAR (Desktop) / HEADER (Mobile) -->
-            <div class="lg:w-64 bg-surface-50 border-b lg:border-b-0 lg:border-r border-surface-100 flex-shrink-0 flex lg:flex-col justify-between z-20">
-                
-                <!-- Logo Area -->
-                <div class="h-16 flex items-center px-6 border-b border-surface-100/50 bg-surface-50/50 backdrop-blur">
+            <!-- SIDEBAR (Desktop) -->
+            <div class="hidden lg:flex w-64 bg-surface-50 border-r border-surface-100 flex-col justify-between z-20 flex-shrink-0">
+                <!-- Logo -->
+                <div class="h-16 flex items-center px-6 border-b border-surface-100/50">
                     <div class="flex items-center gap-3">
                         <img src="/static/logo.png" class="w-8 h-8 rounded-md shadow-sm">
-                        <span class="font-bold text-lg tracking-tight">WildFares</span>
+                        <span class="font-bold text-lg tracking-tight text-white">WildFares</span>
                     </div>
                 </div>
 
-                <!-- Desktop Nav -->
-                <div class="hidden lg:flex flex-1 flex-col p-4 gap-1 overflow-y-auto">
+                <!-- Nav -->
+                <div class="flex-1 flex flex-col p-4 gap-1 overflow-y-auto">
                     <nav-button v-for="tab in tabs" :key="tab.id" :item="tab" :active="activeTab === tab.id" @click="activeTab = tab.id"></nav-button>
                 </div>
 
-                <!-- Footer Stats (Desktop) -->
-                <div class="hidden lg:block p-6 border-t border-surface-100/50">
+                <!-- Footer Stats -->
+                <div class="p-6 border-t border-surface-100/50">
                     <div class="flex items-center gap-2 mb-2">
                         <div class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
-                        <span class="text-xs font-bold text-surface-200 uppercase tracking-wide">Online</span>
+                        <span class="text-xs font-bold text-surface-200 uppercase tracking-wide">System Online</span>
                     </div>
                     <div class="text-[10px] text-surface-200 font-mono mb-1">UPTIME: {{ uptimeString }}</div>
-                    <div class="text-[10px] text-surface-400 font-mono mb-3">VERSION: v2.4.0</div>
+                    <div class="text-[10px] text-surface-400 font-mono mb-3">VERSION: v2.5.0</div>
                     <button @click="logout" class="w-full py-2 rounded-lg bg-surface-100 hover:bg-surface-200 text-xs font-bold text-surface-200 hover:text-white transition">Logout</button>
                 </div>
             </div>
 
             <!-- MAIN CONTENT -->
-            <div class="flex-1 bg-surface-900 overflow-hidden flex flex-col relative">
+            <div class="flex-1 bg-surface-900 overflow-hidden flex flex-col relative w-full">
                 
-                <!-- Top Bar (Context) -->
-                <header class="h-16 border-b border-surface-100 flex items-center justify-between px-6 bg-surface-900/95 backdrop-blur z-10">
-                    <div>
+                <!-- Top Bar -->
+                <header class="h-16 border-b border-surface-100 flex items-center justify-between px-4 lg:px-6 bg-surface-900/95 backdrop-blur z-10 flex-shrink-0">
+                    <div class="flex items-center gap-3">
+                        <!-- Mobile Menu Button could go here -->
                         <h2 class="text-lg font-bold text-white">{{ currentTabLabel }}</h2>
                     </div>
                     <div class="flex items-center gap-3">
                         <button @click="fetchData" class="p-2 text-surface-200 hover:text-white hover:bg-surface-100 rounded-lg transition" title="Refresh Data">
-                            <i class="ph-bold ph-arrows-clockwise text-lg"></i>
+                            <i class="ph-bold ph-arrows-clockwise text-lg" :class="{'animate-spin': loadingData}"></i>
                         </button>
                         <a href="/" target="_blank" class="hidden md:flex items-center gap-2 px-3 py-1.5 bg-brand-600/10 text-brand-500 rounded-lg text-xs font-bold hover:bg-brand-600 hover:text-white transition">
                             Live Site <i class="ph-bold ph-arrow-square-out"></i>
@@ -113,10 +120,11 @@
                 </header>
 
                 <!-- Scrollable Area -->
-                <main class="flex-1 overflow-y-auto p-4 pb-24 lg:p-8 lg:pb-8">
+                <main class="flex-1 overflow-y-auto p-4 lg:p-8 pb-24 lg:pb-8 scroll-smooth">
                     
-                    <!-- DASHBOARD -->
-                    <div v-if="activeTab === 'dashboard'" class="space-y-6 max-w-6xl mx-auto animate-fade-in">
+                    <!-- DASHBOARD TAB -->
+                    <div v-if="activeTab === 'dashboard'" class="space-y-6 max-w-7xl mx-auto animate-fade-in">
+                        
                         <!-- KPI Grid -->
                         <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
                             <kpi-card icon="ph-database" color="emerald" :value="cacheCount" label="Cached Flights"></kpi-card>
@@ -125,138 +133,180 @@
                             <kpi-card icon="ph-clock" color="purple" :value="settings.last_auto_scrape ? formatSmartTime(settings.last_auto_scrape) : 'Never'" label="Last Run" class="truncate"></kpi-card>
                         </div>
 
-                        <!-- Controls -->
-                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                            <!-- Actions -->
-                            <div class="bg-surface-50 rounded-2xl border border-surface-100 p-6">
-                                <h3 class="text-sm font-bold text-surface-200 uppercase tracking-wider mb-4">System Control</h3>
-                                <div class="space-y-3">
-                                    <action-button icon="ph-play" label="Trigger Auto Scraper" @click="runAutoScraper"></action-button>
-                                    <action-button icon="ph-arrows-clockwise" label="Update Route Map" @click="updateRoutes" :loading="routeJob.status === 'running'" :subtext="routeJob.message"></action-button>
-                                    <action-button icon="ph-cloud-sun" label="Update Weather" @click="triggerWeatherUpdate"></action-button>
-                                    <div class="grid grid-cols-2 gap-3 pt-2">
-                                        <button @click="clearCache" class="py-2.5 rounded-xl bg-surface-100 hover:bg-rose-500/20 hover:text-rose-400 hover:border-rose-500/50 border border-surface-100 text-xs font-bold text-surface-200 transition flex justify-center items-center gap-2"><i class="ph-bold ph-trash"></i> Clear Cache</button>
-                                        <button @click="rebootBackend" class="py-2.5 rounded-xl bg-surface-100 hover:bg-white/5 border border-surface-100 text-xs font-bold text-surface-200 hover:text-white transition flex justify-center items-center gap-2"><i class="ph-bold ph-power"></i> Reboot</button>
+                        <!-- System Controls & Heartbeats Grid -->
+                        <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+                            
+                            <!-- Left: Controls (1 Col) -->
+                            <div class="space-y-6 xl:col-span-1">
+                                <!-- Manual Triggers -->
+                                <div class="bg-surface-50 rounded-2xl border border-surface-100 p-6">
+                                    <h3 class="text-sm font-bold text-surface-200 uppercase tracking-wider mb-4">Manual Triggers</h3>
+                                    <div class="space-y-2">
+                                        <div class="grid grid-cols-2 gap-2">
+                                            <action-button icon="ph-robot" label="Auto Scraper" @click="triggerScraper('AutoScraper')" compact></action-button>
+                                            <action-button icon="ph-moon" label="Midnight" @click="triggerScraper('MidnightScraper')" compact></action-button>
+                                        </div>
+                                        <div class="grid grid-cols-2 gap-2">
+                                            <action-button icon="ph-calendar-dots" label="3-Week" @click="triggerScraper('3WeekScraper')" compact></action-button>
+                                            <action-button icon="ph-cloud-sun" label="Weather" @click="triggerScraper('WeatherScraper')" compact></action-button>
+                                        </div>
+                                        <action-button icon="ph-map-pin-line" label="Route Scraper" @click="triggerScraper('RouteScraper')" compact></action-button>
+                                        
+                                        <div class="h-px bg-surface-100 my-2"></div>
+                                        
+                                        <action-button icon="ph-arrows-clockwise" label="Update Route Map" @click="updateRoutes" :loading="routeJob.status === 'running'" :subtext="routeJob.message"></action-button>
                                     </div>
                                 </div>
-                            </div>
-                            <!-- Quick Settings -->
-                            <div class="bg-surface-50 rounded-2xl border border-surface-100 p-6">
-                                <h3 class="text-sm font-bold text-surface-200 uppercase tracking-wider mb-4">Quick Config</h3>
-                                <div class="space-y-4">
-                                    <toggle-switch v-model="settings.auto_scrape_enabled" label="Auto Scraper"></toggle-switch>
-                                    <toggle-switch v-model="settings.proxy_enabled" label="Use Proxies"></toggle-switch>
-                                    <toggle-switch v-model="settings.scraper_jitter_enabled" label="Scraper Jitter (Stealth)"></toggle-switch>
-                                    <div class="pt-4 mt-4 border-t border-surface-100">
-                                        <button @click="saveSettings" class="w-full bg-white text-surface-900 font-bold py-3 rounded-xl hover:bg-brand-500 hover:text-white transition">Save Changes</button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
 
-                        <!-- Scraper Run History -->
-                        <div class="bg-surface-50 rounded-2xl border border-surface-100 p-6">
-                            <div class="flex justify-between items-center mb-4">
-                                <h3 class="text-sm font-bold text-surface-200 uppercase tracking-wider">Scraper Run History</h3>
-                                <button @click="fetchScraperRuns" class="text-xs text-brand-400 hover:text-brand-300 transition"><i class="ph-bold ph-arrows-clockwise"></i> Refresh</button>
-                            </div>
-                            <div class="space-y-2">
-                                <div v-if="scraperRuns.length === 0" class="text-center py-8 text-surface-200 text-sm">
-                                    No scraper runs yet
+                                <!-- System Actions -->
+                                <div class="bg-surface-50 rounded-2xl border border-surface-100 p-6">
+                                    <h3 class="text-sm font-bold text-surface-200 uppercase tracking-wider mb-4">System Actions</h3>
+                                    <div class="space-y-3">
+                                        <button @click="clearCache" class="w-full py-2.5 rounded-xl bg-surface-100 hover:bg-rose-500/20 hover:text-rose-400 border border-surface-100 text-xs font-bold text-surface-200 transition flex justify-center items-center gap-2"><i class="ph-bold ph-trash"></i> Clear Flight Cache</button>
+                                        <button @click="rebootBackend" class="w-full py-2.5 rounded-xl bg-surface-100 hover:bg-white/5 border border-surface-100 text-xs font-bold text-surface-200 hover:text-white transition flex justify-center items-center gap-2"><i class="ph-bold ph-power"></i> Reboot Backend</button>
+                                    </div>
                                 </div>
-                                <div v-for="run in scraperRuns" :key="run.id" class="bg-surface-900 rounded-xl border border-surface-100 p-4 hover:border-brand-500/30 transition">
-                                    <div class="flex items-start justify-between mb-2">
+                            </div>
+
+                            <!-- Right: Logs (2 Cols) -->
+                            <div class="xl:col-span-2 space-y-6">
+                                
+                                <!-- Scraper Run History -->
+                                <div class="bg-surface-50 rounded-2xl border border-surface-100 flex flex-col h-[500px]">
+                                    <div class="p-6 border-b border-surface-100 flex justify-between items-center">
+                                        <h3 class="text-sm font-bold text-surface-200 uppercase tracking-wider">Scraper Run History</h3>
                                         <div class="flex items-center gap-2">
-                                            <div class="w-2 h-2 rounded-full" :class="{
-                                                'bg-emerald-500': run.status === 'completed',
-                                                'bg-rose-500': run.status === 'failed',
-                                                'bg-blue-500 animate-pulse': run.status === 'running'
-                                            }"></div>
-                                            <span class="text-xs font-bold text-white">Run #{{ run.id }}</span>
-                                            <span class="text-[10px] text-surface-200 font-mono">{{ formatSmartTime(run.started_at) }}</span>
-                                        </div>
-                                        <div class="flex items-center gap-2">
-                                            <span class="text-xs font-bold px-2 py-1 rounded-lg" :class="{
-                                                'bg-emerald-500/20 text-emerald-400': run.status === 'completed',
-                                                'bg-rose-500/20 text-rose-400': run.status === 'failed',
-                                                'bg-blue-500/20 text-blue-400': run.status === 'running'
-                                            }">{{ run.status.toUpperCase() }}</span>
-                                            <span class="text-[10px] text-surface-200 font-mono">{{ formatDuration(run.duration_seconds) }}</span>
+                                            <select v-model="scraperTypeFilter" @change="fetchScraperRuns" class="bg-surface-900 border border-surface-100 rounded-lg text-xs text-white px-2 py-1 outline-none focus:border-brand-500">
+                                                <option value="">All Types</option>
+                                                <option value="AutoScraper">AutoScraper</option>
+                                                <option value="MidnightScraper">MidnightScraper</option>
+                                                <option value="3WeekScraper">3WeekScraper</option>
+                                                <option value="RouteScraper">RouteScraper</option>
+                                                <option value="WeatherScraper">WeatherScraper</option>
+                                            </select>
+                                            <button @click="fetchScraperRuns" class="text-surface-200 hover:text-white p-1"><i class="ph-bold ph-arrows-clockwise"></i></button>
                                         </div>
                                     </div>
-                                    <div class="grid grid-cols-4 gap-3 mt-3">
-                                        <div class="text-center">
-                                            <div class="text-xs font-bold text-white">{{ run.total_routes || 0 }}</div>
-                                            <div class="text-[10px] text-surface-200 uppercase">Total</div>
-                                        </div>
-                                        <div class="text-center">
-                                            <div class="text-xs font-bold text-emerald-400">{{ run.routes_scraped || 0 }}</div>
-                                            <div class="text-[10px] text-surface-200 uppercase">Scraped</div>
-                                        </div>
-                                        <div class="text-center">
-                                            <div class="text-xs font-bold text-blue-400">{{ run.routes_skipped || 0 }}</div>
-                                            <div class="text-[10px] text-surface-200 uppercase">Skipped</div>
-                                        </div>
-                                        <div class="text-center">
-                                            <div class="text-xs font-bold text-rose-400">{{ run.routes_failed || 0 }}</div>
-                                            <div class="text-[10px] text-surface-200 uppercase">Failed</div>
+                                    <div class="flex-1 overflow-y-auto p-4 space-y-2 custom-scrollbar">
+                                        <div v-if="scraperRuns.length === 0" class="text-center py-8 text-surface-200 text-sm">No logs found</div>
+                                        <div v-for="run in scraperRuns" :key="run.id" class="bg-surface-900 rounded-xl border border-surface-100 p-4 hover:border-brand-500/30 transition group">
+                                            <div class="flex items-start justify-between mb-2">
+                                                <div class="flex items-center gap-2">
+                                                    <span class="text-xs font-bold px-2 py-0.5 rounded text-surface-900" :class="{
+                                                        'bg-brand-400': run.job_type === 'AutoScraper',
+                                                        'bg-purple-400': run.job_type === 'MidnightScraper',
+                                                        'bg-orange-400': run.job_type === 'WeatherScraper',
+                                                        'bg-surface-300': !['AutoScraper','MidnightScraper','WeatherScraper'].includes(run.job_type)
+                                                    }">{{ run.job_type }}</span>
+                                                    <span class="text-[10px] text-surface-200 font-mono">{{ formatSmartTime(run.started_at) }}</span>
+                                                </div>
+                                                <div class="flex items-center gap-2">
+                                                    <span class="text-[10px] font-bold px-1.5 py-0.5 rounded border" :class="{
+                                                        'border-emerald-500/30 text-emerald-400 bg-emerald-500/10': run.status === 'completed',
+                                                        'border-rose-500/30 text-rose-400 bg-rose-500/10': run.status === 'failed',
+                                                        'border-blue-500/30 text-blue-400 bg-blue-500/10 animate-pulse': run.status === 'running'
+                                                    }">{{ run.status.toUpperCase() }}</span>
+                                                    <span class="text-[10px] text-surface-200 font-mono w-12 text-right">{{ formatDuration(run.duration_seconds) }}</span>
+                                                </div>
+                                            </div>
+                                            <!-- Stats Bar -->
+                                            <div class="flex gap-4 text-[10px] text-surface-300 border-t border-surface-100/50 pt-2 mt-2">
+                                                <span>Total: <b class="text-white">{{ run.total_routes || 0 }}</b></span>
+                                                <span>Scraped: <b class="text-emerald-400">{{ run.routes_scraped || 0 }}</b></span>
+                                                <span>Skipped: <b class="text-blue-400">{{ run.routes_skipped || 0 }}</b></span>
+                                                <span>Failed: <b class="text-rose-400">{{ run.routes_failed || 0 }}</b></span>
+                                            </div>
+                                            <div v-if="run.error_message" class="mt-2 text-[10px] text-rose-400 font-mono bg-rose-500/10 rounded p-1.5 break-all">
+                                                {{ run.error_message }}
+                                            </div>
                                         </div>
                                     </div>
-                                    <div v-if="run.error_message" class="mt-3 text-[10px] text-rose-400 font-mono bg-rose-500/10 rounded-lg p-2 border border-rose-500/20">
-                                        {{ run.error_message }}
+                                </div>
+
+                                <!-- Heartbeat Log -->
+                                <div class="bg-surface-50 rounded-2xl border border-surface-100 flex flex-col h-[300px]">
+                                    <div class="p-4 border-b border-surface-100 flex justify-between items-center">
+                                        <h3 class="text-sm font-bold text-surface-200 uppercase tracking-wider">Heartbeat Log</h3>
+                                        <button @click="fetchHeartbeats" class="text-surface-200 hover:text-white p-1"><i class="ph-bold ph-arrows-clockwise"></i></button>
+                                    </div>
+                                    <div class="flex-1 overflow-y-auto custom-scrollbar">
+                                        <table class="w-full text-left border-collapse">
+                                            <thead class="sticky top-0 bg-surface-50 z-10 shadow-sm">
+                                                <tr class="text-[10px] font-bold text-surface-200 uppercase">
+                                                    <th class="px-4 py-2">Timestamp</th>
+                                                    <th class="px-4 py-2">Duration</th>
+                                                    <th class="px-4 py-2">Triggers</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody class="divide-y divide-surface-100 text-xs">
+                                                <tr v-for="hb in heartbeats" :key="hb.id" class="hover:bg-surface-100/50">
+                                                    <td class="px-4 py-2 font-mono text-surface-300">{{ formatSmartTime(hb.timestamp) }}</td>
+                                                    <td class="px-4 py-2 font-mono text-surface-200">{{ hb.duration_ms }}ms</td>
+                                                    <td class="px-4 py-2">
+                                                        <div v-if="hb.scrapers_triggered && hb.scrapers_triggered.length > 0" class="flex gap-1 flex-wrap">
+                                                            <span v-for="t in hb.scrapers_triggered" :key="t" class="px-1.5 py-0.5 bg-brand-500/10 text-brand-400 rounded text-[10px] font-bold border border-brand-500/20">{{ t }}</span>
+                                                        </div>
+                                                        <span v-else class="text-surface-200 italic text-[10px]">None</span>
+                                                    </td>
+                                                </tr>
+                                                <tr v-if="heartbeats.length === 0"><td colspan="3" class="px-4 py-4 text-center text-surface-200">No heartbeats recorded</td></tr>
+                                            </tbody>
+                                        </table>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- SCRAPER TOOL -->
+                    <!-- SCRAPER TOOL TAB -->
                     <div v-if="activeTab === 'scraper'" class="max-w-4xl mx-auto animate-fade-in">
-                        <div class="bg-surface-50 rounded-2xl border border-surface-100 overflow-hidden">
+                        <div class="bg-surface-50 rounded-2xl border border-surface-100 overflow-hidden shadow-lg">
                             <div class="p-6 border-b border-surface-100">
-                                <h3 class="text-lg font-bold text-white">Manual Route Scraper</h3>
-                                <p class="text-xs text-surface-200 mt-1">Force refresh a specific route and date directly from the airline API.</p>
+                                <h3 class="text-lg font-bold text-white">Targeted Scraper</h3>
+                                <p class="text-xs text-surface-200 mt-1">Force refresh a specific route and date directly from Frontier's API.</p>
                             </div>
                             <div class="p-6 space-y-6">
                                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                                     <div>
                                         <label class="block text-xs font-bold text-surface-200 uppercase mb-2">Origin</label>
-                                        <input v-model="manualScrape.origin" type="text" class="w-full bg-surface-900 border border-surface-100 rounded-xl px-4 py-3 text-white font-bold uppercase placeholder:text-surface-200 focus:border-brand-500 outline-none" placeholder="LAS">
+                                        <input v-model="manualScrape.origin" type="text" class="w-full bg-surface-900 border border-surface-100 rounded-xl px-4 py-3 text-white font-bold uppercase placeholder:text-surface-200 focus:border-brand-500 outline-none transition" placeholder="LAS" maxlength="3">
                                     </div>
                                     <div>
                                         <label class="block text-xs font-bold text-surface-200 uppercase mb-2">Destination</label>
-                                        <input v-model="manualScrape.destination" type="text" class="w-full bg-surface-900 border border-surface-100 rounded-xl px-4 py-3 text-white font-bold uppercase placeholder:text-surface-200 focus:border-brand-500 outline-none" placeholder="DEN">
+                                        <input v-model="manualScrape.destination" type="text" class="w-full bg-surface-900 border border-surface-100 rounded-xl px-4 py-3 text-white font-bold uppercase placeholder:text-surface-200 focus:border-brand-500 outline-none transition" placeholder="DEN" maxlength="3">
                                     </div>
                                     <div>
-                                        <label class="block text-xs font-bold text-surface-200 uppercase mb-2">Date (YYYY-MM-DD)</label>
-                                        <input v-model="manualScrape.date" type="date" class="w-full bg-surface-900 border border-surface-100 rounded-xl px-4 py-3 text-white font-bold focus:border-brand-500 outline-none">
+                                        <label class="block text-xs font-bold text-surface-200 uppercase mb-2">Date</label>
+                                        <input v-model="manualScrape.date" type="date" class="w-full bg-surface-900 border border-surface-100 rounded-xl px-4 py-3 text-white font-bold focus:border-brand-500 outline-none transition">
                                     </div>
                                 </div>
                                 <button @click="runManualScrape" :disabled="manualScrape.loading" class="w-full bg-brand-600 hover:bg-brand-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-4 rounded-xl shadow-lg shadow-brand-500/20 transition flex items-center justify-center gap-2">
                                     <i v-if="manualScrape.loading" class="ph-bold ph-spinner animate-spin"></i>
-                                    <span>{{ manualScrape.loading ? 'Scraping...' : 'Run Scraper' }}</span>
+                                    <span>{{ manualScrape.loading ? 'Scraping Live Data...' : 'Run Scraper' }}</span>
                                 </button>
 
-                                <!-- Result Area -->
-                                <div v-if="manualScrape.result" class="mt-6 bg-surface-900 rounded-xl border border-surface-100 p-4 overflow-hidden relative group">
-                                    <div class="absolute top-2 right-2">
-                                        <button @click="manualScrape.result = null" class="text-surface-200 hover:text-white"><i class="ph-bold ph-x"></i></button>
+                                <!-- Result -->
+                                <div v-if="manualScrape.result" class="mt-6 animate-fade-in">
+                                    <div class="bg-surface-900 rounded-xl border border-surface-100 overflow-hidden">
+                                        <div class="bg-surface-100/50 px-4 py-2 flex justify-between items-center border-b border-surface-100">
+                                            <span class="text-xs font-bold text-emerald-400 flex items-center gap-2"><i class="ph-bold ph-check-circle"></i> Scrape Successful</span>
+                                            <button @click="manualScrape.result = null" class="text-surface-200 hover:text-white"><i class="ph-bold ph-x"></i></button>
+                                        </div>
+                                        <div class="p-4 max-h-96 overflow-y-auto custom-scrollbar">
+                                            <pre class="text-[10px] font-mono text-surface-300 leading-relaxed">{{ JSON.stringify(manualScrape.result, null, 2) }}</pre>
+                                        </div>
                                     </div>
-                                    <div class="text-xs font-bold text-emerald-400 mb-2 flex items-center gap-2">
-                                        <i class="ph-bold ph-check-circle"></i> Success
-                                    </div>
-                                    <pre class="text-[10px] font-mono text-surface-200 overflow-x-auto max-h-64 custom-scrollbar">{{ JSON.stringify(manualScrape.result, null, 2) }}</pre>
                                 </div>
-                                <div v-if="manualScrape.error" class="mt-6 bg-rose-500/10 border border-rose-500/30 rounded-xl p-4 text-rose-400 text-sm font-bold flex items-center gap-3">
+                                <div v-if="manualScrape.error" class="mt-6 bg-rose-500/10 border border-rose-500/30 rounded-xl p-4 text-rose-400 text-sm font-bold flex items-center gap-3 animate-fade-in">
                                     <i class="ph-bold ph-warning-circle text-xl"></i> {{ manualScrape.error }}
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- ROUTES MANAGER (NEW) -->
+                    <!-- ROUTES MANAGER -->
                     <div v-if="activeTab === 'routes'" class="max-w-6xl mx-auto animate-fade-in">
-                        <div class="flex justify-between items-center mb-6">
+                        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
                             <h3 class="text-xl font-bold text-white">Route Manager</h3>
                             <div class="flex bg-surface-50 rounded-lg p-1 border border-surface-100 shadow-sm gap-1">
                                 <button @click="routeSort = 'origin'" :class="routeSort === 'origin' ? 'bg-surface-200 text-white' : 'text-surface-200 hover:bg-surface-100'" class="px-3 py-1.5 rounded text-xs font-bold transition">By Origin</button>
@@ -268,7 +318,7 @@
                             <i class="ph-bold ph-spinner animate-spin"></i>
                         </div>
 
-                        <div v-else class="bg-surface-50 rounded-2xl border border-surface-100 overflow-hidden">
+                        <div v-else class="bg-surface-50 rounded-2xl border border-surface-100 overflow-hidden shadow-sm">
                             <div class="overflow-x-auto">
                                 <table class="w-full text-left border-collapse">
                                     <thead>
@@ -281,14 +331,14 @@
                                         </tr>
                                     </thead>
                                     <tbody class="divide-y divide-surface-100 text-xs">
-                                        <tr v-for="r in sortedRoutes" :key="r.id" class="hover:bg-surface-100/50 transition" :class="!r.is_active ? 'opacity-50' : ''">
+                                        <tr v-for="r in sortedRoutes" :key="r.id" class="hover:bg-surface-100/50 transition group" :class="!r.is_active ? 'opacity-50' : ''">
                                             <td class="px-6 py-3">
                                                 <span :class="r.is_active ? 'text-emerald-400' : 'text-surface-400'" class="flex items-center gap-1.5 font-bold">
                                                     <div class="w-1.5 h-1.5 rounded-full" :class="r.is_active ? 'bg-emerald-400' : 'bg-surface-400'"></div>
                                                     {{ r.is_active ? 'Active' : 'Inactive' }}
                                                 </span>
                                             </td>
-                                            <td class="px-6 py-3 font-bold text-white">{{ r.origin }} <span class="text-surface-200 mx-1">→</span> {{ r.destination }}</td>
+                                            <td class="px-6 py-3 font-bold text-white group-hover:text-brand-400 transition">{{ r.origin }} <span class="text-surface-200 mx-1">→</span> {{ r.destination }}</td>
                                             <td class="px-6 py-3 text-right">
                                                 <span :class="r.error_count > 0 ? 'text-rose-400' : 'text-surface-200'" class="font-mono font-bold">{{ r.error_count }}</span>
                                             </td>
@@ -305,17 +355,112 @@
                         </div>
                     </div>
 
-                    <!-- DATA EXPLORER -->
-                    <div v-if="activeTab === 'data'" class="max-w-6xl mx-auto animate-fade-in">
-                        <div class="flex gap-2 mb-6 overflow-x-auto pb-2">
-                            <button @click="explorerMode = 'flights'" :class="explorerMode === 'flights' ? 'bg-brand-600 text-white' : 'bg-surface-50 text-surface-200 hover:text-white'" class="px-4 py-2 rounded-lg text-xs font-bold transition whitespace-nowrap">Flights</button>
-                            <button @click="explorerMode = 'weather'" :class="explorerMode === 'weather' ? 'bg-orange-600 text-white' : 'bg-surface-50 text-surface-200 hover:text-white'" class="px-4 py-2 rounded-lg text-xs font-bold transition whitespace-nowrap">Weather</button>
-                            <button @click="explorerMode = 'seats'" :class="explorerMode === 'seats' ? 'bg-purple-600 text-white' : 'bg-surface-50 text-surface-200 hover:text-white'" class="px-4 py-2 rounded-lg text-xs font-bold transition whitespace-nowrap">Inventory</button>
+                    <!-- DATA EXPLORER TAB (Enhanced) -->
+                    <div v-if="activeTab === 'data'" class="max-w-7xl mx-auto animate-fade-in">
+                        <div class="flex flex-col md:flex-row justify-between md:items-center mb-6 gap-4">
+                            <div class="flex gap-2 overflow-x-auto pb-2 md:pb-0">
+                                <button @click="explorerMode = 'lookup'" :class="explorerMode === 'lookup' ? 'bg-brand-600 text-white' : 'bg-surface-50 text-surface-200 hover:text-white'" class="px-4 py-2 rounded-lg text-xs font-bold transition whitespace-nowrap shadow-sm"><i class="ph-bold ph-magnifying-glass mr-1"></i> Flight Lookup</button>
+                                <button @click="explorerMode = 'flights'" :class="explorerMode === 'flights' ? 'bg-surface-100 text-white' : 'bg-surface-50 text-surface-200 hover:text-white'" class="px-4 py-2 rounded-lg text-xs font-bold transition whitespace-nowrap shadow-sm"><i class="ph-bold ph-database mr-1"></i> Raw Cache</button>
+                                <button @click="explorerMode = 'weather'" :class="explorerMode === 'weather' ? 'bg-orange-600/80 text-white' : 'bg-surface-50 text-surface-200 hover:text-white'" class="px-4 py-2 rounded-lg text-xs font-bold transition whitespace-nowrap shadow-sm"><i class="ph-bold ph-cloud-sun mr-1"></i> Weather</button>
+                                <button @click="explorerMode = 'fare_history'" :class="explorerMode === 'fare_history' ? 'bg-purple-600/80 text-white' : 'bg-surface-50 text-surface-200 hover:text-white'" class="px-4 py-2 rounded-lg text-xs font-bold transition whitespace-nowrap shadow-sm"><i class="ph-bold ph-chart-line mr-1"></i> Fare History</button>
+                            </div>
                         </div>
 
-                        <div class="bg-surface-50 rounded-2xl border border-surface-100 overflow-hidden">
-                            <!-- Flights -->
-                            <div v-if="explorerMode === 'flights'" class="divide-y divide-surface-100">
+                        <!-- 1. FLIGHT LOOKUP (New Detailed View) -->
+                        <div v-if="explorerMode === 'lookup'" class="space-y-6">
+                            <!-- Search Bar -->
+                            <div class="bg-surface-50 rounded-2xl border border-surface-100 p-4 flex flex-col md:flex-row gap-4 items-end md:items-center">
+                                <div class="w-full md:w-32">
+                                    <label class="text-[10px] font-bold text-surface-200 uppercase mb-1 block">Origin</label>
+                                    <input v-model="lookupQuery.origin" type="text" class="w-full bg-surface-900 border border-surface-100 rounded-lg px-3 py-2 text-white font-bold uppercase" placeholder="DEN">
+                                </div>
+                                <div class="w-full md:w-32">
+                                    <label class="text-[10px] font-bold text-surface-200 uppercase mb-1 block">Dest</label>
+                                    <input v-model="lookupQuery.destination" type="text" class="w-full bg-surface-900 border border-surface-100 rounded-lg px-3 py-2 text-white font-bold uppercase" placeholder="MCO">
+                                </div>
+                                <div class="w-full md:w-40">
+                                    <label class="text-[10px] font-bold text-surface-200 uppercase mb-1 block">Date (Optional)</label>
+                                    <input v-model="lookupQuery.date" type="date" class="w-full bg-surface-900 border border-surface-100 rounded-lg px-3 py-2 text-white text-xs font-bold">
+                                </div>
+                                <button @click="fetchFlightDetails" :disabled="loadingData" class="w-full md:w-auto px-6 py-2.5 bg-brand-600 hover:bg-brand-500 text-white font-bold rounded-lg transition shadow-lg shadow-brand-500/20">
+                                    <span v-if="loadingData">Searching...</span>
+                                    <span v-else>Search Cache</span>
+                                </button>
+                            </div>
+
+                            <!-- Results -->
+                            <div v-if="flightDetails.length > 0" class="grid grid-cols-1 gap-4">
+                                <div v-for="(f, i) in flightDetails" :key="i" class="bg-surface-50 rounded-xl border border-surface-100 overflow-hidden">
+                                    <div class="bg-surface-100/30 px-4 py-3 border-b border-surface-100 flex justify-between items-center">
+                                        <div class="flex items-center gap-3">
+                                            <span class="text-sm font-bold text-white">{{ f.route }}</span>
+                                            <span class="text-xs text-surface-300">{{ f.date }}</span>
+                                        </div>
+                                        <span class="text-[10px] text-surface-200 font-mono">Last Scraped: {{ formatSmartTime(f.last_scraped) }}</span>
+                                    </div>
+                                    
+                                    <div class="p-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+                                        <!-- Flight Info -->
+                                        <div class="space-y-2">
+                                            <div class="flex justify-between text-xs border-b border-surface-100/50 pb-1">
+                                                <span class="text-surface-200">Time</span>
+                                                <span class="font-bold text-white">{{ f.departure }} - {{ f.arrival }}</span>
+                                            </div>
+                                            <div class="flex justify-between text-xs border-b border-surface-100/50 pb-1">
+                                                <span class="text-surface-200">Duration</span>
+                                                <span class="text-white">{{ f.duration }}</span>
+                                            </div>
+                                            <div class="flex justify-between text-xs">
+                                                <span class="text-surface-200">Stops</span>
+                                                <span :class="f.stops > 0 ? 'text-orange-400' : 'text-emerald-400'" class="font-bold">{{ f.stops === 0 ? 'Nonstop' : f.stops + ' Stop' }}</span>
+                                            </div>
+                                            <div v-if="f.layover_airports && f.layover_airports.length" class="text-[10px] text-surface-200 pt-1">
+                                                via {{ f.layover_airports.join(', ') }}
+                                            </div>
+                                        </div>
+
+                                        <!-- Fares Grid -->
+                                        <div class="md:col-span-2 grid grid-cols-3 gap-2">
+                                            <!-- Standard -->
+                                            <div class="bg-surface-900 rounded-lg p-3 border border-surface-100 text-center">
+                                                <div class="text-[10px] text-surface-200 uppercase mb-1">Standard</div>
+                                                <div v-if="f.fares.standard" class="space-y-1">
+                                                    <div class="text-lg font-bold text-white">${{ f.fares.standard.price }}</div>
+                                                    <div class="text-[10px]" :class="f.fares.standard.seats < 5 ? 'text-rose-400' : 'text-emerald-400'">{{ f.fares.standard.seats }} seats</div>
+                                                </div>
+                                                <div v-else class="text-xs text-surface-200 italic py-2">N/A</div>
+                                            </div>
+                                            <!-- DEN -->
+                                            <div class="bg-surface-900 rounded-lg p-3 border border-surface-100 text-center relative overflow-hidden">
+                                                <div class="absolute top-0 right-0 bg-brand-600 text-white text-[8px] px-1.5 py-0.5 rounded-bl">DEAL</div>
+                                                <div class="text-[10px] text-surface-200 uppercase mb-1">Discount Den</div>
+                                                <div v-if="f.fares.den" class="space-y-1">
+                                                    <div class="text-lg font-bold text-brand-400">${{ f.fares.den.price }}</div>
+                                                    <div class="text-[10px]" :class="f.fares.den.seats < 5 ? 'text-rose-400' : 'text-emerald-400'">{{ f.fares.den.seats }} seats</div>
+                                                </div>
+                                                <div v-else class="text-xs text-surface-200 italic py-2">N/A</div>
+                                            </div>
+                                            <!-- GoWild -->
+                                            <div class="bg-surface-900 rounded-lg p-3 border border-surface-100 text-center border-purple-500/20 bg-purple-500/5">
+                                                <div class="text-[10px] text-purple-300 uppercase mb-1">GoWild!</div>
+                                                <div v-if="f.fares.gowild" class="space-y-1">
+                                                    <div class="text-lg font-bold text-purple-400">${{ f.fares.gowild.price }}</div>
+                                                    <div class="text-[10px]" :class="f.fares.gowild.seats < 5 ? 'text-rose-400' : 'text-emerald-400'">{{ f.fares.gowild.seats }} seats</div>
+                                                </div>
+                                                <div v-else class="text-xs text-surface-200 italic py-2">N/A</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div v-else-if="lookupQuery.hasSearched" class="text-center py-12 text-surface-200">
+                                No flights found in cache matching criteria.
+                            </div>
+                        </div>
+
+                        <!-- 2. RAW CACHE VIEW -->
+                        <div v-if="explorerMode === 'flights'" class="bg-surface-50 rounded-2xl border border-surface-100 overflow-hidden">
+                            <div class="divide-y divide-surface-100">
                                 <div v-for="(origins, date) in explorerData.flights" :key="date">
                                     <div @click="toggleExpand(date)" class="px-6 py-4 hover:bg-surface-100 cursor-pointer flex justify-between items-center transition">
                                         <span class="font-mono font-bold text-white text-sm">{{ date }}</span>
@@ -340,9 +485,11 @@
                                     </div>
                                 </div>
                             </div>
-                            
-                            <!-- Weather -->
-                            <div v-if="explorerMode === 'weather'" class="divide-y divide-surface-100">
+                        </div>
+
+                        <!-- 3. WEATHER VIEW -->
+                        <div v-if="explorerMode === 'weather'" class="bg-surface-50 rounded-2xl border border-surface-100 overflow-hidden">
+                             <div class="divide-y divide-surface-100">
                                 <div v-for="(airports, date) in explorerData.weather" :key="date">
                                     <div @click="toggleExpand(date)" class="px-6 py-4 hover:bg-surface-100 cursor-pointer flex justify-between items-center transition">
                                         <span class="font-mono font-bold text-white text-sm">{{ date }}</span>
@@ -352,8 +499,8 @@
                                         </div>
                                     </div>
                                     <div v-if="expanded[date]" class="bg-surface-900/50 p-4 border-t border-surface-100">
-                                        <div class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-2">
-                                            <div v-for="a in airports" :key="a.airport" class="bg-surface-50 p-2 rounded text-center">
+                                        <div class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2">
+                                            <div v-for="a in airports" :key="a.airport" class="bg-surface-50 p-2 rounded text-center border border-surface-100">
                                                 <div class="text-xs font-bold text-white">{{ a.airport }}</div>
                                                 <div class="text-[10px] text-surface-200">{{ a.temp }}° ({{ a.condition }})</div>
                                             </div>
@@ -361,228 +508,106 @@
                                     </div>
                                 </div>
                             </div>
-
-                            <!-- Seats -->
-                            <div v-if="explorerMode === 'seats'" class="overflow-x-auto">
-                                <table class="w-full text-left border-collapse">
-                                    <thead>
-                                        <tr class="bg-surface-100 text-[10px] font-bold text-surface-200 uppercase">
-                                            <th class="px-6 py-3">Date</th>
-                                            <th class="px-6 py-3">Route</th>
-                                            <th class="px-6 py-3">Flight</th>
-                                            <th class="px-6 py-3 text-right">Seats</th>
-                                            <th class="px-6 py-3 text-right">Price</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody class="divide-y divide-surface-100 text-xs">
-                                        <tr v-for="(row, i) in seatInventory" :key="i" class="hover:bg-surface-100/50 transition">
-                                            <td class="px-6 py-3 font-mono text-surface-200">{{ row.date }}</td>
-                                            <td class="px-6 py-3 font-bold text-white">{{ row.origin }} → {{ row.destination }}</td>
-                                            <td class="px-6 py-3 text-surface-200">{{ row.flight }}</td>
-                                            <td class="px-6 py-3 text-right font-bold" :class="row.seats > 0 ? 'text-emerald-400' : 'text-rose-400'">{{ row.seats }}</td>
-                                            <td class="px-6 py-3 text-right font-mono text-white">${{ row.price }}</td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
+                        </div>
+                        
+                        <!-- 4. FARE HISTORY (Placeholder for FareSnapshot) -->
+                        <div v-if="explorerMode === 'fare_history'" class="text-center py-12 text-surface-200">
+                             <div class="max-w-md mx-auto bg-surface-50 rounded-xl p-8 border border-surface-100">
+                                 <i class="ph-bold ph-chart-line text-4xl mb-4 text-surface-300"></i>
+                                 <h3 class="font-bold text-white mb-2">Fare History Analytics</h3>
+                                 <p class="text-xs text-surface-300">Historical pricing data is being collected. Visual charts coming in next update.</p>
+                             </div>
                         </div>
                     </div>
 
-                    <!-- SETTINGS & PROXIES -->
-                    <div v-if="activeTab === 'settings'" class="max-w-6xl mx-auto animate-fade-in space-y-8">
-                        <!-- Config -->
+                    <!-- SETTINGS TAB (Updated with Midnight) -->
+                    <div v-if="activeTab === 'settings'" class="max-w-7xl mx-auto animate-fade-in space-y-8">
                         <div class="bg-surface-50 rounded-2xl border border-surface-100 p-6">
                             <h3 class="text-lg font-bold text-white mb-6 border-b border-surface-100 pb-4">System Configuration</h3>
 
                             <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                                <!-- LEFT COLUMN: SCRAPERS & GENERAL -->
+                                <!-- LEFT COLUMN -->
                                 <div class="space-y-8">
                                     <div class="bg-surface-900 rounded-lg p-4 border border-brand-500/30">
                                         <h5 class="text-xs font-bold text-brand-400 uppercase tracking-wider mb-1 flex items-center gap-2">
                                             <i class="ph-bold ph-robot"></i> Automated Scrapers
                                         </h5>
-                                        <p class="text-[10px] text-surface-200">Heartbeat-based scraper scheduling</p>
                                     </div>
 
-                                    <!-- Auto Scraper Settings -->
+                                    <!-- Auto Scraper -->
                                     <div>
-                                        <h4 class="text-xs font-bold text-surface-200 uppercase mb-4 flex items-center gap-2">
-                                            <i class="ph-bold ph-robot"></i> Auto Scraper
-                                        </h4>
+                                        <h4 class="text-xs font-bold text-surface-200 uppercase mb-4">Auto Scraper</h4>
                                         <div class="space-y-4">
                                             <toggle-switch v-model="settings.schedule_auto_enabled" label="Enable Auto Scraper"></toggle-switch>
                                             <div class="grid grid-cols-2 gap-4">
-                                                <div>
-                                                    <label class="block text-xs font-bold text-surface-200 uppercase mb-2">Interval (Min)</label>
-                                                    <input v-model="settings.schedule_auto_interval" type="number" class="w-full bg-surface-900 border border-surface-100 rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-brand-500">
-                                                </div>
-                                                <div>
-                                                    <label class="block text-xs font-bold text-surface-200 uppercase mb-2">Stale Cache (Min)</label>
-                                                    <input v-model="settings.scraper_stale_minutes" type="number" class="w-full bg-surface-900 border border-surface-100 rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-brand-500">
-                                                </div>
-                                                <div>
-                                                    <label class="block text-xs font-bold text-surface-200 uppercase mb-2">Max Workers</label>
-                                                    <input v-model="settings.max_concurrent_requests" type="number" class="w-full bg-surface-900 border border-surface-100 rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-brand-500">
-                                                </div>
-                                                <div>
-                                                    <label class="block text-xs font-bold text-surface-200 uppercase mb-2">Timeout (Sec)</label>
-                                                    <input v-model="settings.scraper_timeout" type="number" class="w-full bg-surface-900 border border-surface-100 rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-brand-500">
-                                                </div>
-                                            </div>
-                                            <div>
-                                                <label class="block text-xs font-bold text-surface-200 uppercase mb-2">User Agent</label>
-                                                <input v-model="settings.scraper_user_agent" type="text" class="w-full bg-surface-900 border border-surface-100 rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-brand-500">
+                                                <input-group v-model="settings.schedule_auto_interval" label="Interval (Min)" type="number"></input-group>
+                                                <input-group v-model="settings.max_concurrent_requests" label="Max Workers" type="number"></input-group>
                                             </div>
                                         </div>
                                     </div>
 
-                                    <!-- Midnight Scraper Settings -->
+                                    <!-- Midnight Scraper (UPDATED) -->
                                     <div>
-                                        <h4 class="text-xs font-bold text-surface-200 uppercase mb-4 flex items-center gap-2">
-                                            <i class="ph-bold ph-moon"></i> Midnight Scraper
-                                        </h4>
-                                        <div class="space-y-4">
+                                        <h4 class="text-xs font-bold text-surface-200 uppercase mb-4 text-purple-400">Midnight Scraper</h4>
+                                        <div class="space-y-4 p-4 rounded-xl bg-purple-500/5 border border-purple-500/10">
                                             <toggle-switch v-model="settings.schedule_midnight_enabled" label="Enable Midnight Scraper"></toggle-switch>
-                                            <div>
-                                                <label class="block text-xs font-bold text-surface-200 uppercase mb-2">Check Interval (Min)</label>
-                                                <input v-model="settings.schedule_midnight_interval" type="number" class="w-full bg-surface-900 border border-surface-100 rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-brand-500">
+                                            <div class="grid grid-cols-2 gap-4">
+                                                <input-group v-model="settings.midnight_check_duration" label="Run Duration (Min)" type="number" placeholder="30"></input-group>
+                                                <input-group v-model="settings.midnight_check_interval" label="Check Interval (Min)" type="number" placeholder="2"></input-group>
                                             </div>
                                         </div>
                                     </div>
 
-                                    <!-- Weather Scraper Settings -->
+                                    <!-- Weather -->
                                     <div>
-                                        <h4 class="text-xs font-bold text-surface-200 uppercase mb-4 flex items-center gap-2">
-                                            <i class="ph-bold ph-cloud-sun"></i> Weather Scraper
-                                        </h4>
+                                        <h4 class="text-xs font-bold text-surface-200 uppercase mb-4">Weather Scraper</h4>
                                         <div class="space-y-4">
                                             <toggle-switch v-model="settings.schedule_weather_enabled" label="Enable Weather Scraper"></toggle-switch>
-                                            <div>
-                                                <label class="block text-xs font-bold text-surface-200 uppercase mb-2">Run Time (UTC)</label>
-                                                <input v-model="settings.schedule_weather_time" type="time" class="w-full bg-surface-900 border border-surface-100 rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-brand-500">
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <!-- Three Week Scraper Settings -->
-                                    <div>
-                                        <h4 class="text-xs font-bold text-surface-200 uppercase mb-4 flex items-center gap-2">
-                                            <i class="ph-bold ph-calendar-dots"></i> 3-Week Scraper
-                                        </h4>
-                                        <div class="space-y-4">
-                                            <toggle-switch v-model="settings.schedule_3week_enabled" label="Enable 3-Week Scraper"></toggle-switch>
-                                            <div>
-                                                <label class="block text-xs font-bold text-surface-200 uppercase mb-2">Run Time (UTC)</label>
-                                                <input v-model="settings.schedule_3week_time" type="time" class="w-full bg-surface-900 border border-surface-100 rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-brand-500">
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <!-- Route Sync Settings -->
-                                    <div>
-                                        <h4 class="text-xs font-bold text-surface-200 uppercase mb-4 flex items-center gap-2">
-                                            <i class="ph-bold ph-map-pin-line"></i> Route Sync
-                                        </h4>
-                                        <div class="space-y-4">
-                                            <toggle-switch v-model="settings.schedule_route_sync_enabled" label="Enable Route Sync"></toggle-switch>
-                                            <div>
-                                                <label class="block text-xs font-bold text-surface-200 uppercase mb-2">Run Time (UTC)</label>
-                                                <input v-model="settings.schedule_route_sync_time" type="time" class="w-full bg-surface-900 border border-surface-100 rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-brand-500">
-                                            </div>
+                                            <input-group v-model="settings.schedule_weather_time" label="Run Time (UTC)" type="time"></input-group>
                                         </div>
                                     </div>
                                 </div>
 
-                                <!-- RIGHT COLUMN: INFRASTRUCTURE & ADVANCED -->
+                                <!-- RIGHT COLUMN -->
                                 <div class="space-y-8">
-                                    <div class="bg-surface-900 rounded-lg p-4 border border-purple-500/30">
-                                        <h5 class="text-xs font-bold text-purple-400 uppercase tracking-wider mb-1 flex items-center gap-2">
-                                            <i class="ph-bold ph-database"></i> Infrastructure & Performance
+                                    <div class="bg-surface-900 rounded-lg p-4 border border-surface-100">
+                                        <h5 class="text-xs font-bold text-surface-300 uppercase tracking-wider mb-1 flex items-center gap-2">
+                                            <i class="ph-bold ph-sliders"></i> Advanced Config
                                         </h5>
-                                        <p class="text-[10px] text-surface-200">Cache, proxy, and system settings</p>
                                     </div>
 
-                                    <!-- Cache Settings -->
-                                    <div>
-                                        <h4 class="text-xs font-bold text-surface-200 uppercase mb-4 flex items-center gap-2">
-                                            <i class="ph-bold ph-database"></i> Cache Management
-                                        </h4>
-                                        <div class="space-y-4">
-                                            <div>
-                                                <label class="block text-xs font-bold text-surface-200 uppercase mb-2">Cache Duration (Min)</label>
-                                                <input v-model="settings.cache_duration_minutes" type="number" class="w-full bg-surface-900 border border-surface-100 rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-brand-500">
+                                    <!-- 3-Week & Route Sync -->
+                                    <div class="grid grid-cols-2 gap-6">
+                                        <div>
+                                            <h4 class="text-xs font-bold text-surface-200 uppercase mb-4">3-Week Scraper</h4>
+                                            <div class="space-y-2">
+                                                <toggle-switch v-model="settings.schedule_3week_enabled" label="Enable"></toggle-switch>
+                                                <input-group v-model="settings.schedule_3week_time" label="Time (UTC)" type="time"></input-group>
                                             </div>
-                                            <toggle-switch v-model="settings.cache_reset_enabled" label="Enable Scheduled Cache Reset"></toggle-switch>
-                                            <div class="grid grid-cols-2 gap-4">
-                                                <div>
-                                                    <label class="block text-xs font-bold text-surface-200 uppercase mb-2">Reset Every (Days)</label>
-                                                    <input v-model="settings.cache_reset_days" type="number" class="w-full bg-surface-900 border border-surface-100 rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-brand-500">
-                                                </div>
-                                                <div>
-                                                    <label class="block text-xs font-bold text-surface-200 uppercase mb-2">Reset Time</label>
-                                                    <input v-model="settings.cache_reset_time" type="time" class="w-full bg-surface-900 border border-surface-100 rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-brand-500">
-                                                </div>
+                                        </div>
+                                        <div>
+                                            <h4 class="text-xs font-bold text-surface-200 uppercase mb-4">Route Sync</h4>
+                                            <div class="space-y-2">
+                                                <toggle-switch v-model="settings.schedule_route_sync_enabled" label="Enable"></toggle-switch>
+                                                <input-group v-model="settings.schedule_route_sync_time" label="Time (UTC)" type="time"></input-group>
                                             </div>
                                         </div>
                                     </div>
 
-                                    <!-- Proxy Settings -->
+                                    <!-- Cache & Proxy -->
                                     <div>
-                                        <h4 class="text-xs font-bold text-surface-200 uppercase mb-4 flex items-center gap-2">
-                                            <i class="ph-bold ph-shield-check"></i> Proxy Configuration
-                                        </h4>
+                                        <h4 class="text-xs font-bold text-surface-200 uppercase mb-4">Cache & Proxy</h4>
                                         <div class="space-y-4">
-                                            <toggle-switch v-model="settings.proxy_enabled" label="Enable Proxy Rotation"></toggle-switch>
-                                            <div>
-                                                <label class="block text-xs font-bold text-surface-200 uppercase mb-2">Current Proxy Index</label>
-                                                <input v-model="settings.proxy_index" type="number" class="w-full bg-surface-900 border border-surface-100 rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-brand-500">
-                                            </div>
+                                            <input-group v-model="settings.cache_duration_minutes" label="Cache TTL (Minutes)" type="number"></input-group>
+                                            <toggle-switch v-model="settings.proxy_enabled" label="Enable Proxies"></toggle-switch>
+                                            <toggle-switch v-model="settings.scraper_jitter_enabled" label="Enable Stealth Jitter"></toggle-switch>
                                         </div>
                                     </div>
-
-                                    <!-- Safety & Stealth -->
+                                    
+                                    <!-- Debug -->
                                     <div>
-                                        <h4 class="text-xs font-bold text-surface-200 uppercase mb-4 flex items-center gap-2">
-                                            <i class="ph-bold ph-eye-slash"></i> Safety & Stealth
-                                        </h4>
-                                        <div class="space-y-4">
-                                            <toggle-switch v-model="settings.scraper_jitter_enabled" label="Enable Random Delay (Jitter)"></toggle-switch>
-                                            <div v-if="settings.scraper_jitter_enabled === 'true'" class="grid grid-cols-2 gap-4 animate-fade-in">
-                                                <div>
-                                                    <label class="block text-xs font-bold text-surface-200 uppercase mb-2">Min Delay (Sec)</label>
-                                                    <input v-model="settings.scraper_jitter_min" type="number" step="0.1" class="w-full bg-surface-900 border border-surface-100 rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-brand-500">
-                                                </div>
-                                                <div>
-                                                    <label class="block text-xs font-bold text-surface-200 uppercase mb-2">Max Delay (Sec)</label>
-                                                    <input v-model="settings.scraper_jitter_max" type="number" step="0.1" class="w-full bg-surface-900 border border-surface-100 rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-brand-500">
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <!-- Debug Settings -->
-                                    <div>
-                                        <h4 class="text-xs font-bold text-surface-200 uppercase mb-4 flex items-center gap-2">
-                                            <i class="ph-bold ph-bug"></i> Debug & Logging
-                                        </h4>
-                                        <div class="space-y-4">
-                                            <toggle-switch v-model="settings.debug_logging_enabled" label="Enable Debug Logging"></toggle-switch>
-                                            <toggle-switch v-model="settings.save_debug_responses" label="Save Debug Responses"></toggle-switch>
-                                        </div>
-                                    </div>
-
-                                    <!-- Blackout Dates -->
-                                    <div>
-                                        <h4 class="text-xs font-bold text-surface-200 uppercase mb-4 flex items-center gap-2">
-                                            <i class="ph-bold ph-calendar-x"></i> Blackout Dates
-                                        </h4>
-                                        <div class="space-y-4">
-                                            <toggle-switch v-model="settings.blackout_dates_enabled" label="Enable Blackout Warnings"></toggle-switch>
-                                            <div>
-                                                <label class="block text-xs font-bold text-surface-200 uppercase mb-2">Dates (JSON List)</label>
-                                                <textarea v-model="settings.blackout_dates" class="w-full bg-surface-900 border border-surface-100 rounded-lg px-3 py-2.5 text-white text-xs font-mono h-32 outline-none focus:border-brand-500" placeholder='["2025-01-01", "2025-01-02"]'></textarea>
-                                            </div>
-                                        </div>
+                                        <h4 class="text-xs font-bold text-surface-200 uppercase mb-4">Debug</h4>
+                                        <toggle-switch v-model="settings.debug_logging_enabled" label="Enable Debug Logging"></toggle-switch>
                                     </div>
                                 </div>
                             </div>
@@ -592,8 +617,8 @@
                                 <button @click="saveSettings" class="bg-brand-600 text-white font-bold py-2.5 px-8 rounded-lg hover:bg-brand-500 transition shadow-lg shadow-brand-500/20">Save All Settings</button>
                             </div>
                         </div>
-
-                        <!-- Proxies -->
+                        
+                         <!-- Proxies Section -->
                         <div class="bg-surface-50 rounded-2xl border border-surface-100 p-6">
                             <div class="flex justify-between items-center mb-6 border-b border-surface-100 pb-4">
                                 <h3 class="text-lg font-bold text-white">Proxies</h3>
@@ -606,7 +631,7 @@
                                 <textarea v-model="newProxies" placeholder="host:port:user:pass (one per line)" class="flex-1 bg-surface-900 border border-surface-100 rounded-lg px-3 py-2.5 text-white text-xs font-mono outline-none focus:border-brand-500 min-h-[80px]"></textarea>
                                 <button @click="addProxies" class="bg-brand-600 text-white font-bold px-6 py-2 rounded-lg hover:bg-brand-500 transition flex items-center justify-center shadow-lg shadow-brand-500/20">Add</button>
                             </div>
-                            <div class="space-y-2 max-h-96 overflow-y-auto custom-scrollbar">
+                            <div class="space-y-2 max-h-64 overflow-y-auto custom-scrollbar">
                                 <div v-for="p in proxies" :key="p.id" class="flex justify-between items-start bg-surface-900 p-3 rounded-lg border border-surface-100">
                                     <div class="flex items-start gap-3 overflow-hidden">
                                         <div class="w-2 h-2 rounded-full flex-shrink-0 mt-1" :class="p.is_active ? 'bg-emerald-500' : 'bg-rose-500'"></div>
@@ -634,7 +659,7 @@
         {% raw %}
         const { createApp, ref, computed, watch, onMounted } = Vue;
 
-        // --- Components ---
+        // --- Shared Components ---
         const NavButton = {
             props: ['item', 'active'],
             template: `
@@ -660,12 +685,12 @@
         const KpiCard = {
             props: ['icon', 'color', 'value', 'label'],
             template: `
-                <div class="bg-surface-50 p-4 rounded-2xl border border-surface-100 flex flex-col justify-between h-28 shadow-sm">
+                <div class="bg-surface-50 p-4 rounded-2xl border border-surface-100 flex flex-col justify-between h-24 lg:h-28 shadow-sm">
                     <div class="w-8 h-8 rounded-lg flex items-center justify-center text-white" :class="'bg-'+color+'-500'">
                         <i :class="['ph-bold', icon]"></i>
                     </div>
                     <div>
-                        <div class="text-xl font-bold text-white truncate">{{ value }}</div>
+                        <div class="text-lg lg:text-xl font-bold text-white truncate">{{ value }}</div>
                         <div class="text-[10px] font-bold text-surface-200 uppercase tracking-wide">{{ label }}</div>
                     </div>
                 </div>
@@ -673,9 +698,11 @@
         };
 
         const ActionButton = {
-            props: ['icon', 'label', 'loading', 'subtext'],
+            props: ['icon', 'label', 'loading', 'subtext', 'compact'],
             template: `
-                <button class="w-full flex items-center justify-between p-3.5 rounded-xl bg-surface-100 hover:bg-surface-200 border border-surface-100 transition text-white text-sm font-bold group disabled:opacity-50" :disabled="loading">
+                <button class="w-full flex items-center justify-between rounded-xl bg-surface-100 hover:bg-surface-200 border border-surface-100 transition text-white text-sm font-bold group disabled:opacity-50" 
+                    :class="compact ? 'p-2.5 text-xs' : 'p-3.5'"
+                    :disabled="loading">
                     <div class="flex items-center gap-3">
                         <div v-if="loading" class="animate-spin"><i class="ph-bold ph-spinner"></i></div>
                         <i v-else :class="['ph-bold', icon, 'text-surface-200 group-hover:text-white transition']"></i>
@@ -684,7 +711,7 @@
                             <div v-if="subtext" class="text-[10px] text-surface-200 font-normal">{{ subtext }}</div>
                         </div>
                     </div>
-                    <i class="ph-bold ph-caret-right text-surface-200 group-hover:translate-x-1 transition"></i>
+                    <i v-if="!compact" class="ph-bold ph-caret-right text-surface-200 group-hover:translate-x-1 transition"></i>
                 </button>
             `
         };
@@ -693,24 +720,38 @@
             props: ['modelValue', 'label'],
             emits: ['update:modelValue'],
             template: `
-                <label class="flex items-center justify-between p-3 border border-surface-100 rounded-xl cursor-pointer hover:bg-surface-100 transition bg-surface-900">
-                    <span class="text-sm font-bold text-white">{{ label }}</span>
+                <label class="flex items-center justify-between cursor-pointer group">
+                    <span class="text-xs font-bold text-surface-200 group-hover:text-white transition">{{ label }}</span>
                     <div class="relative inline-flex items-center">
                         <input type="checkbox" :checked="modelValue === 'true'" @change="$emit('update:modelValue', $event.target.checked ? 'true' : 'false')" class="sr-only peer">
-                        <div class="w-11 h-6 bg-surface-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-500"></div>
+                        <div class="w-9 h-5 bg-surface-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-brand-500"></div>
                     </div>
                 </label>
             `
         };
 
+        const InputGroup = {
+            props: ['modelValue', 'label', 'type', 'placeholder'],
+            emits: ['update:modelValue'],
+            template: `
+                <div>
+                    <label class="block text-[10px] font-bold text-surface-200 uppercase mb-1">{{ label }}</label>
+                    <input :value="modelValue" @input="$emit('update:modelValue', $event.target.value)" :type="type" :placeholder="placeholder" class="w-full bg-surface-900 border border-surface-100 rounded-lg px-3 py-2 text-white text-xs outline-none focus:border-brand-500 transition">
+                </div>
+            `
+        };
+
+        // --- Main App ---
         createApp({
-            components: { NavButton, NavButtonMobile, KpiCard, ActionButton, ToggleSwitch },
+            components: { NavButton, NavButtonMobile, KpiCard, ActionButton, ToggleSwitch, InputGroup },
             setup() {
                 const authenticated = ref(false);
                 const password = ref('');
                 const loginError = ref('');
                 const activeTab = ref('dashboard');
-                
+                const loadingData = ref(false);
+
+                // Config
                 const tabs = [
                     { id: 'dashboard', label: 'Dashboard', icon: 'ph-squares-four' },
                     { id: 'scraper', label: 'Scraper Tool', icon: 'ph-wrench' },
@@ -719,34 +760,36 @@
                     { id: 'settings', label: 'Settings', icon: 'ph-gear' },
                 ];
 
+                // State
                 const token = ref(localStorage.getItem('adminToken') || '');
                 const settings = ref({});
                 const proxies = ref([]);
                 const newProxies = ref('');
                 const cacheCount = ref(0);
                 const uptimeSeconds = ref(0);
-                const seatInventory = ref([]);
+                
+                // Dashboard Data
                 const scraperRuns = ref([]);
+                const scraperTypeFilter = ref('');
+                const heartbeats = ref([]);
                 
-                // Jobs
-                const routeJob = ref({ status: 'idle', message: '' });
-                
-                // Data Explorer
-                const explorerMode = ref('flights');
-                const explorerData = ref({ flights: {}, weather: {} });
-                const expanded = ref({});
-
-                // Manual Scraper
-                const manualScrape = ref({
-                    origin: '', destination: '', date: new Date().toISOString().split('T')[0],
-                    loading: false, result: null, error: null
-                });
-
-                // Routes Manager
+                // Routes Data
                 const allRoutes = ref([]);
                 const isLoadingRoutes = ref(false);
-                const routeSort = ref('errors'); // 'origin' or 'errors'
+                const routeSort = ref('errors');
+                const routeJob = ref({ status: 'idle' });
 
+                // Explorer Data
+                const explorerMode = ref('lookup'); // lookup, flights, weather, fare_history
+                const explorerData = ref({ flights: {}, weather: {} });
+                const expanded = ref({});
+                const lookupQuery = ref({ origin: '', destination: '', date: '', hasSearched: false });
+                const flightDetails = ref([]);
+
+                // Manual Scraper
+                const manualScrape = ref({ origin: '', destination: '', date: new Date().toISOString().split('T')[0], loading: false, result: null, error: null });
+
+                // Computed
                 const activeProxiesCount = computed(() => proxies.value.filter(p => p.is_active).length);
                 const uptimeString = computed(() => {
                     const h = Math.floor(uptimeSeconds.value / 3600);
@@ -754,30 +797,19 @@
                     return `${h}h ${m}m`;
                 });
                 const currentTabLabel = computed(() => tabs.find(t => t.id === activeTab.value)?.label || 'Dashboard');
-
                 const sortedRoutes = computed(() => {
                     const list = [...allRoutes.value];
                     if (routeSort.value === 'origin') {
                         list.sort((a, b) => a.origin.localeCompare(b.origin) || a.destination.localeCompare(b.destination));
                     } else {
-                        // Sort by Error Count desc, then origin
                         list.sort((a, b) => b.error_count - a.error_count || a.origin.localeCompare(b.origin));
                     }
                     return list;
                 });
 
-                // Watchers
-                watch(activeTab, (val) => {
-                    if (val === 'data') openExplorer();
-                    if (val === 'settings') fetchProxies();
-                    if (val === 'routes') fetchRoutes();
-                });
-
-                // Methods
+                // --- Methods ---
                 const getHeaders = () => {
-                    if (token.value) {
-                        return { 'Authorization': `Bearer ${token.value}` };
-                    }
+                    if (token.value) return { 'Authorization': `Bearer ${token.value}` };
                     return { 'X-Admin-Pass': password.value };
                 };
 
@@ -787,11 +819,8 @@
                         token.value = res.data.token;
                         localStorage.setItem('adminToken', token.value);
                         authenticated.value = true;
-                        password.value = ''; // Clear password after successful login
-                        fetchData();
-                        // Start Loop
-                        setInterval(fetchUptime, 30000);
-                        fetchUptime();
+                        password.value = '';
+                        init();
                     } catch (e) {
                         loginError.value = "Access Denied";
                         setTimeout(() => loginError.value = '', 3000);
@@ -803,11 +832,8 @@
                     try {
                         await axios.get('/api/settings', { headers: getHeaders() });
                         authenticated.value = true;
-                        fetchData();
-                        setInterval(fetchUptime, 30000);
-                        fetchUptime();
+                        init();
                     } catch (e) {
-                        // Token expired or invalid
                         localStorage.removeItem('adminToken');
                         token.value = '';
                     }
@@ -815,31 +841,55 @@
 
                 const logout = () => {
                     authenticated.value = false;
-                    password.value = '';
                     token.value = '';
                     localStorage.removeItem('adminToken');
                 };
 
+                const init = () => {
+                    fetchData();
+                    setInterval(fetchUptime, 30000);
+                    fetchUptime();
+                };
+
+                // --- Data Fetching ---
                 const fetchData = async () => {
+                    loadingData.value = true;
                     try {
-                        const [sRes, cRes, pRes, rRes] = await Promise.all([
+                        const [sRes, cRes, pRes] = await Promise.all([
                             axios.get('/api/settings', { headers: getHeaders() }),
                             axios.get('/api/admin/cache_stats', { headers: getHeaders() }),
-                            axios.get('/api/proxies', { headers: getHeaders() }),
-                            axios.get('/api/admin/scraper_runs', { headers: getHeaders() })
+                            axios.get('/api/proxies', { headers: getHeaders() })
                         ]);
                         settings.value = sRes.data;
                         cacheCount.value = cRes.data.total_flights;
                         proxies.value = pRes.data;
-                        scraperRuns.value = rRes.data;
+                        
+                        // Dashboard Specifics
+                        if (activeTab.value === 'dashboard') {
+                            fetchScraperRuns();
+                            fetchHeartbeats();
+                        }
+                        // Routes
+                        if (activeTab.value === 'routes') fetchRoutes();
+                        
                     } catch(e) { console.error(e); }
+                    finally { loadingData.value = false; }
                 };
 
                 const fetchScraperRuns = async () => {
                     try {
-                        const res = await axios.get('/api/admin/scraper_runs', { headers: getHeaders() });
+                        const params = { limit: 20 };
+                        if (scraperTypeFilter.value) params.job_type = scraperTypeFilter.value;
+                        const res = await axios.get('/api/admin/scraper_runs', { params, headers: getHeaders() });
                         scraperRuns.value = res.data;
-                    } catch(e) { console.error(e); }
+                    } catch(e){}
+                };
+
+                const fetchHeartbeats = async () => {
+                    try {
+                        const res = await axios.get('/api/admin/heartbeats', { params: { limit: 10 }, headers: getHeaders() });
+                        heartbeats.value = res.data;
+                    } catch(e){}
                 };
 
                 const fetchUptime = async () => {
@@ -849,38 +899,23 @@
                     } catch(e){}
                 };
 
-                const fetchProxies = async () => {
-                    const res = await axios.get('/api/proxies', { headers: getHeaders() });
-                    proxies.value = res.data;
-                };
-
                 const fetchRoutes = async () => {
                     isLoadingRoutes.value = true;
                     try {
                         const res = await axios.get('/api/admin/routes_list', { headers: getHeaders() });
                         allRoutes.value = res.data;
-                    } catch(e) { console.error(e); }
+                    } catch(e){}
                     finally { isLoadingRoutes.value = false; }
                 };
 
-                const toggleRoute = async (route) => {
-                    // Optimistic UI
-                    route.is_active = !route.is_active;
+                // --- Actions ---
+                const triggerScraper = async (type) => {
+                    if(!confirm(`Manually trigger ${type}?`)) return;
                     try {
-                        await axios.post(`/api/admin/routes/${route.id}/toggle`, {}, { headers: getHeaders() });
-                        // If turning on, reset error count in UI too
-                        if (route.is_active) route.error_count = 0;
-                    } catch (e) {
-                        route.is_active = !route.is_active; // Revert
-                        alert("Failed to toggle route");
-                    }
-                };
-
-                // Actions
-                const runAutoScraper = async () => {
-                    if(!confirm("Start Auto Scraper?")) return;
-                    await axios.post('/api/admin/run_scraper', {}, { headers: getHeaders() });
-                    alert("Scraper Started in Background");
+                        await axios.post('/api/admin/trigger_scraper', { scraper_type: type }, { headers: getHeaders() });
+                        alert(`${type} Queued`);
+                        setTimeout(fetchScraperRuns, 1000);
+                    } catch(e) { alert("Failed to trigger scraper"); }
                 };
 
                 const updateRoutes = async () => {
@@ -888,37 +923,65 @@
                     routeJob.value = { status: 'running', message: 'Updating...' };
                     pollJob(res.data.job_id, (job) => {
                         routeJob.value = job;
-                        if(job.status === 'completed') fetchData();
+                        if(job.status === 'completed') fetchRoutes();
                     });
                 };
-
-                const triggerWeatherUpdate = async () => {
-                    await axios.post('/api/admin/update_weather', {}, { headers: getHeaders() });
-                    alert("Weather update started");
+                
+                const clearCache = async () => {
+                    if(!confirm("Clear Flight Cache?")) return;
+                    await axios.post('/api/admin/clear_cache', {}, { headers: getHeaders() });
+                    fetchData();
                 };
 
                 const rebootBackend = async () => {
                     if(!confirm("Reboot Service?")) return;
                     await axios.post('/api/admin/reboot', {}, { headers: getHeaders() });
                 };
-
-                const clearCache = async () => {
-                    if(!confirm("Clear Cache?")) return;
-                    await axios.post('/api/admin/clear_cache', {}, { headers: getHeaders() });
-                    fetchData();
+                
+                const saveSettings = async () => {
+                    try {
+                        await axios.post('/api/settings', settings.value, { headers: getHeaders() });
+                        alert("Settings Saved");
+                    } catch(e) { alert("Error saving settings"); }
                 };
 
-                const pollJob = (id, cb) => {
-                    const intv = setInterval(async () => {
-                        try {
-                            const res = await axios.get(`/api/jobs/${id}`);
-                            cb(res.data);
-                            if(res.data.status === 'completed' || res.data.status === 'failed') clearInterval(intv);
-                        } catch(e) { clearInterval(intv); }
-                    }, 1000);
+                // --- Data Explorer ---
+                const fetchFlightDetails = async () => {
+                    if (!lookupQuery.value.origin || !lookupQuery.value.destination) {
+                        alert("Enter Origin and Destination");
+                        return;
+                    }
+                    loadingData.value = true;
+                    lookupQuery.value.hasSearched = true;
+                    flightDetails.value = [];
+                    try {
+                        const params = { origin: lookupQuery.value.origin, destination: lookupQuery.value.destination };
+                        if (lookupQuery.value.date) params.date = lookupQuery.value.date;
+                        
+                        const res = await axios.get('/api/admin/flight_details', { params, headers: getHeaders() });
+                        flightDetails.value = res.data;
+                    } catch(e) { console.error(e); }
+                    finally { loadingData.value = false; }
                 };
 
-                // Scraper Tool
+                const openExplorer = async () => {
+                    try {
+                        const [f, w] = await Promise.all([
+                            axios.get('/api/admin/cached_routes', { headers: getHeaders() }),
+                            axios.get('/api/admin/weather_data', { headers: getHeaders() })
+                        ]);
+                        explorerData.value.flights = f.data;
+                        explorerData.value.weather = w.data;
+                    } catch(e){}
+                };
+                
+                const deleteDate = async (type, date) => {
+                    if(!confirm(`Delete ${type} for ${date}?`)) return;
+                    await axios.delete(`/api/admin/${type}/${date}`, { headers: getHeaders() });
+                    openExplorer();
+                };
+
+                // --- Scraper Tool ---
                 const runManualScrape = async () => {
                     manualScrape.value.loading = true;
                     manualScrape.value.result = null;
@@ -930,45 +993,28 @@
                             date: manualScrape.value.date
                         }, { headers: getHeaders() });
                         manualScrape.value.result = res.data;
-                        fetchData(); // Update cache count
+                        fetchData(); 
                     } catch (e) {
                         manualScrape.value.error = e.response?.data?.detail || e.message;
                     } finally {
                         manualScrape.value.loading = false;
                     }
                 };
-
-                // Explorer
-                const openExplorer = async () => {
+                
+                // --- Routes ---
+                const toggleRoute = async (route) => {
+                    route.is_active = !route.is_active;
                     try {
-                        const [f, w, s] = await Promise.all([
-                            axios.get('/api/admin/cached_routes', { headers: getHeaders() }),
-                            axios.get('/api/admin/weather_data', { headers: getHeaders() }),
-                            axios.get('/api/admin/seat_inventory', { headers: getHeaders() })
-                        ]);
-                        explorerData.value.flights = f.data;
-                        explorerData.value.weather = w.data;
-                        seatInventory.value = s.data;
-                    } catch(e){}
+                        await axios.post(`/api/admin/routes/${route.id}/toggle`, {}, { headers: getHeaders() });
+                        if (route.is_active) route.error_count = 0;
+                    } catch (e) { route.is_active = !route.is_active; }
                 };
 
-                const toggleExpand = (key) => {
-                    expanded.value[key] = !expanded.value[key];
+                // --- Proxies ---
+                const fetchProxies = async () => {
+                    const res = await axios.get('/api/proxies', { headers: getHeaders() });
+                    proxies.value = res.data;
                 };
-
-                const deleteDate = async (type, date) => {
-                    if(!confirm(`Delete ${type} for ${date}?`)) return;
-                    await axios.delete(`/api/admin/${type}/${date}`, { headers: getHeaders() });
-                    openExplorer();
-                };
-
-                // Settings
-                const saveSettings = async () => {
-                    await axios.post('/api/settings', settings.value, { headers: getHeaders() });
-                    alert("Settings Saved");
-                };
-
-                // Proxies
                 const addProxies = async () => {
                     if(!newProxies.value) return;
                     await axios.post('/api/proxies', { proxies: newProxies.value }, { headers: getHeaders() });
@@ -976,9 +1022,9 @@
                     fetchProxies();
                 };
                 const recheckProxies = async () => {
-                    if(!confirm("Recheck all proxies? This runs in background.")) return;
+                    if(!confirm("Recheck all?")) return;
                     await axios.post('/api/proxies/recheck', {}, { headers: getHeaders() });
-                    alert("Recheck queued.");
+                    alert("Recheck queued");
                 };
                 const deleteAllProxies = async () => {
                     if(!confirm("Delete ALL?")) return;
@@ -989,39 +1035,55 @@
                     await axios.delete(`/api/proxies/${id}`, { headers: getHeaders() });
                     fetchProxies();
                 };
-
-                // Helpers
+                
+                // --- Utils ---
+                const pollJob = (id, cb) => {
+                    const intv = setInterval(async () => {
+                        try {
+                            const res = await axios.get(`/api/jobs/${id}`);
+                            cb(res.data);
+                            if(res.data.status === 'completed' || res.data.status === 'failed') clearInterval(intv);
+                        } catch(e) { clearInterval(intv); }
+                    }, 1000);
+                };
                 const formatSmartTime = (iso) => {
                     if(!iso) return '-';
-                    return new Date(iso).toLocaleString();
+                    const d = new Date(iso);
+                    return d.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
                 };
-
                 const formatDuration = (seconds) => {
                     if (!seconds) return '-';
-                    const mins = Math.floor(seconds / 60);
-                    const secs = Math.floor(seconds % 60);
-                    return `${mins}m ${secs}s`;
+                    if (seconds < 60) return seconds.toFixed(1) + 's';
+                    return (seconds / 60).toFixed(1) + 'm';
                 };
+                const toggleExpand = (key) => expanded.value[key] = !expanded.value[key];
 
-                // Auto-login on mount
+                // --- Watchers & Hooks ---
+                watch(activeTab, (val) => {
+                    if (val === 'data') openExplorer();
+                    if (val === 'settings') fetchProxies();
+                    if (val === 'routes') fetchRoutes();
+                    if (val === 'dashboard') { fetchScraperRuns(); fetchHeartbeats(); }
+                });
+
                 onMounted(() => {
                     checkAuth();
                 });
 
                 return {
                     authenticated, password, login, loginError, logout,
-                    activeTab, tabs, currentTabLabel,
+                    activeTab, tabs, currentTabLabel, loadingData,
                     settings, proxies, cacheCount, activeProxiesCount, uptimeString,
-                    seatInventory,
-                    routeJob,
-                    manualScrape, runManualScrape,
-                    explorerMode, explorerData, expanded, toggleExpand, deleteDate,
-                    allRoutes, isLoadingRoutes, sortedRoutes, fetchRoutes, toggleRoute, routeSort,
-                    saveSettings,
-                    runAutoScraper, updateRoutes, triggerWeatherUpdate, rebootBackend, clearCache, fetchData,
+                    heartbeats, scraperRuns, scraperTypeFilter,
+                    flightDetails, lookupQuery,
+                    routeJob, manualScrape,
+                    explorerMode, explorerData, expanded,
+                    allRoutes, isLoadingRoutes, sortedRoutes, routeSort,
+                    fetchData, fetchScraperRuns, fetchHeartbeats, fetchFlightDetails, fetchRoutes,
+                    triggerScraper, runManualScrape, updateRoutes, clearCache, rebootBackend,
+                    saveSettings, toggleRoute,
                     newProxies, addProxies, recheckProxies, deleteAllProxies, deleteProxy,
-                    formatSmartTime, formatDuration,
-                    scraperRuns, fetchScraperRuns
+                    formatSmartTime, formatDuration, toggleExpand, deleteDate
                 };
             }
         }).mount('#app');
