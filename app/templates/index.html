@@ -697,62 +697,58 @@
                                 </div>
                             </div>
 
-                            <!-- Explore Tab Controls - Compact Layout -->
+                            <!-- Explore Tab Controls -->
                             <div v-if="currentTab === 'explore'" class="space-y-3">
-                                <!-- Top Row: Fare Types + View Switcher -->
-                                <div class="flex flex-wrap lg:flex-nowrap items-start gap-3">
-                                    <!-- Fare Type Pills -->
-                                    <div class="flex flex-wrap gap-2 flex-1">
-                                        <!-- GoWild Pill -->
-                                        <div class="relative group">
-                                            <button @click="fareTypes.gowild = !fareTypes.gowild"
-                                                :class="fareTypes.gowild ? 'bg-green-600 text-white' : 'bg-white text-slate-600 hover:bg-slate-50'"
-                                                class="px-3 py-2 rounded-lg border text-xs font-bold transition flex items-center gap-1.5 shadow-sm"
-                                                :class="fareTypes.gowild ? 'border-green-600' : 'border-slate-200'">
-                                                <i class="ph text-sm" :class="fareTypes.gowild ? 'ph-check-circle' : 'ph-circle'"></i>
-                                                GoWild
-                                                <i v-if="fareTypes.gowild" class="ph text-xs" :class="fareTypes.earlyBooking ? 'ph-toggle-right' : 'ph-toggle-left'"></i>
-                                            </button>
-                                            <!-- Early Booking Quick Toggle -->
-                                            <button v-if="fareTypes.gowild" @click.stop="fareTypes.earlyBooking = !fareTypes.earlyBooking"
-                                                class="absolute -bottom-1 -right-1 bg-green-700 text-white text-[9px] font-bold px-1.5 py-0.5 rounded shadow-md hover:bg-green-800 transition whitespace-nowrap"
-                                                :class="fareTypes.earlyBooking ? 'opacity-100' : 'opacity-60'">
-                                                {{ fareTypes.earlyBooking ? '3wk' : '2d' }}
-                                            </button>
-                                        </div>
+                                <!-- View Switcher - Prominent -->
+                                <div class="bg-slate-50 p-1.5 rounded-xl flex gap-1.5 w-full shadow-sm border border-slate-200">
+                                    <button @click="exploreView = 'map'"
+                                        :class="exploreView === 'map' ? 'bg-white shadow-md text-brand-700 ring-2 ring-brand-500/20' : 'text-slate-500 hover:text-slate-700 hover:bg-white/50'"
+                                        class="flex-1 px-6 py-3 rounded-lg transition flex items-center justify-center gap-2.5 font-bold text-sm">
+                                        <i class="ph ph-map-trifold text-xl"></i>
+                                        <span>Map View</span>
+                                    </button>
+                                    <button @click="exploreView = 'list'"
+                                        :class="exploreView === 'list' ? 'bg-white shadow-md text-brand-700 ring-2 ring-brand-500/20' : 'text-slate-500 hover:text-slate-700 hover:bg-white/50'"
+                                        class="flex-1 px-6 py-3 rounded-lg transition flex items-center justify-center gap-2.5 font-bold text-sm">
+                                        <i class="ph ph-list-dashes text-xl"></i>
+                                        <span>List View</span>
+                                    </button>
+                                </div>
 
-                                        <!-- Standard Pill -->
-                                        <button @click="fareTypes.standard = !fareTypes.standard"
-                                            :class="fareTypes.standard ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'"
-                                            class="px-3 py-2 rounded-lg border text-xs font-bold transition flex items-center gap-1.5 shadow-sm">
-                                            <i class="ph text-sm" :class="fareTypes.standard ? 'ph-check-circle' : 'ph-circle'"></i>
-                                            Standard
-                                        </button>
+                                <!-- Fare Type Pills -->
+                                <div class="flex flex-wrap gap-2">
+                                    <!-- GoWild Pill with Early Booking -->
+                                    <button @click="fareTypes.gowild = !fareTypes.gowild"
+                                        :class="fareTypes.gowild ? 'bg-green-600 text-white border-green-600' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'"
+                                        class="px-3 py-2 rounded-lg border text-xs font-bold transition flex items-center gap-1.5 shadow-sm">
+                                        <i class="ph text-sm" :class="fareTypes.gowild ? 'ph-check-circle' : 'ph-circle'"></i>
+                                        GoWild
+                                    </button>
 
-                                        <!-- Discount DEN Pill -->
-                                        <button @click="fareTypes.discountDen = !fareTypes.discountDen"
-                                            :class="fareTypes.discountDen ? 'bg-amber-600 text-white border-amber-600' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'"
-                                            class="px-3 py-2 rounded-lg border text-xs font-bold transition flex items-center gap-1.5 shadow-sm">
-                                            <i class="ph text-sm" :class="fareTypes.discountDen ? 'ph-check-circle' : 'ph-circle'"></i>
-                                            Discount DEN
-                                        </button>
-                                    </div>
+                                    <!-- Early Booking Chip (only when GoWild selected) -->
+                                    <button v-if="fareTypes.gowild" @click="fareTypes.earlyBooking = !fareTypes.earlyBooking"
+                                        :class="fareTypes.earlyBooking ? 'bg-green-700 text-white border-green-700' : 'bg-green-100 text-green-700 border-green-300 hover:bg-green-200'"
+                                        class="px-3 py-2 rounded-lg border text-xs font-bold transition flex items-center gap-1.5 shadow-sm">
+                                        <i class="ph text-sm" :class="fareTypes.earlyBooking ? 'ph-check-circle' : 'ph-circle'"></i>
+                                        Early Booking
+                                        <span class="text-[10px] opacity-80">(3wk+)</span>
+                                    </button>
 
-                                    <!-- View Switcher -->
-                                    <div class="bg-slate-100 p-1 rounded-lg flex gap-1 shadow-sm">
-                                        <button @click="exploreView = 'map'"
-                                            :class="exploreView === 'map' ? 'bg-white shadow text-brand-600' : 'text-slate-500 hover:text-slate-700'"
-                                            class="px-3 py-1.5 rounded transition flex items-center gap-1.5 text-xs font-bold">
-                                            <i class="ph ph-map-trifold"></i>
-                                            <span class="hidden sm:inline">Map</span>
-                                        </button>
-                                        <button @click="exploreView = 'list'"
-                                            :class="exploreView === 'list' ? 'bg-white shadow text-brand-600' : 'text-slate-500 hover:text-slate-700'"
-                                            class="px-3 py-1.5 rounded transition flex items-center gap-1.5 text-xs font-bold">
-                                            <i class="ph ph-list-dashes"></i>
-                                            <span class="hidden sm:inline">List</span>
-                                        </button>
-                                    </div>
+                                    <!-- Standard Pill -->
+                                    <button @click="fareTypes.standard = !fareTypes.standard"
+                                        :class="fareTypes.standard ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'"
+                                        class="px-3 py-2 rounded-lg border text-xs font-bold transition flex items-center gap-1.5 shadow-sm">
+                                        <i class="ph text-sm" :class="fareTypes.standard ? 'ph-check-circle' : 'ph-circle'"></i>
+                                        Standard
+                                    </button>
+
+                                    <!-- Discount DEN Pill -->
+                                    <button @click="fareTypes.discountDen = !fareTypes.discountDen"
+                                        :class="fareTypes.discountDen ? 'bg-amber-600 text-white border-amber-600' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'"
+                                        class="px-3 py-2 rounded-lg border text-xs font-bold transition flex items-center gap-1.5 shadow-sm">
+                                        <i class="ph text-sm" :class="fareTypes.discountDen ? 'ph-check-circle' : 'ph-circle'"></i>
+                                        Discount DEN
+                                    </button>
                                 </div>
 
                                 <!-- Filter Pills Row -->
