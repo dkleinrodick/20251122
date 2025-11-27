@@ -697,23 +697,68 @@
                                 </div>
                             </div>
 
+                            <!-- Fare Type Filters (Explore Tab Only) -->
+                            <div v-if="currentTab === 'explore'" class="flex flex-wrap gap-2 pb-2 border-b border-slate-200">
+                                <div class="w-full text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Fare Types</div>
+
+                                <!-- GoWild Section with Early Booking sub-option -->
+                                <div class="flex flex-col gap-1.5 w-full sm:w-auto">
+                                    <button @click="fareTypes.gowild = !fareTypes.gowild"
+                                        :class="fareTypes.gowild ? 'bg-green-100 text-green-700 border-green-300' : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'"
+                                        class="px-4 py-2 rounded-xl border text-sm font-bold transition flex items-center gap-2 h-[42px] whitespace-nowrap">
+                                        <i class="ph ph-check-circle" v-if="fareTypes.gowild"></i>
+                                        <i class="ph ph-circle" v-else></i>
+                                        GoWild
+                                    </button>
+
+                                    <!-- Early Booking sub-option (only when GoWild is checked) -->
+                                    <button v-if="fareTypes.gowild" @click="fareTypes.earlyBooking = !fareTypes.earlyBooking"
+                                        :class="fareTypes.earlyBooking ? 'bg-green-50 text-green-600 border-green-200' : 'bg-slate-50 text-slate-400 border-slate-200 hover:bg-slate-100'"
+                                        class="px-4 py-1.5 rounded-lg border text-xs font-bold transition flex items-center gap-2 ml-4">
+                                        <i class="ph ph-check-square" v-if="fareTypes.earlyBooking"></i>
+                                        <i class="ph ph-square" v-else></i>
+                                        <span>Include Early Booking <span class="text-[10px] opacity-70">(up to 3 weeks)</span></span>
+                                    </button>
+                                </div>
+
+                                <button @click="fareTypes.standard = !fareTypes.standard"
+                                    :class="fareTypes.standard ? 'bg-blue-100 text-blue-700 border-blue-300' : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'"
+                                    class="px-4 py-2 rounded-xl border text-sm font-bold transition flex items-center gap-2 h-[42px] whitespace-nowrap">
+                                    <i class="ph ph-check-circle" v-if="fareTypes.standard"></i>
+                                    <i class="ph ph-circle" v-else></i>
+                                    Standard
+                                </button>
+                                <button @click="fareTypes.discountDen = !fareTypes.discountDen"
+                                    :class="fareTypes.discountDen ? 'bg-amber-100 text-amber-700 border-amber-300' : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'"
+                                    class="px-4 py-2 rounded-xl border text-sm font-bold transition flex items-center gap-2 h-[42px] whitespace-nowrap">
+                                    <i class="ph ph-check-circle" v-if="fareTypes.discountDen"></i>
+                                    <i class="ph ph-circle" v-else></i>
+                                    Discount DEN
+                                </button>
+                            </div>
+
                             <!-- Weather / Common Filters -->
                             <div v-if="currentTab === 'explore' || (currentTab === 'daytrip' && dayTripMode === 'anywhere')" class="flex flex-wrap gap-2">
-                                <button @click="filters.noRain = !filters.noRain" 
+                                <!-- Weather filters only shown when weather data is available (within 16 days) -->
+                                <button v-if="weatherAvailable" @click="filters.noRain = !filters.noRain"
                                     :class="filters.noRain ? 'bg-brand-100 text-brand-700 border-brand-300' : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'"
                                     class="px-4 py-2 rounded-xl border text-sm font-bold transition flex items-center gap-2 h-[42px] whitespace-nowrap">
                                     <i class="ph ph-cloud-slash"></i> No Rain
                                 </button>
-                                <button @click="filters.warm = !filters.warm"
-                                    :class="filters.warm ? 'bg-orange-100 text-orange-700 border-orange-300' : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'" 
+                                <button v-if="weatherAvailable" @click="filters.warm = !filters.warm"
+                                    :class="filters.warm ? 'bg-orange-100 text-orange-700 border-orange-300' : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'"
                                     class="px-4 py-2 rounded-xl border text-sm font-bold transition flex items-center gap-2 h-[42px] whitespace-nowrap">
                                     <i class="ph ph-sun"></i> Warm (60°+)
                                 </button>
                                 <button @click="filters.nonStop = !filters.nonStop"
-                                    :class="filters.nonStop ? 'bg-purple-100 text-purple-700 border-purple-300' : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'" 
+                                    :class="filters.nonStop ? 'bg-purple-100 text-purple-700 border-purple-300' : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'"
                                     class="px-4 py-2 rounded-xl border text-sm font-bold transition flex items-center gap-2 h-[42px] whitespace-nowrap">
                                     <i class="ph ph-airplane"></i> Nonstop
                                 </button>
+                                <!-- Note when weather filters are hidden -->
+                                <div v-if="!weatherAvailable && currentTab === 'explore'" class="text-xs text-slate-400 italic flex items-center gap-2 px-2">
+                                    <i class="ph ph-info"></i> Weather filters unavailable for dates beyond 16 days
+                                </div>
                             </div>
 
                             <!-- Explore View Switcher -->
@@ -1074,7 +1119,7 @@
                                     </div>
 
                                     <a href="javascript:void(0)" @click="bookFlight(flight)" class="block w-full bg-brand-600 hover:bg-brand-700 text-white text-center font-bold py-3 rounded-xl shadow-lg shadow-brand-600/20 transition transform active:scale-95">
-                                        Book on Frontier
+                                        {{ getFareTypeLabel(selectedDest) }}
                                     </a>
                                 </div>
                             </div>
@@ -1118,7 +1163,12 @@
                                             {{ group.flights.length }} Flight{{ group.flights.length > 1 ? 's' : '' }}
                                         </div>
                                         <div class="text-right">
-                                            <div class="text-xs text-slate-400 font-bold">FROM</div>
+                                            <div class="flex items-center gap-2 justify-end mb-1">
+                                                <span v-if="group.fareType === 'gowild'" class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-green-100 text-green-700 border border-green-300">GoWild</span>
+                                                <span v-else-if="group.fareType === 'den'" class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 border border-amber-300">DEN</span>
+                                                <span v-else-if="group.fareType === 'standard'" class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 border border-blue-300">STD</span>
+                                                <div class="text-xs text-slate-400 font-bold">FROM</div>
+                                            </div>
                                             <div class="text-lg font-bold text-slate-900">${{ group.minPrice }}</div>
                                         </div>
                                     </div>
@@ -1190,7 +1240,7 @@
                                             </div>
 
                                             <a href="javascript:void(0)" @click.stop="bookFlight(flight)" class="block w-full py-2.5 rounded-lg bg-brand-600 hover:bg-brand-700 text-white font-bold text-center text-sm transition shadow-lg shadow-brand-600/20 transform active:scale-95">
-                                                Book Flight
+                                                {{ getFareTypeLabel(getSelectedGroupInRow(row)) }}
                                             </a>
                                         </div>
                                     </div>
@@ -1708,11 +1758,19 @@
                 const destInput = ref(null);
 
                 // Filters
-                const filters = ref({ 
+                const filters = ref({
                     noRain: false, warm: false, nonStop: false,
                     depTime: { min: 0, max: 24 },
                     arrTime: { min: 0, max: 24 },
                     maxDuration: 24
+                });
+
+                // Fare Type Filters (for Explore tab)
+                const fareTypes = ref({
+                    gowild: true,           // GoWild checked by default
+                    standard: false,        // Standard unchecked
+                    discountDen: false,     // Discount DEN unchecked
+                    earlyBooking: true      // GoWild Early Booking checked by default
                 });
                 const dayTrip = ref({ minHours: 6 });
                 const dayTripMode = ref('anywhere');
@@ -1976,6 +2034,16 @@
                     return Object.values(groupedDayTrips.value).sort((a, b) => a.name.localeCompare(b.name));
                 });
 
+                // Check if weather data is available (within 16 days)
+                const weatherAvailable = computed(() => {
+                    if (!search.value.date) return true; // Default to showing weather controls
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    const selectedDate = new Date(search.value.date);
+                    const daysDiff = Math.floor((selectedDate - today) / (1000 * 60 * 60 * 24));
+                    return daysDiff <= 16;
+                });
+
                 const groupedExploreDestinations = computed(() => {
                     if (currentTab.value !== 'explore' || exploreView.value !== 'list') return {};
                     const groups = {};
@@ -1988,11 +2056,38 @@
 
                         const w = weatherData.value[groupBy];
 
-                        // Apply filters
+                        // Apply non-fare filters
                         if (filters.value.noRain && w && w.condition >= 50) return;
                         if (filters.value.warm && w && toFahrenheit(w.temp) < 60) return;
                         if (filters.value.nonStop && f.stops > 0) return;
 
+                        // Get available fares for this flight
+                        const fares = f.fares || {};
+                        const availableFares = [];
+
+                        // Check which selected fare types are available for this flight
+                        if (fareTypes.value.gowild && fares.gowild && fares.gowild.price !== null) {
+                            availableFares.push({ type: 'gowild', price: fares.gowild.price, priority: 1 });
+                        }
+                        if (fareTypes.value.discountDen && fares.den && fares.den.price !== null) {
+                            availableFares.push({ type: 'den', price: fares.den.price, priority: 2 });
+                        }
+                        if (fareTypes.value.standard && fares.standard && fares.standard.price !== null) {
+                            availableFares.push({ type: 'standard', price: fares.standard.price, priority: 3 });
+                        }
+
+                        // Skip if no selected fare types are available
+                        if (availableFares.length === 0) return;
+
+                        // Find cheapest fare, prioritizing gowild > den > standard for ties
+                        availableFares.sort((a, b) => {
+                            if (a.price !== b.price) return a.price - b.price;
+                            return a.priority - b.priority;
+                        });
+
+                        const bestFare = availableFares[0];
+
+                        // Initialize group if needed
                         if (!groups[groupBy]) {
                             groups[groupBy] = {
                                 code: groupBy,
@@ -2000,13 +2095,20 @@
                                 name: w?.city || groupBy,
                                 weather: getWeather(groupBy),
                                 flights: [],
-                                minPrice: 9999
+                                minPrice: 9999,
+                                fareType: null,
+                                farePriority: 999
                             };
                         }
+
                         groups[groupBy].flights.push(f);
-                        const price = f.price || f.total_price || 0;
-                        if (price < groups[groupBy].minPrice) {
-                            groups[groupBy].minPrice = price;
+
+                        // Update if this is a better price (or same price but better priority)
+                        if (bestFare.price < groups[groupBy].minPrice ||
+                            (bestFare.price === groups[groupBy].minPrice && bestFare.priority < groups[groupBy].farePriority)) {
+                            groups[groupBy].minPrice = bestFare.price;
+                            groups[groupBy].fareType = bestFare.type;
+                            groups[groupBy].farePriority = bestFare.priority;
                         }
                     });
                     return groups;
@@ -2016,7 +2118,7 @@
 
                 const calculateDateOptions = () => {
                     let timeZone = undefined; // Default to browser
-                    
+
                     if (search.value.origin) {
                         const ap = locations.value.find(l => l.code === search.value.origin);
                         if (ap && ap.timezone) {
@@ -2025,41 +2127,49 @@
                     }
 
                     // DETERMINE WINDOW SIZE
-                    // Logic:
-                    // 1. Day Trips: Always 2 days (Today, Tomorrow)
-                    // 2. Others: 
-                    //    - Check Origin is International?
-                    //    - Check Destination is International?
-                    //    - If either is true => 10 Days
-                    //    - Else => 2 Days
-                    
+                    // Logic for Explore tab with fare types:
+                    // 1. If Standard OR Discount DEN is selected => 21 days (3 weeks)
+                    // 2. If only GoWild is selected:
+                    //    a. With Early Booking checked => 21 days (3 weeks)
+                    //    b. Without Early Booking => 2 days domestic, 10 days international
+                    // 3. Day Trips: Always 2 days (Today, Tomorrow)
+                    // 4. Other tabs: Original logic (2 days domestic, 10 days international)
+
                     let windowSize = 2; // Default
-                    if (currentTab.value !== 'daytrip') {
+
+                    if (currentTab.value === 'explore') {
+                        // Explore tab with fare type logic
+                        if (fareTypes.value.standard || fareTypes.value.discountDen) {
+                            // Standard or Discount DEN selected => 3 weeks
+                            windowSize = 21;
+                        } else if (fareTypes.value.gowild && fareTypes.value.earlyBooking) {
+                            // GoWild with Early Booking => 3 weeks
+                            windowSize = 21;
+                        } else if (fareTypes.value.gowild) {
+                            // GoWild only without Early Booking => standard 2/10 day logic
+                            let isIntl = false;
+                            if (search.value.origin) {
+                                const o = locations.value.find(l => l.code === search.value.origin);
+                                if (o && o.is_international) isIntl = true;
+                            }
+                            windowSize = isIntl ? 10 : 2;
+                        }
+                    } else if (currentTab.value !== 'daytrip') {
+                        // Other tabs: original logic
                         let isIntl = false;
-                        
+
                         // Check Origin
                         if (search.value.origin) {
                             const o = locations.value.find(l => l.code === search.value.origin);
                             if (o && o.is_international) isIntl = true;
                         }
-                        
+
                         // Check Destination (if applicable)
-                        // In Explore mode, check based on exploreMode or target?
-                        // Explore Mode:
-                        //  - 'origin': we have search.origin. destination is "Anywhere" (effectively). 
-                        //    Wait, if search.origin is INT, we allow 10 days. 
-                        //    If search.origin is DOM, we allow 2 days (even if dest could be INT).
-                        //    The Prompt says: "if choosing an international airport to depart from OR arrive to".
-                        //    So if exploreMode is 'destination' (Incoming), search.origin is the target. If target is INT, then allow 10.
-                        //    If exploreMode is 'origin' (Outgoing), search.origin is the source. If source is INT, then allow 10.
-                        
-                        // In OneWay/Builder:
-                        //  - Check search.dest if set.
                         if (search.value.dest) {
                             const d = locations.value.find(l => l.code === search.value.dest);
                             if (d && d.is_international) isIntl = true;
                         }
-                        
+
                         if (isIntl) windowSize = 10;
                     }
 
@@ -2401,12 +2511,23 @@
                         const w = weatherData.value[airportCode];
                         if (!w) return;
 
+                        // Apply weather and non-stop filters
                         let valid = true;
                         if (filters.value.noRain && w.condition >= 50) valid = false;
                         if (filters.value.warm && toFahrenheit(w.temp) < 60) valid = false;
                         if (filters.value.nonStop && f.stops > 0) valid = false;
 
-                        if (valid) airportsToShow.add(airportCode);
+                        if (!valid) return;
+
+                        // Apply fare type filters
+                        const fares = f.fares || {};
+                        let hasFareType = false;
+
+                        if (fareTypes.value.gowild && fares.gowild && fares.gowild.price !== null) hasFareType = true;
+                        if (fareTypes.value.discountDen && fares.den && fares.den.price !== null) hasFareType = true;
+                        if (fareTypes.value.standard && fares.standard && fares.standard.price !== null) hasFareType = true;
+
+                        if (hasFareType) airportsToShow.add(airportCode);
                     });
                     
                     filteredMapCount.value = airportsToShow.size;
@@ -2440,28 +2561,70 @@
 
                 const processExploreList = () => {
                     const map = {};
+
                     allExploreFlights.value.forEach(f => {
                         let d = f.destination || (f.segments ? f.segments[f.segments.length-1].destination : null);
-                         const w = weatherData.value[d];
-                         if (filters.value.nonStop && f.stops > 0) return;
-                         if (filters.value.noRain && w && w.condition >= 50) return;
-                         if (filters.value.warm && w && toFahrenheit(w.temp) < 60) return;
-                         
-                         if (!map[d]) map[d] = { 
-                             code: d, 
-                             city: w?.city || d, 
-                             price: 9999, 
-                             flightCount: 0, 
-                             origin: search.value.origin, 
-                             destination: d, 
-                             departure: f.departure, 
-                             arrival: f.arrival 
-                         };
-                         
-                         const p = f.price || f.total_price || 0;
-                         if (p < map[d].price) map[d].price = p;
-                         map[d].flightCount++;
+                        const w = weatherData.value[d];
+
+                        // Apply non-fare filters
+                        if (filters.value.nonStop && f.stops > 0) return;
+                        if (filters.value.noRain && w && w.condition >= 50) return;
+                        if (filters.value.warm && w && toFahrenheit(w.temp) < 60) return;
+
+                        // Get available fares for this flight
+                        const fares = f.fares || {};
+                        const availableFares = [];
+
+                        // Check which selected fare types are available for this flight
+                        if (fareTypes.value.gowild && fares.gowild && fares.gowild.price !== null) {
+                            availableFares.push({ type: 'gowild', price: fares.gowild.price, priority: 1 });
+                        }
+                        if (fareTypes.value.discountDen && fares.den && fares.den.price !== null) {
+                            availableFares.push({ type: 'den', price: fares.den.price, priority: 2 });
+                        }
+                        if (fareTypes.value.standard && fares.standard && fares.standard.price !== null) {
+                            availableFares.push({ type: 'standard', price: fares.standard.price, priority: 3 });
+                        }
+
+                        // Skip if no selected fare types are available
+                        if (availableFares.length === 0) return;
+
+                        // Find cheapest fare, prioritizing gowild > den > standard for ties
+                        availableFares.sort((a, b) => {
+                            if (a.price !== b.price) return a.price - b.price;
+                            return a.priority - b.priority; // Lower priority number = higher preference
+                        });
+
+                        const bestFare = availableFares[0];
+
+                        // Initialize destination entry if needed
+                        if (!map[d]) {
+                            map[d] = {
+                                code: d,
+                                city: w?.city || d,
+                                price: 9999,
+                                fareType: null,
+                                flightCount: 0,
+                                origin: search.value.origin,
+                                destination: d,
+                                departure: f.departure,
+                                arrival: f.arrival
+                            };
+                        }
+
+                        // Update if this is a better price (or same price but better priority)
+                        if (bestFare.price < map[d].price ||
+                            (bestFare.price === map[d].price && bestFare.priority < (map[d].farePriority || 999))) {
+                            map[d].price = bestFare.price;
+                            map[d].fareType = bestFare.type;
+                            map[d].farePriority = bestFare.priority;
+                            map[d].departure = f.departure;
+                            map[d].arrival = f.arrival;
+                        }
+
+                        map[d].flightCount++;
                     });
+
                     return Object.values(map).sort((a,b) => a.price - b.price);
                 };
 
@@ -2501,7 +2664,7 @@
                 
                 const getLink = (item, isRoundTrip = false) => {
                     if (!item) return '#';
-                    
+
                     let o = item.origin || item.departure_code;
                     let d = item.destination || item.arrival_code;
                     let date = item.departure ? item.departure.split('T')[0] : search.value.date;
@@ -2518,7 +2681,7 @@
                     }
 
                     let url = `https://booking.flyfrontier.com/Flight/InternalSelect?o1=${o}&d1=${d}&dd1=${date}`;
-                    
+
                     if (isRoundTrip) {
                         url += `&dd2=${date}&r=true`;
                     }
@@ -2530,13 +2693,39 @@
                         });
                     }
 
-                    url += `&umnr=false&loy=false&mon=true&ftype=GW&promo=`;
+                    // Determine fare type parameter
+                    // GoWild = GW, Standard or Discount DEN = DD
+                    let ftype = 'GW'; // Default to GoWild
+                    if (item.fareType) {
+                        // If the item has a fareType set (from processExploreList)
+                        ftype = item.fareType === 'gowild' ? 'GW' : 'DD';
+                    } else if (currentTab.value === 'explore') {
+                        // For explore tab, use the first selected fare type
+                        if (fareTypes.value.standard || fareTypes.value.discountDen) {
+                            ftype = 'DD';
+                        }
+                    }
+
+                    url += `&umnr=false&loy=false&mon=true&ftype=${ftype}&promo=`;
                     return url;
                 };
                 
                 const bookFlight = (item, isRoundTrip = false) => {
                     const url = getLink(item, isRoundTrip);
                     if (url && url !== '#') window.open(url, '_blank');
+                };
+
+                const getFareTypeLabel = (item) => {
+                    // Return button label based on fare type
+                    if (!item) return 'Book Flight';
+
+                    const fareType = item.fareType;
+                    if (fareType === 'gowild') return 'Book GoWild!';
+                    if (fareType === 'den') return 'Book Discount DEN!';
+                    if (fareType === 'standard') return 'Book Standard';
+
+                    // Default fallback
+                    return 'Book Flight';
                 };
 
                 const getDestCode = (item) => {
@@ -2618,6 +2807,19 @@
 
                 watch(() => search.value.origin, () => calculateDateOptions());
                 watch(() => search.value.dest, () => calculateDateOptions());
+
+                // Watch fare type changes to recalculate date options and refresh results
+                watch(fareTypes, () => {
+                    if (currentTab.value === 'explore') {
+                        calculateDateOptions();
+                        // If we've already searched, refresh the results with new fare types
+                        if (hasSearched.value && exploreView.value === 'list') {
+                            results.value = processExploreList();
+                        } else if (hasSearched.value && exploreView.value === 'map') {
+                            renderMap();
+                        }
+                    }
+                }, { deep: true });
 
                 watch(dayTripMode, (v) => {
                     if (v === 'anywhere') {
@@ -2756,13 +2958,13 @@
                     loading, error, hasSearched, searchExecuted, mobileMenuOpen, scrolled,
                     currentTab, tabs, search, locations,
                     showOriginDropdown, showDestDropdown, showDateDropdown, filteredOrigins, filteredDests,
-                    dayTrip, builder, filters, results, exploreView, exploreMode, selectedDest, destFlights, selectedFlight,
-                    selectedDayTripCity, groupedDayTrips, sortedDayTrips, allExploreFlights, selectedExploreCode, groupedExploreDestinations, 
+                    dayTrip, builder, filters, fareTypes, results, exploreView, exploreMode, selectedDest, destFlights, selectedFlight,
+                    selectedDayTripCity, groupedDayTrips, sortedDayTrips, weatherAvailable, allExploreFlights, selectedExploreCode, groupedExploreDestinations, 
                     chunkedExploreDestinations, rowHasSelected, getSelectedGroupInRow, sortedBuilderResults, sortedOneWayResults, oneWay,
                     filterAirports, selectAirport, swapAirports, focusDest, validateInput,
                     getDateLabel, getDateShort,
                     performSearch, performExplore, getLink, formatTime, getDestCode, getDestName,
-                    formatDateShort, formatDurationMain, formatDurationSub, bookFlight, getLayoverSummary, formatDecimalHours, formatSliderTime,
+                    formatDateShort, formatDurationMain, formatDurationSub, bookFlight, getFareTypeLabel, getLayoverSummary, formatDecimalHours, formatSliderTime,
                     toFahrenheit, getWeatherIcon: (c) => c >= 50 ? 'ph-cloud-rain' : 'ph-sun',
                     getWeather, dayTripMode, destInput,
                     showBookingWarning, bookingWarningItem, openBookingModal, isOvernightLayover, getDateDiffLabel,
