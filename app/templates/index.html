@@ -698,78 +698,79 @@
                             </div>
 
                             <!-- Explore Tab Controls -->
-                            <div v-if="currentTab === 'explore'" class="space-y-3">
-                                <!-- View Switcher - Prominent -->
-                                <div class="bg-slate-50 p-1.5 rounded-xl flex gap-1.5 w-full shadow-sm border border-slate-200">
-                                    <button @click="exploreView = 'map'"
-                                        :class="exploreView === 'map' ? 'bg-white shadow-md text-brand-700 ring-2 ring-brand-500/20' : 'text-slate-500 hover:text-slate-700 hover:bg-white/50'"
-                                        class="flex-1 px-6 py-3 rounded-lg transition flex items-center justify-center gap-2.5 font-bold text-sm">
-                                        <i class="ph ph-map-trifold text-xl"></i>
-                                        <span>Map View</span>
-                                    </button>
-                                    <button @click="exploreView = 'list'"
-                                        :class="exploreView === 'list' ? 'bg-white shadow-md text-brand-700 ring-2 ring-brand-500/20' : 'text-slate-500 hover:text-slate-700 hover:bg-white/50'"
-                                        class="flex-1 px-6 py-3 rounded-lg transition flex items-center justify-center gap-2.5 font-bold text-sm">
-                                        <i class="ph ph-list-dashes text-xl"></i>
-                                        <span>List View</span>
-                                    </button>
+                            <div v-if="currentTab === 'explore'" class="bg-slate-50 rounded-xl p-3 border border-slate-200">
+                                <!-- Row 1: View + Fare Types -->
+                                <div class="flex flex-wrap items-center gap-2 mb-3">
+                                    <!-- View Switcher -->
+                                    <div class="bg-white rounded-lg p-1 flex gap-1 border border-slate-300 shadow-sm">
+                                        <button @click="exploreView = 'map'"
+                                            :class="exploreView === 'map' ? 'bg-brand-600 text-white' : 'text-slate-600 hover:bg-slate-100'"
+                                            class="px-4 py-2 rounded text-sm font-bold transition flex items-center gap-2">
+                                            <i class="ph ph-map-trifold text-lg"></i> Map
+                                        </button>
+                                        <button @click="exploreView = 'list'"
+                                            :class="exploreView === 'list' ? 'bg-brand-600 text-white' : 'text-slate-600 hover:bg-slate-100'"
+                                            class="px-4 py-2 rounded text-sm font-bold transition flex items-center gap-2">
+                                            <i class="ph ph-list-dashes text-lg"></i> List
+                                        </button>
+                                    </div>
+
+                                    <div class="h-8 w-px bg-slate-300 hidden sm:block"></div>
+
+                                    <!-- Fare Types -->
+                                    <div class="flex flex-wrap items-center gap-2">
+                                        <!-- GoWild with badge -->
+                                        <div class="relative">
+                                            <button @click="fareTypes.gowild = !fareTypes.gowild"
+                                                :class="fareTypes.gowild ? 'bg-green-600 text-white border-green-600' : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'"
+                                                class="px-3 py-2 rounded-lg border text-xs font-bold transition flex items-center gap-1.5 shadow-sm">
+                                                <i class="ph text-sm" :class="fareTypes.gowild ? 'ph-check-circle' : 'ph-circle'"></i>
+                                                GoWild
+                                            </button>
+                                            <!-- Early Booking Badge -->
+                                            <button v-if="fareTypes.gowild" @click.stop="fareTypes.earlyBooking = !fareTypes.earlyBooking"
+                                                :class="fareTypes.earlyBooking ? 'bg-green-700 text-white' : 'bg-white text-green-700 border border-green-300'"
+                                                class="absolute -top-1.5 -right-1.5 text-[9px] font-bold px-1.5 py-0.5 rounded-full shadow-lg hover:scale-110 transition z-10"
+                                                title="Early Booking: 3+ weeks">
+                                                {{ fareTypes.earlyBooking ? '3wk+' : '2d' }}
+                                            </button>
+                                        </div>
+
+                                        <button @click="fareTypes.standard = !fareTypes.standard"
+                                            :class="fareTypes.standard ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'"
+                                            class="px-3 py-2 rounded-lg border text-xs font-bold transition flex items-center gap-1.5 shadow-sm">
+                                            <i class="ph text-sm" :class="fareTypes.standard ? 'ph-check-circle' : 'ph-circle'"></i>
+                                            Standard
+                                        </button>
+
+                                        <button @click="fareTypes.discountDen = !fareTypes.discountDen"
+                                            :class="fareTypes.discountDen ? 'bg-amber-600 text-white border-amber-600' : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'"
+                                            class="px-3 py-2 rounded-lg border text-xs font-bold transition flex items-center gap-1.5 shadow-sm">
+                                            <i class="ph text-sm" :class="fareTypes.discountDen ? 'ph-check-circle' : 'ph-circle'"></i>
+                                            Discount DEN
+                                        </button>
+                                    </div>
                                 </div>
 
-                                <!-- Fare Type Pills -->
-                                <div class="flex flex-wrap gap-2">
-                                    <!-- GoWild Pill with Early Booking -->
-                                    <button @click="fareTypes.gowild = !fareTypes.gowild"
-                                        :class="fareTypes.gowild ? 'bg-green-600 text-white border-green-600' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'"
-                                        class="px-3 py-2 rounded-lg border text-xs font-bold transition flex items-center gap-1.5 shadow-sm">
-                                        <i class="ph text-sm" :class="fareTypes.gowild ? 'ph-check-circle' : 'ph-circle'"></i>
-                                        GoWild
-                                    </button>
-
-                                    <!-- Early Booking Chip (only when GoWild selected) -->
-                                    <button v-if="fareTypes.gowild" @click="fareTypes.earlyBooking = !fareTypes.earlyBooking"
-                                        :class="fareTypes.earlyBooking ? 'bg-green-700 text-white border-green-700' : 'bg-green-100 text-green-700 border-green-300 hover:bg-green-200'"
-                                        class="px-3 py-2 rounded-lg border text-xs font-bold transition flex items-center gap-1.5 shadow-sm">
-                                        <i class="ph text-sm" :class="fareTypes.earlyBooking ? 'ph-check-circle' : 'ph-circle'"></i>
-                                        Early Booking
-                                        <span class="text-[10px] opacity-80">(3wk+)</span>
-                                    </button>
-
-                                    <!-- Standard Pill -->
-                                    <button @click="fareTypes.standard = !fareTypes.standard"
-                                        :class="fareTypes.standard ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'"
-                                        class="px-3 py-2 rounded-lg border text-xs font-bold transition flex items-center gap-1.5 shadow-sm">
-                                        <i class="ph text-sm" :class="fareTypes.standard ? 'ph-check-circle' : 'ph-circle'"></i>
-                                        Standard
-                                    </button>
-
-                                    <!-- Discount DEN Pill -->
-                                    <button @click="fareTypes.discountDen = !fareTypes.discountDen"
-                                        :class="fareTypes.discountDen ? 'bg-amber-600 text-white border-amber-600' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'"
-                                        class="px-3 py-2 rounded-lg border text-xs font-bold transition flex items-center gap-1.5 shadow-sm">
-                                        <i class="ph text-sm" :class="fareTypes.discountDen ? 'ph-check-circle' : 'ph-circle'"></i>
-                                        Discount DEN
-                                    </button>
-                                </div>
-
-                                <!-- Filter Pills Row -->
-                                <div class="flex flex-wrap gap-2">
+                                <!-- Row 2: Filters -->
+                                <div class="flex flex-wrap items-center gap-2 pt-3 border-t border-slate-300">
                                     <button v-if="weatherAvailable" @click="filters.noRain = !filters.noRain"
-                                        :class="filters.noRain ? 'bg-blue-500 text-white border-blue-500' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'"
-                                        class="px-3 py-1.5 rounded-lg border text-xs font-bold transition flex items-center gap-1.5 shadow-sm">
+                                        :class="filters.noRain ? 'bg-blue-600 text-white' : 'bg-white text-slate-700 hover:bg-slate-100'"
+                                        class="px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 border border-slate-300 shadow-sm">
                                         <i class="ph ph-cloud-slash text-sm"></i> No Rain
                                     </button>
                                     <button v-if="weatherAvailable" @click="filters.warm = !filters.warm"
-                                        :class="filters.warm ? 'bg-orange-500 text-white border-orange-500' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'"
-                                        class="px-3 py-1.5 rounded-lg border text-xs font-bold transition flex items-center gap-1.5 shadow-sm">
+                                        :class="filters.warm ? 'bg-orange-600 text-white' : 'bg-white text-slate-700 hover:bg-slate-100'"
+                                        class="px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 border border-slate-300 shadow-sm">
                                         <i class="ph ph-sun text-sm"></i> Warm
                                     </button>
                                     <button @click="filters.nonStop = !filters.nonStop"
-                                        :class="filters.nonStop ? 'bg-purple-500 text-white border-purple-500' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'"
-                                        class="px-3 py-1.5 rounded-lg border text-xs font-bold transition flex items-center gap-1.5 shadow-sm">
+                                        :class="filters.nonStop ? 'bg-purple-600 text-white' : 'bg-white text-slate-700 hover:bg-slate-100'"
+                                        class="px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 border border-slate-300 shadow-sm">
                                         <i class="ph ph-airplane text-sm"></i> Nonstop
                                     </button>
-                                    <div v-if="!weatherAvailable" class="text-[10px] text-slate-400 italic flex items-center gap-1.5 px-2">
-                                        <i class="ph ph-info text-xs"></i> Weather unavailable 16+ days
+                                    <div v-if="!weatherAvailable" class="text-[9px] text-slate-500 italic flex items-center gap-1 px-1">
+                                        <i class="ph ph-info"></i> Weather unavailable 16+ days
                                     </div>
                                 </div>
                             </div>
