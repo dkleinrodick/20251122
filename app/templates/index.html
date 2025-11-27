@@ -701,24 +701,26 @@
                             <div v-if="currentTab === 'explore'" class="flex flex-wrap gap-2 pb-2 border-b border-slate-200">
                                 <div class="w-full text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Fare Types</div>
 
-                                <!-- GoWild Section with Early Booking sub-option -->
-                                <div class="flex flex-col gap-1.5 w-full sm:w-auto">
+                                <!-- GoWild with integrated Early Booking toggle -->
+                                <div class="flex flex-col gap-0 rounded-xl overflow-hidden border"
+                                     :class="fareTypes.gowild ? 'border-green-300 bg-green-50' : 'border-slate-200 bg-white'">
                                     <button @click="fareTypes.gowild = !fareTypes.gowild"
-                                        :class="fareTypes.gowild ? 'bg-green-100 text-green-700 border-green-300' : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'"
-                                        class="px-4 py-2 rounded-xl border text-sm font-bold transition flex items-center gap-2 h-[42px] whitespace-nowrap">
+                                        :class="fareTypes.gowild ? 'bg-green-100 text-green-700' : 'bg-white text-slate-500 hover:bg-slate-50'"
+                                        class="px-4 py-2 text-sm font-bold transition flex items-center gap-2 h-[42px] whitespace-nowrap">
                                         <i class="ph ph-check-circle" v-if="fareTypes.gowild"></i>
                                         <i class="ph ph-circle" v-else></i>
                                         GoWild
                                     </button>
 
-                                    <!-- Early Booking sub-option (only when GoWild is checked) -->
-                                    <button v-if="fareTypes.gowild" @click="fareTypes.earlyBooking = !fareTypes.earlyBooking"
-                                        :class="fareTypes.earlyBooking ? 'bg-green-50 text-green-600 border-green-200' : 'bg-slate-50 text-slate-400 border-slate-200 hover:bg-slate-100'"
-                                        class="px-4 py-1.5 rounded-lg border text-xs font-bold transition flex items-center gap-2 ml-4">
-                                        <i class="ph ph-check-square" v-if="fareTypes.earlyBooking"></i>
-                                        <i class="ph ph-square" v-else></i>
-                                        <span>Include Early Booking <span class="text-[10px] opacity-70">(up to 3 weeks)</span></span>
-                                    </button>
+                                    <!-- Early Booking toggle inside GoWild card -->
+                                    <div v-if="fareTypes.gowild" class="px-4 pb-2 border-t border-green-200/50">
+                                        <button @click="fareTypes.earlyBooking = !fareTypes.earlyBooking"
+                                            class="w-full flex items-center gap-2 text-xs font-semibold transition py-1.5 px-2 rounded-lg mt-1"
+                                            :class="fareTypes.earlyBooking ? 'text-green-700 bg-green-100/50' : 'text-green-600/70 bg-transparent hover:bg-green-100/30'">
+                                            <i class="ph text-sm" :class="fareTypes.earlyBooking ? 'ph-toggle-right' : 'ph-toggle-left'"></i>
+                                            <span>Early Booking (3 weeks)</span>
+                                        </button>
+                                    </div>
                                 </div>
 
                                 <button @click="fareTypes.standard = !fareTypes.standard"
@@ -1118,7 +1120,7 @@
                                         </div>
                                     </div>
 
-                                    <a href="javascript:void(0)" @click="bookFlight(flight)" class="block w-full bg-brand-600 hover:bg-brand-700 text-white text-center font-bold py-3 rounded-xl shadow-lg shadow-brand-600/20 transition transform active:scale-95">
+                                    <a href="javascript:void(0)" @click="bookFlight(flight)" :class="getFareTypeButtonClass(selectedDest)" class="block w-full text-white text-center font-bold py-3 rounded-xl shadow-lg transition transform active:scale-95">
                                         {{ getFareTypeLabel(selectedDest) }}
                                     </a>
                                 </div>
@@ -1239,7 +1241,7 @@
                                                 </div>
                                             </div>
 
-                                            <a href="javascript:void(0)" @click.stop="bookFlight(flight)" class="block w-full py-2.5 rounded-lg bg-brand-600 hover:bg-brand-700 text-white font-bold text-center text-sm transition shadow-lg shadow-brand-600/20 transform active:scale-95">
+                                            <a href="javascript:void(0)" @click.stop="bookFlight(flight)" :class="getFareTypeButtonClass(getSelectedGroupInRow(row))" class="block w-full py-2.5 rounded-lg text-white font-bold text-center text-sm transition shadow-lg transform active:scale-95">
                                                 {{ getFareTypeLabel(getSelectedGroupInRow(row)) }}
                                             </a>
                                         </div>
@@ -2545,11 +2547,19 @@
                         const temp = toFahrenheit(w.temp);
                         const isRain = w.condition >= 50;
                         const emoji = isRain ? '🌧️' : '☀️';
-                        const html = `<div class="bg-white/90 backdrop-blur border ${isRain ? 'border-blue-300' : 'border-slate-200'} rounded-lg px-0.5 py-0.5 shadow-md text-center hover:scale-110 transition transform cursor-pointer">
-                            <div class="text-[9px] font-bold text-slate-900 leading-tight">${code}</div>
-                            <div class="text-xs leading-none">${emoji}</div>
-                            <div class="text-[8px] font-bold ${isRain ? 'text-blue-500' : 'text-orange-500'} leading-tight">${temp}°</div>
-                        </div>`;
+
+                        // Only show weather/temp if within 16 days
+                        const showWeather = weatherAvailable.value;
+
+                        const html = showWeather
+                            ? `<div class="bg-white/90 backdrop-blur border ${isRain ? 'border-blue-300' : 'border-slate-200'} rounded-lg px-0.5 py-0.5 shadow-md text-center hover:scale-110 transition transform cursor-pointer">
+                                <div class="text-[9px] font-bold text-slate-900 leading-tight">${code}</div>
+                                <div class="text-xs leading-none">${emoji}</div>
+                                <div class="text-[8px] font-bold ${isRain ? 'text-blue-500' : 'text-orange-500'} leading-tight">${temp}°</div>
+                            </div>`
+                            : `<div class="bg-white/90 backdrop-blur border border-slate-200 rounded-lg px-2 py-1.5 shadow-md text-center hover:scale-110 transition transform cursor-pointer">
+                                <div class="text-[11px] font-bold text-slate-900 leading-tight">${code}</div>
+                            </div>`;
 
                         const icon = L.divIcon({ html, className: 'bg-transparent', iconSize: [38, 38] });
                         const m = L.marker([w.lat, w.lon], { icon }).addTo(mapLayerGroup);
@@ -2721,11 +2731,23 @@
 
                     const fareType = item.fareType;
                     if (fareType === 'gowild') return 'Book GoWild!';
-                    if (fareType === 'den') return 'Book Discount DEN!';
+                    if (fareType === 'den') return 'Book Discount Den!';
                     if (fareType === 'standard') return 'Book Standard';
 
                     // Default fallback
                     return 'Book Flight';
+                };
+
+                const getFareTypeButtonClass = (item) => {
+                    // Return button color classes based on fare type
+                    if (!item || !item.fareType) return 'bg-brand-600 hover:bg-brand-700';
+
+                    const fareType = item.fareType;
+                    if (fareType === 'gowild') return 'bg-green-600 hover:bg-green-700';
+                    if (fareType === 'den') return 'bg-amber-600 hover:bg-amber-700';
+                    if (fareType === 'standard') return 'bg-blue-600 hover:bg-blue-700';
+
+                    return 'bg-brand-600 hover:bg-brand-700';
                 };
 
                 const getDestCode = (item) => {
@@ -2964,7 +2986,7 @@
                     filterAirports, selectAirport, swapAirports, focusDest, validateInput,
                     getDateLabel, getDateShort,
                     performSearch, performExplore, getLink, formatTime, getDestCode, getDestName,
-                    formatDateShort, formatDurationMain, formatDurationSub, bookFlight, getFareTypeLabel, getLayoverSummary, formatDecimalHours, formatSliderTime,
+                    formatDateShort, formatDurationMain, formatDurationSub, bookFlight, getFareTypeLabel, getFareTypeButtonClass, getLayoverSummary, formatDecimalHours, formatSliderTime,
                     toFahrenheit, getWeatherIcon: (c) => c >= 50 ? 'ph-cloud-rain' : 'ph-sun',
                     getWeather, dayTripMode, destInput,
                     showBookingWarning, bookingWarningItem, openBookingModal, isOvernightLayover, getDateDiffLabel,
