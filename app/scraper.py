@@ -467,13 +467,11 @@ class AsyncScraperEngine:
                         flights = item['flights']
                         compressed = item['compressed_flights']
 
-                        if flights is not None:
-                            if flights: 
-                                pass
-
+                        # Only add to cache if there are flights to report
+                        if flights:
                             flight_cache_objects.append(FlightCache(
                                 origin=origin, destination=dest, travel_date=date_str,
-                                data=flights, # Store raw JSON, not bytes
+                                data=compressed, # Store compressed bytes
                                 created_at=datetime.now(pytz.UTC)
                             ))
 
