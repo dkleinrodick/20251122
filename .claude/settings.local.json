@@ -20,7 +20,18 @@
       "Bash(TZ='America/Los_Angeles' date:*)",
       "Bash(python -m json.tool:*)",
       "Bash(python:*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(python3:*)",
+      "Bash(py test_rno_aza.py)",
+      "Bash(./venv/Scripts/python:*)",
+      "Bash(timeout 30 ./venv/Scripts/python:*)",
+      "Bash(timeout 90 ./venv/Scripts/python:*)",
+      "Bash(mkdir:*)",
+      "Bash(xcopy:*)",
+      "Bash(if not exist backupspre_v4_20251127 mkdir backupspre_v4_20251127)",
+      "Bash(dir:*)",
+      "Bash(git checkout:*)",
+      "Bash(del nul)"
     ],
     "deny": [],
     "ask": []

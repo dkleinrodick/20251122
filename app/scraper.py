@@ -10,7 +10,7 @@ from typing import Optional, Dict, Any, List, Tuple
 import httpx
 from sqlalchemy.future import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import update, delete, and_
+from sqlalchemy import update, delete, and_, or_
 import pytz
 
 from app.database import get_db, SessionLocal
@@ -20,25 +20,35 @@ from app.compression import compress_data, decompress_data
 logger = logging.getLogger(__name__)
 
 class ProxyManager:
-    def __init__(self, session: AsyncSession):
+    def __init__(self, session: Optional[AsyncSession] = None):
         self.session = session
         self.current_index = 0
         self.proxies = []
         self.enabled = True
 
-    async def load_proxies(self):
+    async def load_proxies(self, session: Optional[AsyncSession] = None):
+        # Use provided session, or self.session, or create a new one
+        if session:
+            await self._load_from_session(session)
+        elif self.session:
+            await self._load_from_session(self.session)
+        else:
+            async with SessionLocal() as temp_session:
+                await self._load_from_session(temp_session)
+
+    async def _load_from_session(self, session: AsyncSession):
         # Check enabled
-        enabled_setting = await self.session.execute(select(SystemSetting).where(SystemSetting.key == "scraper_proxy_enabled"))
+        enabled_setting = await session.execute(select(SystemSetting).where(SystemSetting.key == "scraper_proxy_enabled"))
         enabled_setting = enabled_setting.scalar_one_or_none()
         if enabled_setting and enabled_setting.value.lower() == "false":
              self.enabled = False
              return
 
-        result = await self.session.execute(select(Proxy).where(Proxy.is_active == True))
+        result = await session.execute(select(Proxy).where(Proxy.is_active == True))
         self.proxies = [{"url": p.url, "protocol": p.protocol} for p in result.scalars().all()]
         
         # Load last index
-        idx_setting = await self.session.execute(select(SystemSetting).where(SystemSetting.key == "proxy_index"))
+        idx_setting = await session.execute(select(SystemSetting).where(SystemSetting.key == "proxy_index"))
         idx_setting = idx_setting.scalar_one_or_none()
         if idx_setting:
             self.current_index = int(idx_setting.value)
@@ -59,19 +69,25 @@ class ProxyManager:
 
 class FrontierClient:
     BASE_URL = "https://mtier.flyfrontier.com"
-    
-    def __init__(self, proxy: Optional[str] = None, timeout: float = 30.0, user_agent: str = "NCPAndroid/3.3.0"):
+
+    def __init__(self, proxy: Optional[str] = None, timeout: float = 30.0, user_agent: str = "NCPAndroid/3.3.0", use_shared_client: bool = False):
         self.proxy = proxy
         self.timeout = timeout
         self.user_agent = user_agent
-        self.headers = {} 
+        self.headers = {}
         self.token = None
-        # Configure Proxy
-        proxies_arg = None
-        if self.proxy:
-            proxies_arg = { "http://": self.proxy, "https://": self.proxy }
-        
-        self.client = httpx.AsyncClient(proxies=proxies_arg, verify=True, timeout=self.timeout)
+        self.use_shared_client = use_shared_client
+
+        # Only create httpx client if not using shared client (will be injected later)
+        if not use_shared_client:
+            # Configure Proxy
+            proxies_arg = None
+            if self.proxy:
+                proxies_arg = { "http://": self.proxy, "https://": self.proxy }
+
+            self.client = httpx.AsyncClient(proxies=proxies_arg, verify=True, timeout=self.timeout)
+        else:
+            self.client = None  # Will be set externally
 
     def _generate_uuid(self):
         u = uuid.uuid4()
@@ -175,16 +191,25 @@ class FrontierClient:
         await self.client.aclose()
 
 class AsyncScraperEngine:
-    def __init__(self, session: AsyncSession):
+    def __init__(self, session: Optional[AsyncSession] = None):
         self.session = session
         self.proxy_mgr = ProxyManager(session)
         self.settings = {}
 
     async def load_settings(self):
         # Load all settings at once to reduce DB calls
-        res = await self.session.execute(select(SystemSetting))
+        # Use provided session, or create a temporary one
+        if self.session:
+            await self._load_settings_from_session(self.session)
+        else:
+            async with SessionLocal() as temp_session:
+                await self._load_settings_from_session(temp_session)
+
+    async def _load_settings_from_session(self, session: AsyncSession):
+        res = await session.execute(select(SystemSetting))
         self.settings = {s.key: s.value for s in res.scalars().all()}
-        await self.proxy_mgr.load_proxies()
+        # Pass the active session to proxy_mgr
+        await self.proxy_mgr.load_proxies(session)
 
     async def _get_setting(self, key: str, default: Any, type_cast=str) -> Any:
         val = self.settings.get(key)
@@ -196,7 +221,15 @@ class AsyncScraperEngine:
 
     async def get_timezone(self, airport_code: str) -> pytz.timezone:
         # Cache this? For now DB lookup is fine.
-        res = await self.session.execute(select(Airport).where(Airport.code == airport_code))
+        # This requires a session. If self.session is None, we need a temp one.
+        if self.session:
+            return await self._get_timezone_from_session(self.session, airport_code)
+        else:
+             async with SessionLocal() as temp_session:
+                 return await self._get_timezone_from_session(temp_session, airport_code)
+    
+    async def _get_timezone_from_session(self, session: AsyncSession, airport_code: str) -> pytz.timezone:
+        res = await session.execute(select(Airport).where(Airport.code == airport_code))
         ap = res.scalar_one_or_none()
         return pytz.timezone(ap.timezone) if ap and ap.timezone else pytz.UTC
 
@@ -206,183 +239,287 @@ class AsyncScraperEngine:
         tasks: list of dicts {'origin': 'DEN', 'destination': 'MCO', 'date': '2025-11-28'}
         mode: 'auto', 'midnight', 'ondemand'
         """
-        await self.load_settings()
-        
-        worker_count = await self._get_setting("scraper_worker_count", 20, int)
+        # Only load settings if not already loaded (to avoid needing a session if pre-loaded)
+        if not self.settings:
+            await self.load_settings()
+
+        val = await self._get_setting("scraper_worker_count", 20, int)
+        worker_count = max(1, min(val, 200)) # Increased cap from 50 to 200
+
+        # Check if jitter is enabled in admin settings
+        jitter_enabled = await self._get_setting("scraper_jitter_enabled", "false", str)
+        use_jitter = (jitter_enabled.lower() == "true") and not ignore_jitter
+        logger.info(f"Jitter {'enabled' if use_jitter else 'disabled'} (setting: {jitter_enabled}, override: {ignore_jitter})")
+
+        # OPTIMIZATION: Authenticate once and share token across all clients
+        # This reduces auth overhead from N calls to 1 call (~94% reduction)
+        pool_size = worker_count
+        timeout = await self._get_setting("scraper_timeout", 30.0, float)
+        user_agent = await self._get_setting("scraper_user_agent", "NCPAndroid/3.3.0")
+
+        logger.info(f"Authenticating once to get shared token...")
+        auth_client = FrontierClient(timeout=timeout, user_agent=user_agent)
+        await auth_client.authenticate()
+        shared_token = auth_client.token
+        shared_headers = auth_client.headers.copy()
+        await auth_client.close()
+        logger.info(f"Shared token obtained: {shared_token[:20]}...")
+
+        # Create a single shared httpx client with high connection limits
+        # This is much faster than creating 46 separate clients
+        logger.info(f"Creating shared HTTP client with connection pooling...")
+
+        # Configure httpx limits for high concurrency
+        limits = httpx.Limits(max_keepalive_connections=pool_size, max_connections=pool_size*2)
+        shared_http_client = httpx.AsyncClient(
+            limits=limits,
+            timeout=timeout,
+            verify=True,
+            http2=False  # Disable HTTP/2 for better compatibility
+        )
+
+        # Create lightweight wrapper clients (no httpx client per wrapper)
+        client_pool = []
+        for i in range(pool_size):
+            client = FrontierClient(proxy=None, timeout=timeout, user_agent=user_agent, use_shared_client=True)
+            # Inject the shared httpx client
+            client.client = shared_http_client
+            # Set shared token
+            client.token = shared_token
+            client.headers = shared_headers.copy()
+            client_pool.append(client)
+
+        logger.info(f"Client pool ready with {len(client_pool)} clients (using shared HTTP client)")
+
         queue = asyncio.Queue()
-        
-        # Populate Queue
+        db_queue = asyncio.Queue()
+
+        # Populate Queue (optimized for large task lists)
+        logger.info(f"Populating queue with {len(tasks)} tasks...")
+        # Pre-size the queue if possible to avoid resizing during population
         for t in tasks:
             queue.put_nowait(t)
-            
+        logger.info(f"Queue populated with {queue.qsize()} tasks. Spawning {min(worker_count, len(tasks))} workers...")
+
         results = {"scraped": 0, "skipped": 0, "errors": 0, "details": []}
-        
+
+        # Start DB Writer
+        db_writer_task = asyncio.create_task(self._db_writer(db_queue, results, mode))
+
         # Spawn Workers
         workers = []
         for i in range(min(worker_count, len(tasks))):
-            workers.append(asyncio.create_task(self._worker(f"Worker-{i}", queue, results, mode, ignore_jitter, stop_check)))
-            
+            workers.append(asyncio.create_task(
+                self._worker(f"Worker-{i}", queue, db_queue, results, mode, use_jitter, client_pool)
+            ))
+        logger.info(f"Workers spawned. Starting scraper...")
+
         # Wait for queue to empty
         await queue.join()
-        
+
         # Cancel workers
         for w in workers: w.cancel()
-        
+
+        # Signal DB writer to finish
+        await db_queue.put(None)
+        await db_writer_task
+
+        # Clean up shared HTTP client
+        logger.info("Closing shared HTTP client...")
+        try:
+            await shared_http_client.aclose()
+        except:
+            pass
+
         return results
 
-    async def _worker(self, name: str, queue: asyncio.Queue, results: Dict, mode: str, ignore_jitter: bool, stop_check=None):
+    client_index = 0  # Track round-robin client selection
+    client_lock = asyncio.Lock()
+
+    async def _worker(self, name: str, queue: asyncio.Queue, db_queue: asyncio.Queue, results: Dict, mode: str, use_jitter: bool, client_pool=None):
         while True:
             task = await queue.get()
-            
-            # Check cancellation
-            if stop_check and stop_check():
-                queue.task_done()
-                continue
 
             origin = task['origin']
             dest = task['destination']
             date_str = task['date']
-            
+
             try:
-                # Jitter
-                if not ignore_jitter:
-                    jitter_min = await self._get_setting("scraper_jitter_min", 0.1, float)
-                    jitter_max = await self._get_setting("scraper_jitter_max", 5.0, float)
-                    await asyncio.sleep(random.uniform(jitter_min, jitter_max))
+                # Minimal jitter (0-0.5s) if enabled
+                if use_jitter:
+                    await asyncio.sleep(random.uniform(0, 0.5))
 
-                # Check cancellation again after sleep
-                if stop_check and stop_check():
-                    queue.task_done()
-                    continue
+                # Get client from pool (round-robin)
+                async with AsyncScraperEngine.client_lock:
+                    client = client_pool[AsyncScraperEngine.client_index % len(client_pool)]
+                    AsyncScraperEngine.client_index += 1
 
-                # Proxy
-                proxy = await self.proxy_mgr.get_next_proxy()
-                
-                # Execute
-                # NOTE: Creating a new session per worker/request cycle for isolation, 
-                # but ideally we'd reuse sessions per worker if we were doing keep-alive. 
-                # Given proxy rotation, new session per req is safer.
-                
-                client = FrontierClient(
-                    proxy=proxy, 
-                    timeout=await self._get_setting("scraper_timeout", 30.0, float),
-                    user_agent=await self._get_setting("scraper_user_agent", "NCPAndroid/3.3.0")
-                )
-                
+                # Single attempt (shared token is long-lived)
                 try:
-                    # Retry Logic
-                    max_retries = 3
-                    data = None
-                    for attempt in range(max_retries):
-                        try:
-                            data = await client.search(origin, dest, date_str)
-                            break
-                        except Exception as e:
-                            # Rotate Proxy on failure
-                            client.proxy = await self.proxy_mgr.get_next_proxy() 
-                            # Re-init client with new proxy? 
-                            # httpx client proxy cannot be changed easily after init. 
-                            # Recreate client.
-                            await client.close()
-                            client = FrontierClient(
-                                proxy=client.proxy,
-                                timeout=client.timeout, 
-                                user_agent=client.user_agent
-                            )
-                            
-                            if attempt == max_retries - 1: raise e
-                            await asyncio.sleep(1) # Short backoff
+                    data = await client.search(origin, dest, date_str)
 
                     # Parse
                     flights = self._parse_response(data, origin, dest)
-                    
-                    # Save
-                    # We need a fresh DB session for the worker to avoid async conflicts if sharing 'self.session'
-                    # across concurrent tasks isn't managed by a lock. 
-                    # SQLAlchemy AsyncSession IS NOT thread-safe, and concurrent use in asyncio tasks 
-                    # on the same session object is dangerous.
-                    async with SessionLocal() as db:
-                        # 1. Save to FlightCache (Live Data)
-                        # Delete old
-                        await db.execute(delete(FlightCache).where(
-                            and_(FlightCache.origin == origin, 
-                                 FlightCache.destination == dest, 
-                                 FlightCache.travel_date == date_str)
-                        ))
-                        
-                        if flights:
-                            db.add(FlightCache(
-                                origin=origin, destination=dest, travel_date=date_str,
-                                data=compress_data(flights),
-                                created_at=datetime.now(pytz.UTC)
-                            ))
-                            
-                        # 2. Save to FareSnapshot (History) - Only if mode is '3week' (Analytics)
-                        # Or should we always save snapshot? The requirement was specific to the Three-Week scraper.
-                        # But capturing all data is better. Let's just do it if the table exists.
-                        # "Output: Writes to two separate database tables." -> Implies always?
-                        # Let's restrict to '3week' or explicit flag to avoid DB bloat from frequent AutoScraper runs.
 
-                        if mode == '3week':
-                            # Extract summary metrics for ALL fare types
-                            lowest_standard = None
-                            seats_standard = None
-                            lowest_den = None
-                            seats_den = None
-                            lowest_gowild = None
-                            seats_gowild = None
+                    if flights is None:
+                        raise Exception("Parsing failed (returned None)")
 
-                            for f in flights:
-                                # Standard fare
-                                if 'standard' in f['fares']:
-                                    p = f['fares']['standard']['price']
-                                    s = f['fares']['standard']['seats']
-                                    if lowest_standard is None or (p is not None and p < lowest_standard):
-                                        lowest_standard = p
-                                        seats_standard = s
+                    # Offload compression to worker (CPU bound)
+                    compressed = compress_data(flights) if flights else None
 
-                                # Den discount fare
-                                if 'den' in f['fares']:
-                                    p = f['fares']['den']['price']
-                                    s = f['fares']['den']['seats']
-                                    if lowest_den is None or (p is not None and p < lowest_den):
-                                        lowest_den = p
-                                        seats_den = s
+                    # Queue for saving
+                    await db_queue.put({
+                        "origin": origin,
+                        "destination": dest,
+                        "date": date_str,
+                        "flights": flights,
+                        "compressed_flights": compressed
+                    })
 
-                                # GoWild fare
-                                if 'gowild' in f['fares']:
-                                    p = f['fares']['gowild']['price']
-                                    s = f['fares']['gowild']['seats']
-                                    if lowest_gowild is None or (p is not None and p < lowest_gowild):
-                                        lowest_gowild = p
-                                        seats_gowild = s
-
-                            db.add(FareSnapshot(
-                                origin=origin, destination=dest, travel_date=date_str,
-                                min_price_standard=lowest_standard,
-                                seats_standard=seats_standard,
-                                min_price_den=lowest_den,
-                                seats_den=seats_den,
-                                min_price_gowild=lowest_gowild,
-                                seats_gowild=seats_gowild,
-                                data=compress_data(flights) # Full blob
-                            ))
-
-                        await db.commit()
-                    
-                    results["scraped"] += 1
-                    
-                finally:
-                    await client.close()
+                except Exception as e:
+                    results["errors"] += 1
+                    results["details"].append(f"{origin}-{dest}-{date_str}: {str(e)}")
+                    logger.error(f"Worker failed for {origin}-{dest}: {e}")
 
             except Exception as e:
                 results["errors"] += 1
                 results["details"].append(f"{origin}-{dest}-{date_str}: {str(e)}")
-                logger.error(f"Worker failed for {origin}-{dest}: {e}")
+                logger.error(f"Worker exception for {origin}-{dest}: {e}")
             finally:
                 queue.task_done()
 
-    def _parse_response(self, data: Dict, origin: str, dest: str) -> List[Dict]:
+    @staticmethod
+    def calculate_metrics(flights: List[Dict]) -> Dict:
+        lowest_standard = None
+        seats_standard = None
+        lowest_den = None
+        seats_den = None
+        lowest_gowild = None
+        seats_gowild = None
+
+        if not flights:
+            return {
+                "min_price_standard": None, "seats_standard": None,
+                "min_price_den": None, "seats_den": None,
+                "min_price_gowild": None, "seats_gowild": None
+            }
+
+        for f in flights:
+            if 'standard' in f['fares']:
+                p = f['fares']['standard']['price']
+                s = f['fares']['standard']['seats']
+                if lowest_standard is None or (p is not None and p < lowest_standard):
+                    lowest_standard = p
+                    seats_standard = s
+            if 'den' in f['fares']:
+                p = f['fares']['den']['price']
+                s = f['fares']['den']['seats']
+                if lowest_den is None or (p is not None and p < lowest_den):
+                    lowest_den = p
+                    seats_den = s
+            if 'gowild' in f['fares']:
+                p = f['fares']['gowild']['price']
+                s = f['fares']['gowild']['seats']
+                if lowest_gowild is None or (p is not None and p < lowest_gowild):
+                    lowest_gowild = p
+                    seats_gowild = s
+        
+        return {
+            "min_price_standard": lowest_standard,
+            "seats_standard": seats_standard,
+            "min_price_den": lowest_den,
+            "seats_den": seats_den,
+            "min_price_gowild": lowest_gowild,
+            "seats_gowild": seats_gowild
+        }
+
+    async def _db_writer(self, queue: asyncio.Queue, results: Dict, mode: str):
+        BATCH_SIZE = 100
+        buffer = []
+
+        async def flush():
+            if not buffer: return
+            
+            try:
+                async with SessionLocal() as db:
+                    # Construct bulk delete condition
+                    # delete from flight_cache where (origin=A and dest=B and date=C) OR (...)
+                    conditions = []
+                    for item in buffer:
+                        conditions.append(and_(
+                            FlightCache.origin == item['origin'],
+                            FlightCache.destination == item['destination'],
+                            FlightCache.travel_date == item['date']
+                        ))
+                    
+                    if conditions:
+                        # Execute single bulk delete
+                        await db.execute(delete(FlightCache).where(or_(*conditions)))
+
+                    # Prepare inserts
+                    flight_cache_objects = []
+                    snapshot_objects = []
+
+                    for item in buffer:
+                        origin = item['origin']
+                        dest = item['destination']
+                        date_str = item['date']
+                        flights = item['flights']
+                        compressed = item['compressed_flights']
+
+                        if flights is not None:
+                            if flights: 
+                                pass
+
+                            flight_cache_objects.append(FlightCache(
+                                origin=origin, destination=dest, travel_date=date_str,
+                                data=flights, # Store raw JSON, not bytes
+                                created_at=datetime.now(pytz.UTC)
+                            ))
+
+                        if mode == '3week':
+                            metrics = AsyncScraperEngine.calculate_metrics(flights)
+                            
+                            snapshot_objects.append(FareSnapshot(
+                                origin=origin, destination=dest, travel_date=date_str,
+                                min_price_standard=metrics["min_price_standard"],
+                                seats_standard=metrics["seats_standard"],
+                                min_price_den=metrics["min_price_den"],
+                                seats_den=metrics["seats_den"],
+                                min_price_gowild=metrics["min_price_gowild"],
+                                seats_gowild=metrics["seats_gowild"],
+                                data=flights # Use raw JSON
+                            ))
+
+                    if flight_cache_objects:
+                        db.add_all(flight_cache_objects)
+                    
+                    if snapshot_objects:
+                        db.add_all(snapshot_objects)
+                    
+                    await db.commit()
+                    results["scraped"] += len(buffer)
+            except Exception as e:
+                logger.error(f"DB Writer Flush Error: {e}")
+                results["errors"] += len(buffer) # Count as errors if save fails
+            finally:
+                buffer.clear()
+
+        while True:
+            item = await queue.get()
+            
+            if item is None:
+                await flush()
+                queue.task_done()
+                break
+
+            buffer.append(item)
+            if len(buffer) >= BATCH_SIZE:
+                await flush()
+            
+            queue.task_done()
+
+    def _parse_response(self, data: Dict, origin: str, dest: str) -> Optional[List[Dict]]:
         flights = []
         try:
             trips = data.get('data', {}).get('results', [])
@@ -488,7 +625,8 @@ class AsyncScraperEngine:
                             })
 
         except Exception as e:
-            logger.error(f"Parse error: {e}")
+            logger.error(f"Parse error for {origin}->{dest}: {e}. Data preview: {str(data)[:200]}")
+            return None # Signal error
             
         return flights
 

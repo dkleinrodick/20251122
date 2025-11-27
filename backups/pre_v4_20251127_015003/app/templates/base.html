@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    
+    <!-- Primary SEO -->
+    <title>{% block title %}WildFares{% endblock %}</title>
+    <meta name="description" content="Stop paying subscription fees for flight search. WildFares is the advanced, completely free tool for Frontier's GoWild! Pass. Visual maps, multi-hop routing, and real-time inventory.">
+    <meta name="keywords" content="Frontier GoWild Pass, free flight finder, wildfares, Frontier Airlines map, all-you-can-fly, no subscription search, visual flight search">
+    <meta name="author" content="WildFares">
+    
+    <!-- Open Graph / Facebook / iMessage -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://wildfares.com/">
+    <meta property="og:site_name" content="WildFares">
+    <meta property="og:title" content="WildFares - The Free GoWild! Search Engine">
+    <meta property="og:description" content="Don't pay for what should be free. The ultimate visual search tool for Frontier's All-You-Can-Fly Pass. Real-time inventory, zero cost.">
+    <meta property="og:image" content="https://wildfares.com/static/social-card.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="WildFares Dashboard">
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="https://wildfares.com/">
+    <meta property="twitter:title" content="WildFares - The Free GoWild! Search Engine">
+    <meta property="twitter:description" content="Don't pay for what should be free. The ultimate visual search tool for Frontier's All-You-Can-Fly Pass.">
+    <meta property="twitter:image" content="https://wildfares.com/static/social-card.png">
+
+    <!-- iOS / Apple Icons -->
+    <link rel="apple-touch-icon" href="/static/logo.png">
+    <meta name="apple-mobile-web-app-title" content="WildFares">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="manifest" href="/static/manifest.json">
+
+    <!-- JSON-LD Structured Data (from index.html, applicable to overall site) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "WildFares",
+      "applicationCategory": "TravelApplication",
+      "operatingSystem": "Any",
+      "browserRequirements": "Requires JavaScript",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "description": "A completely free, advanced search engine for Frontier Airlines GoWild! Pass holders. Features visual mapping and multi-hop routing without subscription fees.",
+      "featureList": "Visual Map, Multi-Hop Routing, Real-Time Availability, Zero Cost"
+    }
+    </script>
+
+    <link rel="icon" type="image/png" href="/static/logo.png">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Vue 3 -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js" crossorigin="anonymous"></script>
+    
+    <!-- Axios -->
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js" crossorigin="anonymous"></script>
+    
+    <!-- Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web" crossorigin="anonymous"></script>
+
+    <!-- Leaflet (Map) -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+
+    <!-- Inline Tailwind Config and Custom Styles (Consolidated from index.html & marketing.html) -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            200: '#bae6fd',
+                            300: '#7dd3fc',
+                            400: '#38bdf8',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            700: '#0369a1', 
+                            800: '#075985',
+                            900: '#0c4a6e',
+                            950: '#082f49',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        display: ['Space Grotesk', 'sans-serif'],
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 0.5s ease-out',
+                        'slide-up': 'slideUp 0.5s ease-out',
+                        'slide-in-right': 'slideInRight 0.3s ease-out',
+                    },
+                    keyframes: {
+                        fadeIn: {
+                            '0%': { opacity: '0' },
+                            '100%': { opacity: '1' },
+                        },
+                        slideUp: {
+                            '0%': { transform: 'translateY(20px)', opacity: '0' },
+                            '100%': { transform: 'translateY(0)', opacity: '1' },
+                        },
+                        slideInRight: {
+                            '0%': { transform: 'translateX(100%)' },
+                            '100%': { transform: 'translateX(0)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        html { overflow-x: hidden; }
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; overflow-x: hidden; }
+        h1, h2, h3, h4, h5, h6 { font-family: 'Space Grotesk', sans-serif; }
+        
+        /* Marketing Hero Background (Default for root) */
+        .marketing-hero-bg {
+            background-image: url('https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?q=80&w=2070&auto=format&fit=crop');
+            background-size: cover;
+            background-position: center;
+        }
+        .hero-overlay {
+            background: linear-gradient(to bottom, rgba(15, 23, 42, 0.4), rgba(15, 23, 42, 0.9));
+        }
+        /* Glass Effect */
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.98);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
+        }
+        .glass-nav {
+            background: rgba(12, 74, 110, 0.9);
+            backdrop-filter: blur(10px);
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased min-h-screen flex flex-col">
+
+    <!-- Unified Navigation -->
+    <nav class="fixed w-full z-50 bg-white/80 backdrop-blur-md border-b border-slate-100 transition-all duration-300">
+        <div class="container mx-auto px-6 py-4 flex justify-between items-center">
+            <a href="/" class="flex items-center gap-3 group">
+                <img src="/static/logo.png" alt="WildFares" class="w-8 h-8 rounded-lg shadow-sm group-hover:scale-105 transition-transform">
+                <span class="font-display font-bold text-xl tracking-tight text-slate-800 group-hover:text-brand-600 transition-colors">WildFares</span>
+            </a>
+            <div class="flex items-center gap-6">
+                <!-- These links will be dynamically shown/hidden by JS -->
+                <a href="/" id="nav-home" class="text-sm font-bold text-slate-500 hover:text-brand-600 transition hidden">Home</a>
+                <a href="/app" id="nav-app" class="px-5 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-bold text-sm transition shadow-lg shadow-brand-500/20 hidden">Launch App</a>
+                <a href="/login" id="nav-login" class="text-sm font-bold text-slate-500 hover:text-brand-600 transition hidden">Login</a>
+                <a href="/register" id="nav-register" class="px-5 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-bold text-sm transition shadow-lg shadow-brand-500/20 hidden">Register</a>
+                <a href="/settings" id="nav-settings" class="text-sm font-bold text-slate-500 hover:text-brand-600 transition hidden">Settings</a>
+                <button id="nav-logout" class="px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-sm transition shadow-lg shadow-red-500/20 hidden">Logout</button>
+            </div>
+        </div>
+    </nav>
+
+    <main class="flex-grow">
+        {% block content %}
+        <!-- Page specific content will be injected here -->
+        {% endblock %}
+    </main>
+
+    <!-- Unified Footer -->
+    <footer class="bg-slate-900 text-slate-400 py-12 border-t border-slate-800">
+        <div class="container mx-auto px-6 flex flex-col md:flex-row justify-between items-center">
+            <div class="flex items-center gap-3 mb-4 md:mb-0">
+                <img src="/static/logo.png" alt="WildFares" class="w-8 h-8 rounded grayscale opacity-50">
+                <span class="font-bold text-slate-300">WildFares</span>
+            </div>
+            <div class="flex flex-col items-end gap-2 text-xs text-slate-500 max-w-xl text-right">
+                <p>WildFares is an independent project and is not affiliated with, endorsed by, or connected to Frontier Airlines, Inc. or the GoWild!™ Pass program. All trademarks are property of their respective owners. Use at your own risk.</p>
+                <div class="flex gap-4 font-bold">
+                    <a href="/terms" class="hover:text-slate-300 transition">Terms</a>
+                    <a href="/privacy" class="hover:text-slate-300 transition">Privacy</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Client-side JavaScript for Authentication Flow -->
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const navHome = document.getElementById('nav-home');
+            const navApp = document.getElementById('nav-app');
+            const navLogin = document.getElementById('nav-login');
+            const navRegister = document.getElementById('nav-register');
+            const navSettings = document.getElementById('nav-settings');
+            const navLogout = document.getElementById('nav-logout');
+
+            const checkAuthStatus = async () => {
+                try {
+                    // Make a request to the /users/me endpoint. If successful, user is authenticated.
+                    const response = await fetch('/users/me');
+                    if (response.ok) {
+                        // User is authenticated
+                        const user = await response.json();
+                        console.log("User authenticated:", user);
+                        
+                        // Show authenticated links
+                        navApp.classList.remove('hidden');
+                        navSettings.classList.remove('hidden');
+                        navLogout.classList.remove('hidden');
+                        // Hide unauthenticated links
+                        navHome.classList.add('hidden'); // Home for marketing
+                        navLogin.classList.add('hidden');
+                        navRegister.classList.add('hidden');
+
+                        // If on a protected route (e.g., /login, /register) and authenticated, redirect to /app
+                        if (window.location.pathname === '/login' || window.location.pathname === '/register') {
+                            window.location.href = '/app';
+                        }
+
+                    } else {
+                        // User is not authenticated
+                        console.log("User not authenticated.");
+
+                        // Show unauthenticated links
+                        navHome.classList.remove('hidden');
+                        navLogin.classList.remove('hidden');
+                        navRegister.classList.remove('hidden');
+                        // Hide authenticated links
+                        navApp.classList.add('hidden');
+                        navSettings.classList.add('hidden');
+                        navLogout.classList.add('hidden');
+
+                        // If on a protected route (/app, /settings) and not authenticated, redirect to /login
+                        if (window.location.pathname === '/app' || window.location.pathname === '/settings') {
+                            window.location.href = '/login';
+                        }
+                    }
+                } catch (error) {
+                    console.error("Error checking auth status:", error);
+                    // Assume not authenticated on error
+                    navHome.classList.remove('hidden');
+                    navLogin.classList.remove('hidden');
+                    navRegister.classList.remove('hidden');
+                    navApp.classList.add('hidden');
+                    navSettings.classList.add('hidden');
+                    navLogout.classList.add('hidden');
+
+                    if (window.location.pathname === '/app' || window.location.pathname === '/settings') {
+                        window.location.href = '/login';
+                    }
+                }
+            };
+
+            navLogout.addEventListener('click', async () => {
+                try {
+                    const response = await fetch('/auth/jwt/logout', {
+                        method: 'POST',
+                    });
+                    if (response.ok) {
+                        console.log("Logged out successfully.");
+                        window.location.href = '/'; // Redirect to marketing homepage
+                    } else {
+                        console.error("Logout failed.");
+                    }
+                } catch (error) {
+                    console.error("Error during logout:", error);
+                }
+            });
+
+            await checkAuthStatus(); // Initial check on page load
+        });
+    </script>
+</body>
+</html>

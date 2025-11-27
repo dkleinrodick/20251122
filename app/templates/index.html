@@ -332,7 +332,7 @@
             
             <!-- Search Widget -->
             <div v-show="forceDesktop || appMode === 'search'"
-                 class="glass-panel shadow-2xl mb-4 md:mb-0 animate-slide-up"
+                 class="glass-panel shadow-2xl mb-4 md:mb-0 animate-slide-up relative z-[200]"
                  :class="[
                      (!forceDesktop && appMode === 'search') ? 'rounded-none border-x-0 border-b-0' : 'rounded-3xl p-1 max-w-7xl mx-auto transition-all duration-500',
                      (!forceDesktop && appMode === 'search' && !hasSearched) ? 'min-h-0 h-auto' : '',
@@ -376,7 +376,7 @@
 
 
                         <!-- ORIGIN INPUT -->
-                        <div :class="currentTab === 'explore' || currentTab === 'daytrip' ? 'md:col-span-4' : 'md:col-span-3'" class="relative z-50" v-click-outside="() => showOriginDropdown = false">
+                        <div :class="currentTab === 'explore' || currentTab === 'daytrip' ? 'md:col-span-4' : 'md:col-span-3'" class="relative z-[100]" v-click-outside="() => showOriginDropdown = false">
                             <div class="flex justify-between items-end mb-2 h-6 ml-1">
                                 <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider">
                                     {{ currentTab === 'explore' ? (exploreMode === 'origin' ? 'Departing From' : 'Arriving To') : 'Origin' }}
@@ -401,7 +401,7 @@
                             </div>
 
                             <!-- Dropdown -->
-                            <div v-if="showOriginDropdown && filteredOrigins.length" class="absolute top-full left-0 w-full bg-white border border-slate-100 rounded-xl shadow-xl mt-2 max-h-64 overflow-y-auto z-50 py-2 animate-fade-in">
+                            <div v-if="showOriginDropdown && filteredOrigins.length" class="absolute top-full left-0 w-full bg-white border border-slate-100 rounded-xl shadow-xl mt-2 max-h-64 overflow-y-auto z-[100] py-2 animate-fade-in">
                                 <div v-for="ap in filteredOrigins" :key="ap.code" @click="selectAirport('origin', ap)"
                                      class="px-4 py-3 hover:bg-brand-50 cursor-pointer flex justify-between items-center border-b border-slate-50 last:border-0 group">
                                     <div>
@@ -416,7 +416,7 @@
                         <!-- SWAP BUTTON (Removed for Equal Width Layout) -->
 
                         <!-- DESTINATION INPUT -->
-                        <div v-if="currentTab === 'oneway' || currentTab === 'builder'" class="md:col-span-3 relative">
+                        <div v-if="currentTab === 'oneway' || currentTab === 'builder'" class="md:col-span-3 relative z-[100]">
                             <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 ml-1 md:ml-5 flex justify-between">
                                 <span>Destination</span>
                             </label>
@@ -439,7 +439,7 @@
                             </div>
 
                             <!-- Mode: Specific (Input) -->
-                            <div v-else class="relative" v-click-outside="() => showDestDropdown = false">
+                            <div v-else class="relative z-[100]" v-click-outside="() => showDestDropdown = false">
                                 <!-- Explore Static Box (Tab=Explore) -->
                                 <div v-if="currentTab === 'explore' && !search.dest" 
                                      @click="focusDest"
@@ -458,7 +458,7 @@
                                 </div>
 
                                 <!-- Dropdown -->
-                                <div v-if="showDestDropdown && filteredDests.length" class="absolute top-full left-0 w-full bg-white border border-slate-100 rounded-xl shadow-xl mt-2 max-h-64 overflow-y-auto z-50 py-2 animate-fade-in">
+                                <div v-if="showDestDropdown && filteredDests.length" class="absolute top-full left-0 w-full bg-white border border-slate-100 rounded-xl shadow-xl mt-2 max-h-64 overflow-y-auto z-[100] py-2 animate-fade-in">
                                     <div v-for="ap in filteredDests" :key="ap.code" @click="selectAirport('dest', ap)" 
                                          class="px-4 py-3 hover:bg-brand-50 cursor-pointer flex justify-between items-center border-b border-slate-50 last:border-0 group">
                                         <div>
@@ -479,7 +479,7 @@
                         </div>
 
                         <!-- DATE INPUT -->
-                        <div :class="currentTab === 'explore' || currentTab === 'daytrip' ? 'md:col-span-4' : 'md:col-span-3'" class="relative" v-click-outside="() => showDateDropdown = false">
+                        <div :class="currentTab === 'explore' || currentTab === 'daytrip' ? 'md:col-span-4' : 'md:col-span-3'" class="relative z-[100]" v-click-outside="() => showDateDropdown = false">
                             <div class="flex justify-between items-end mb-2 h-6">
                                 <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider">Departing</label>
                             </div>
@@ -496,7 +496,7 @@
                             </div>
                             
                             <!-- Custom Dropdown -->
-                            <div v-if="showDateDropdown" class="absolute top-full left-0 w-full bg-white border border-slate-100 rounded-xl shadow-xl mt-2 z-50 py-2 animate-fade-in max-h-64 overflow-y-auto">
+                            <div v-if="showDateDropdown" class="absolute top-full left-0 w-full bg-white border border-slate-100 rounded-xl shadow-xl mt-2 z-[100] py-2 animate-fade-in max-h-64 overflow-y-auto">
                                 <div v-for="opt in dateOptions" :key="opt.value" 
                                      @click="search.date = opt.value; showDateDropdown = false" 
                                      class="px-4 py-3 hover:bg-brand-50 cursor-pointer flex items-center justify-between group">
@@ -509,7 +509,7 @@
                         </div>
                         
                         <!-- TRAVELERS INPUT -->
-                        <div :class="currentTab === 'explore' || currentTab === 'daytrip' ? 'md:col-span-4' : 'md:col-span-3'" class="relative" v-click-outside="() => showPassengerMenu = false">
+                        <div :class="currentTab === 'explore' || currentTab === 'daytrip' ? 'md:col-span-4' : 'md:col-span-3'" class="relative z-[100]" v-click-outside="() => showPassengerMenu = false">
                             <div class="flex justify-between items-end mb-2 h-6">
                                 <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider">Travelers</label>
                                 <!-- Set Destination Removed -->
@@ -523,7 +523,7 @@
                                 <i class="ph ph-caret-down text-slate-400 transition-transform duration-300" :class="showPassengerMenu ? 'rotate-180' : ''"></i>
                             </div>
                             <!-- Dropdown -->
-                            <div v-if="showPassengerMenu" class="absolute top-full right-0 w-72 bg-white border border-slate-100 rounded-xl shadow-xl mt-2 z-50 p-4 animate-fade-in">
+                            <div v-if="showPassengerMenu" class="absolute top-full right-0 w-72 bg-white border border-slate-100 rounded-xl shadow-xl mt-2 z-[100] p-4 animate-fade-in">
                                 <div class="flex justify-between items-center mb-4">
                                     <div><div class="font-bold text-slate-800">Adults</div><div class="text-xs text-slate-400">Age 15+</div></div>
                                     <div class="flex items-center gap-3">
@@ -565,210 +565,341 @@
                         <!-- Filters Area -->
                         <div class="flex flex-wrap justify-center lg:justify-start gap-4 items-end w-full lg:w-auto">
                             
-                            <!-- One Way Filters -->
-                            <div v-if="currentTab === 'oneway'" class="flex flex-wrap gap-4">
-                                <!-- Dep Time -->
-                                <div class="flex flex-col gap-1 w-40">
-                                    <div class="flex justify-between items-center">
-                                        <label class="text-[10px] font-bold text-slate-500 uppercase">Dep Time</label>
-                                        <span class="text-[10px] font-bold text-brand-600">{{ formatSliderTime(filters.depTime.min) }} - {{ formatSliderTime(filters.depTime.max) }}</span>
-                                    </div>
-                                    <div class="bg-slate-50 px-3 py-2 rounded-xl border border-slate-200 h-[42px] flex items-center relative">
-                                        <div class="range-slider w-full">
-                                            <div class="absolute top-1/2 left-0 right-0 h-1 bg-slate-200 rounded -translate-y-1/2"></div>
-                                            <div class="absolute top-1/2 h-1 bg-brand-500 rounded -translate-y-1/2" :style="{ left: (filters.depTime.min/24)*100 + '%', right: (100 - (filters.depTime.max/24)*100) + '%' }"></div>
-                                            <input type="range" min="0" max="24" step="1" v-model.number="filters.depTime.min" @input="filters.depTime.min = Math.min(filters.depTime.min, filters.depTime.max)">
-                                            <input type="range" min="0" max="24" step="1" v-model.number="filters.depTime.max" @input="filters.depTime.max = Math.max(filters.depTime.max, filters.depTime.min)">
-                                        </div>
-                                    </div>
-                                </div>
-                                <!-- Arr Time -->
-                                <div class="flex flex-col gap-1 w-40">
-                                    <div class="flex justify-between items-center">
-                                        <label class="text-[10px] font-bold text-slate-500 uppercase">Arr Time</label>
-                                        <span class="text-[10px] font-bold text-brand-600">{{ formatSliderTime(filters.arrTime.min) }} - {{ formatSliderTime(filters.arrTime.max) }}</span>
-                                    </div>
-                                    <div class="bg-slate-50 px-3 py-2 rounded-xl border border-slate-200 h-[42px] flex items-center relative">
-                                        <div class="range-slider w-full">
-                                            <div class="absolute top-1/2 left-0 right-0 h-1 bg-slate-200 rounded -translate-y-1/2"></div>
-                                            <div class="absolute top-1/2 h-1 bg-brand-500 rounded -translate-y-1/2" :style="{ left: (filters.arrTime.min/24)*100 + '%', right: (100 - (filters.arrTime.max/24)*100) + '%' }"></div>
-                                            <input type="range" min="0" max="24" step="1" v-model.number="filters.arrTime.min" @input="filters.arrTime.min = Math.min(filters.arrTime.min, filters.arrTime.max)">
-                                            <input type="range" min="0" max="24" step="1" v-model.number="filters.arrTime.max" @input="filters.arrTime.max = Math.max(filters.arrTime.max, filters.arrTime.min)">
-                                        </div>
-                                    </div>
-                                </div>
-                                <!-- Duration -->
-                                <div class="flex flex-col gap-1">
-                                    <label class="text-[10px] font-bold text-slate-500 uppercase">Max Duration</label>
-                                    <div class="flex items-center gap-2 bg-slate-50 px-3 py-2 rounded-xl border border-slate-200 h-[42px]">
-                                        <input type="range" v-model="filters.maxDuration" min="2" max="24" class="w-16 custom-range">
-                                        <span class="text-xs font-bold text-slate-700">{{ filters.maxDuration }}h</span>
-                                    </div>
-                                </div>
-                                <!-- Nonstop -->
-                                <div class="flex flex-col gap-1">
-                                    <label class="text-[10px] font-bold text-transparent uppercase select-none">Nonstop</label> <!-- Spacer Label -->
-                                    <button @click="filters.nonStop = !filters.nonStop"
-                                        :class="filters.nonStop ? 'bg-purple-100 text-purple-700 border-purple-300' : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'" 
-                                        class="px-4 py-2 rounded-xl border text-sm font-bold transition flex items-center gap-2 h-[42px]"> <!-- Fixed height to match inputs -->
-                                        <i class="ph ph-airplane"></i> Nonstop
-                                    </button>
-                                </div>
-                                <!-- Sort By -->
-                                <div class="flex flex-col gap-1" v-click-outside="() => showSortDropdown = false">
-                                    <label class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Sort By</label>
-                                    <div @click="showSortDropdown = !showSortDropdown" 
-                                         class="bg-slate-50 px-3 py-2 rounded-xl border border-slate-200 h-[42px] flex items-center justify-between cursor-pointer relative hover:border-brand-300 transition-all"
-                                         :class="showSortDropdown ? 'border-brand-500 ring-2 ring-brand-500/10' : ''">
-                                        <span class="text-xs font-bold text-slate-700 capitalize">{{ oneWay.sortBy }}</span>
-                                        <i class="ph ph-caret-down text-slate-400 transition-transform duration-300" :class="showSortDropdown ? 'rotate-180' : ''"></i>
+                            <!-- ONE WAY: New 2-Line Layout -->
+                            <div v-if="currentTab === 'oneway'" class="w-full">
+                                <div class="flex flex-col gap-3">
+                                    
+                                    <!-- Line 1: Fare Types -->
+                                    <div class="relative z-30" v-click-outside="() => showFareTypeMenu = false">
+                                        <button @click="showFareTypeMenu = !showFareTypeMenu" 
+                                            class="w-full md:w-auto h-[42px] px-4 bg-white border border-slate-200 hover:border-brand-300 rounded-xl flex items-center justify-between transition-all group gap-3">
+                                            <div class="flex items-center gap-2">
+                                                <i class="ph-fill ph-funnel text-brand-500"></i>
+                                                <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Fare Type:</span>
+                                                <span class="text-sm font-bold text-slate-700 truncate">{{ fareTypeSummary }}</span>
+                                            </div>
+                                            <i class="ph-bold ph-caret-down text-slate-400 group-hover:text-brand-500 transition-colors"></i>
+                                        </button>
                                         
-                                        <!-- Menu -->
-                                        <div v-if="showSortDropdown" class="absolute top-full left-0 w-full bg-white border border-slate-100 rounded-xl shadow-xl mt-2 z-50 py-1 animate-fade-in overflow-hidden">
-                                            <div v-for="opt in ['price', 'duration', 'stops']" :key="'ow-' + opt" 
-                                                 @click.stop="oneWay.sortBy = opt; showSortDropdown = false"
-                                                 class="px-3 py-2 hover:bg-brand-50 cursor-pointer flex items-center justify-between group transition-colors">
-                                                <span class="text-xs font-bold text-slate-700 capitalize group-hover:text-brand-700">{{ opt }}</span>
-                                                <i v-if="oneWay.sortBy === opt" class="ph-bold ph-check text-brand-600 text-xs"></i>
+                                        <div v-if="showFareTypeMenu" class="absolute top-[calc(100%+4px)] left-0 w-72 bg-white border border-slate-100 rounded-xl shadow-xl p-2 animate-fade-in flex flex-col gap-1 z-50">
+                                            <div v-for="ft in fareTypesList" :key="ft.id" 
+                                                 @click.stop="toggleFareType(ft.id)" 
+                                                 class="flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer transition-colors group" 
+                                                 :class="selectedFareTypes.includes(ft.id) ? 'bg-brand-50' : 'hover:bg-slate-50'">
+                                                <div class="w-5 h-5 rounded border flex items-center justify-center transition-colors" 
+                                                     :class="selectedFareTypes.includes(ft.id) ? 'bg-brand-600 border-brand-600' : 'bg-white border-slate-300 group-hover:border-brand-300'">
+                                                    <i v-if="selectedFareTypes.includes(ft.id)" class="ph-bold ph-check text-white text-xs"></i>
+                                                </div>
+                                                <div class="flex-1 text-sm font-bold text-slate-800">{{ ft.label }}</div>
                                             </div>
                                         </div>
                                     </div>
+
+                                    <!-- Line 2: Filters & Sort -->
+                                    <div class="flex flex-wrap items-center gap-2">
+                                        <!-- Sort Dropdown -->
+                                        <div class="relative z-[100]" v-click-outside="() => showSortDropdown = false">
+                                            <button @click="showSortDropdown = !showSortDropdown" class="h-[42px] px-3 bg-white border border-slate-200 hover:border-brand-300 rounded-xl flex items-center gap-2 transition-all min-w-[140px] justify-between">
+                                                <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Sort</span>
+                                            </button>
+                                            <div v-if="showSortDropdown" class="absolute top-[calc(100%+4px)] left-0 w-full bg-white border border-slate-100 rounded-xl shadow-xl overflow-hidden z-[100]">
+                                                <div v-for="opt in ['price', 'duration', 'stops']" :key="opt" @click="oneWay.sortBy = opt; showSortDropdown = false" class="px-4 py-2 hover:bg-slate-50 cursor-pointer text-sm font-bold text-slate-700 capitalize flex justify-between">
+                                                    <span>{{ opt }}</span>
+                                                    <i v-if="oneWay.sortBy === opt" class="ph-bold ph-check text-brand-600"></i>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Nonstop Toggle -->
+                                        <button @click="filters.nonStop = !filters.nonStop" 
+                                            class="h-[42px] px-3 rounded-xl border flex items-center gap-2 transition-all" 
+                                            :class="filters.nonStop ? 'bg-purple-50 border-purple-200 text-purple-700' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'">
+                                            <i class="ph-fill ph-airplane"></i>
+                                            <span class="text-xs font-bold">Nonstop</span>
+                                        </button>
+
+                                        <!-- Max Duration -->
+                                        <div class="h-[42px] px-3 bg-white border border-slate-200 rounded-xl flex items-center gap-2 min-w-[140px]">
+                                            <span class="text-[10px] font-bold text-slate-400 uppercase whitespace-nowrap">Max {{ filters.maxDuration }}h</span>
+                                            <input type="range" v-model="filters.maxDuration" min="2" max="24" class="w-16 h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-brand-600">
+                                        </div>
+                                    </div>
+
                                 </div>
                             </div>
                             
-                            <!-- Day Trip Slider -->
-                            <div v-if="currentTab === 'daytrip'" class="flex flex-col gap-1">
-                                <label class="text-[10px] font-bold text-slate-500 uppercase">Min Hours</label>
-                                <div class="flex items-center gap-2 bg-slate-50 px-3 py-2 rounded-xl border border-slate-200 h-[42px]">
-                                    <input type="range" v-model="dayTrip.minHours" min="1" max="12" class="w-24 custom-range">
-                                    <span class="font-bold text-brand-600 text-sm">{{ dayTrip.minHours }}h</span>
-                                </div>
-                            </div>
-
-                            <!-- Route Builder Controls -->
-                            <div v-if="currentTab === 'builder'" class="flex flex-wrap gap-4">
-                                <!-- Min Connect -->
-                                <div class="flex flex-col gap-1">
-                                    <label class="text-[10px] font-bold text-slate-500 uppercase tracking-wider cursor-help flex items-center gap-1">
-                                        Min Connect <i class="ph-fill ph-info text-slate-300"></i>
-                                    </label>
-                                    <div class="flex items-center gap-2 bg-slate-50 px-3 py-2 rounded-xl border border-slate-200 h-[42px]">
-                                        <input type="range" v-model="builder.min" min="0.5" max="5" step="0.5" class="w-20 custom-range">
-                                        <span class="text-xs font-bold text-brand-700 w-8">{{ builder.min }}h</span>
-                                    </div>
-                                </div>
-                                <!-- Max Duration -->
-                                <div class="flex flex-col gap-1">
-                                    <label class="text-[10px] font-bold text-slate-500 uppercase tracking-wider cursor-help flex items-center gap-1">
-                                        Max Duration <i class="ph-fill ph-info text-slate-300"></i>
-                                    </label>
-                                    <div class="flex items-center gap-2 bg-slate-50 px-3 py-2 rounded-xl border border-slate-200 h-[42px]">
-                                        <input type="range" v-model="builder.maxDuration" min="4" max="48" class="w-20 custom-range">
-                                        <span class="text-xs font-bold text-brand-700 w-8">{{ builder.maxDuration }}h</span>
-                                    </div>
-                                </div>
-                                <!-- Max Stops -->
-                                <div class="flex flex-col gap-1">
-                                    <label class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Max Stops</label>
-                                    <div class="flex items-center gap-2 bg-slate-50 px-3 py-2 rounded-xl border border-slate-200 h-[42px]">
-                                        <input type="range" v-model="builder.maxStops" min="1" max="3" class="w-20 custom-range">
-                                        <span class="text-xs font-bold text-brand-700 w-8">{{ builder.maxStops }}</span>
-                                    </div>
-                                </div>
-                                <!-- Sort By -->
-                                <div class="flex flex-col gap-1" v-click-outside="() => showSortDropdown = false">
-                                    <label class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Sort By</label>
-                                    <div @click="showSortDropdown = !showSortDropdown" 
-                                         class="bg-slate-50 px-3 py-2 rounded-xl border border-slate-200 h-[42px] flex items-center justify-between cursor-pointer relative hover:border-brand-300 transition-all"
-                                         :class="showSortDropdown ? 'border-brand-500 ring-2 ring-brand-500/10' : ''">
-                                        <span class="text-xs font-bold text-slate-700 capitalize">{{ builder.sortBy }}</span>
-                                        <i class="ph ph-caret-down text-slate-400 transition-transform duration-300" :class="showSortDropdown ? 'rotate-180' : ''"></i>
+                            <!-- DAY TRIP: New 2-Line Layout -->
+                            <div v-if="currentTab === 'daytrip'" class="w-full">
+                                <div class="flex flex-col gap-3">
+                                    
+                                    <!-- Line 1: Fare Types -->
+                                    <div class="relative z-30" v-click-outside="() => showFareTypeMenu = false">
+                                        <button @click="showFareTypeMenu = !showFareTypeMenu" 
+                                            class="w-full md:w-auto h-[42px] px-4 bg-white border border-slate-200 hover:border-brand-300 rounded-xl flex items-center justify-between transition-all group gap-3">
+                                            <div class="flex items-center gap-2">
+                                                <i class="ph-fill ph-funnel text-brand-500"></i>
+                                                <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Fare Type:</span>
+                                                <span class="text-sm font-bold text-slate-700 truncate">{{ fareTypeSummary }}</span>
+                                            </div>
+                                            <i class="ph-bold ph-caret-down text-slate-400 group-hover:text-brand-500 transition-colors"></i>
+                                        </button>
                                         
-                                        <!-- Menu -->
-                                        <div v-if="showSortDropdown" class="absolute top-full left-0 w-full bg-white border border-slate-100 rounded-xl shadow-xl mt-2 z-50 py-1 animate-fade-in overflow-hidden">
-                                            <div v-for="opt in ['price', 'duration', 'stops']" :key="'rb-' + opt" 
-                                                 @click.stop="builder.sortBy = opt; showSortDropdown = false"
-                                                 class="px-3 py-2 hover:bg-brand-50 cursor-pointer flex items-center justify-between group transition-colors">
-                                                <span class="text-xs font-bold text-slate-700 capitalize group-hover:text-brand-700">{{ opt }}</span>
-                                                <i v-if="builder.sortBy === opt" class="ph-bold ph-check text-brand-600 text-xs"></i>
+                                        <div v-if="showFareTypeMenu" class="absolute top-[calc(100%+4px)] left-0 w-72 bg-white border border-slate-100 rounded-xl shadow-xl p-2 animate-fade-in flex flex-col gap-1 z-50">
+                                            <div v-for="ft in fareTypesList" :key="ft.id" 
+                                                 @click.stop="toggleFareType(ft.id)" 
+                                                 class="flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer transition-colors group" 
+                                                 :class="selectedFareTypes.includes(ft.id) ? 'bg-brand-50' : 'hover:bg-slate-50'">
+                                                <div class="w-5 h-5 rounded border flex items-center justify-center transition-colors" 
+                                                     :class="selectedFareTypes.includes(ft.id) ? 'bg-brand-600 border-brand-600' : 'bg-white border-slate-300 group-hover:border-brand-300'">
+                                                    <i v-if="selectedFareTypes.includes(ft.id)" class="ph-bold ph-check text-white text-xs"></i>
+                                                </div>
+                                                <div class="flex-1 text-sm font-bold text-slate-800">{{ ft.label }}</div>
                                             </div>
                                         </div>
                                     </div>
+
+                                    <!-- Line 2: Filters & Slider -->
+                                    <div class="flex flex-wrap items-center gap-2">
+                                        <!-- Min Hours Slider -->
+                                        <div class="h-[42px] px-3 bg-white border border-slate-200 rounded-xl flex items-center gap-2 min-w-[180px]">
+                                            <span class="text-[10px] font-bold text-slate-400 uppercase whitespace-nowrap">Dest Time: {{ dayTrip.minHours }}h+</span>
+                                            <input type="range" v-model="dayTrip.minHours" min="1" max="12" class="w-20 h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-brand-600">
+                                        </div>
+
+                                        <!-- Quick Filters -->
+                                        <button v-if="weatherAvailable" @click="filters.noRain = !filters.noRain" 
+                                            class="h-[42px] px-3 rounded-xl border flex items-center gap-2 transition-all" 
+                                            :class="filters.noRain ? 'bg-blue-50 border-blue-200 text-blue-600' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'">
+                                            <i class="ph-fill ph-cloud-slash"></i> <span class="text-xs font-bold">No Rain</span>
+                                        </button>
+                                        <button v-if="weatherAvailable" @click="filters.warm = !filters.warm" 
+                                            class="h-[42px] px-3 rounded-xl border flex items-center gap-2 transition-all" 
+                                            :class="filters.warm ? 'bg-orange-50 border-orange-200 text-orange-600' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'">
+                                            <i class="ph-fill ph-sun"></i> <span class="text-xs font-bold">Warm</span>
+                                        </button>
+                                        <button @click="filters.nonStop = !filters.nonStop" 
+                                            class="h-[42px] px-3 rounded-xl border flex items-center gap-2 transition-all" 
+                                            :class="filters.nonStop ? 'bg-purple-50 border-purple-200 text-purple-700' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'">
+                                            <i class="ph-fill ph-airplane"></i> <span class="text-xs font-bold">Nonstop</span>
+                                        </button>
+                                    </div>
+
+                                </div>
+                            </div>
+
+                            <!-- BUILDER: New 2-Line Layout -->
+                            <div v-if="currentTab === 'builder'" class="w-full">
+                                <div class="flex flex-col gap-3">
+                                    
+                                    <!-- Line 1: Fare Types -->
+                                    <div class="relative z-30" v-click-outside="() => showFareTypeMenu = false">
+                                        <button @click="showFareTypeMenu = !showFareTypeMenu" 
+                                            class="w-full md:w-auto h-[42px] px-4 bg-white border border-slate-200 hover:border-brand-300 rounded-xl flex items-center justify-between transition-all group gap-3">
+                                            <div class="flex items-center gap-2">
+                                                <i class="ph-fill ph-funnel text-brand-500"></i>
+                                                <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Fare Type:</span>
+                                                <span class="text-sm font-bold text-slate-700 truncate">{{ fareTypeSummary }}</span>
+                                            </div>
+                                            <i class="ph-bold ph-caret-down text-slate-400 group-hover:text-brand-500 transition-colors"></i>
+                                        </button>
+                                        <!-- Shared Dropdown -->
+                                        <div v-if="showFareTypeMenu" class="absolute top-[calc(100%+4px)] left-0 w-72 bg-white border border-slate-100 rounded-xl shadow-xl p-2 animate-fade-in flex flex-col gap-1 z-50">
+                                            <div v-for="ft in fareTypesList" :key="ft.id" 
+                                                 @click.stop="toggleFareType(ft.id)" 
+                                                 class="flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer transition-colors group" 
+                                                 :class="selectedFareTypes.includes(ft.id) ? 'bg-brand-50' : 'hover:bg-slate-50'">
+                                                <div class="w-5 h-5 rounded border flex items-center justify-center transition-colors" 
+                                                     :class="selectedFareTypes.includes(ft.id) ? 'bg-brand-600 border-brand-600' : 'bg-white border-slate-300 group-hover:border-brand-300'">
+                                                    <i v-if="selectedFareTypes.includes(ft.id)" class="ph-bold ph-check text-white text-xs"></i>
+                                                </div>
+                                                <div class="flex-1 text-sm font-bold text-slate-800">{{ ft.label }}</div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Line 2: Filters & Sort -->
+                                    <div class="flex flex-wrap items-center gap-2">
+                                        <!-- Sort Dropdown -->
+                                        <div class="relative z-[100]" v-click-outside="() => showSortDropdown = false">
+                                            <button @click="showSortDropdown = !showSortDropdown" class="h-[42px] px-3 bg-white border border-slate-200 hover:border-brand-300 rounded-xl flex items-center gap-2 transition-all min-w-[140px] justify-between">
+                                                <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Sort</span>
+                                                <span class="text-sm font-bold text-slate-800 capitalize">{{ builder.sortBy }}</span>
+                                                <i class="ph-bold ph-caret-down text-slate-400"></i>
+                                            </button>
+                                            <div v-if="showSortDropdown" class="absolute top-[calc(100%+4px)] left-0 w-full bg-white border border-slate-100 rounded-xl shadow-xl overflow-hidden z-[100]">
+                                                <div v-for="opt in ['price', 'duration', 'stops']" :key="'rb-' + opt" @click="builder.sortBy = opt; showSortDropdown = false" class="px-4 py-2 hover:bg-slate-50 cursor-pointer text-sm font-bold text-slate-700 capitalize flex justify-between">
+                                                    <span>{{ opt }}</span>
+                                                    <i v-if="builder.sortBy === opt" class="ph-bold ph-check text-brand-600"></i>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Sliders Group -->
+                                        <div class="flex items-center gap-2 flex-wrap">
+                                            <!-- Min Connect -->
+                                            <div class="h-[42px] px-3 bg-white border border-slate-200 rounded-xl flex items-center gap-2 min-w-[140px]" title="Min Connection Time">
+                                                <span class="text-[10px] font-bold text-slate-400 uppercase whitespace-nowrap">Conn {{ builder.min }}h</span>
+                                                <input type="range" v-model="builder.min" min="0.5" max="5" step="0.5" class="w-16 h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-brand-600">
+                                            </div>
+                                            <!-- Max Duration -->
+                                            <div class="h-[42px] px-3 bg-white border border-slate-200 rounded-xl flex items-center gap-2 min-w-[140px]">
+                                                <span class="text-[10px] font-bold text-slate-400 uppercase whitespace-nowrap">Dur {{ builder.maxDuration }}h</span>
+                                                <input type="range" v-model="builder.maxDuration" min="4" max="48" class="w-16 h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-brand-600">
+                                            </div>
+                                            <!-- Max Stops -->
+                                            <div class="h-[42px] px-3 bg-white border border-slate-200 rounded-xl flex items-center gap-2 min-w-[120px]">
+                                                <span class="text-[10px] font-bold text-slate-400 uppercase whitespace-nowrap">Stops {{ builder.maxStops }}</span>
+                                                <input type="range" v-model="builder.maxStops" min="1" max="3" class="w-12 h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-brand-600">
+                                            </div>
+                                        </div>
+                                    </div>
+
                                 </div>
                             </div>
 
                             <!-- Explore Tab Controls -->
-                            <div v-if="currentTab === 'explore'" class="bg-slate-50 rounded-xl p-3 border border-slate-200">
-                                <!-- Row 1: View + Fare Types -->
-                                <div class="flex flex-wrap items-center gap-2 mb-3">
-                                    <!-- View Switcher -->
-                                    <div class="bg-white rounded-lg p-1 flex gap-1 border border-slate-300 shadow-sm">
-                                        <button @click="exploreView = 'map'"
-                                            :class="exploreView === 'map' ? 'bg-brand-600 text-white' : 'text-slate-600 hover:bg-slate-100'"
-                                            class="px-4 py-2 rounded text-sm font-bold transition flex items-center gap-2">
-                                            <i class="ph ph-map-trifold text-lg"></i> Map
-                                        </button>
-                                        <button @click="exploreView = 'list'"
-                                            :class="exploreView === 'list' ? 'bg-brand-600 text-white' : 'text-slate-600 hover:bg-slate-100'"
-                                            class="px-4 py-2 rounded text-sm font-bold transition flex items-center gap-2">
-                                            <i class="ph ph-list-dashes text-lg"></i> List
-                                        </button>
-                                    </div>
-
-                                    <div class="h-8 w-px bg-slate-300 hidden sm:block"></div>
-
-                                    <!-- Fare Types -->
-                                    <div class="flex flex-wrap items-center gap-2">
-                                        <!-- GoWild with badge -->
-                                        <div class="relative">
-                                            <button @click="fareTypes.gowild = !fareTypes.gowild"
-                                                :class="fareTypes.gowild ? 'bg-green-600 text-white border-green-600' : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'"
-                                                class="px-3 py-2 rounded-lg border text-xs font-bold transition flex items-center gap-1.5 shadow-sm">
-                                                <i class="ph text-sm" :class="fareTypes.gowild ? 'ph-check-circle' : 'ph-circle'"></i>
-                                                GoWild
+                            <div v-if="currentTab === 'explore'" class="w-full relative z-[60]">
+                                <div class="flex flex-col gap-3">
+                                    <!-- Line 1: Controls Row -->
+                                    <div class="flex flex-wrap items-center gap-3">
+                                        
+                                        <!-- View Switcher (Map/List) - Styled like a toggle -->
+                                        <div class="bg-white border border-slate-200 rounded-xl p-1 flex shadow-sm h-[42px]">
+                                            <button @click="exploreView = 'map'"
+                                                :class="exploreView === 'map' ? 'bg-brand-600 text-white shadow-md' : 'text-slate-500 hover:bg-slate-50'"
+                                                class="px-4 rounded-lg text-xs font-bold transition flex items-center gap-2 h-full">
+                                                <i class="ph-bold ph-map-trifold text-sm"></i> Map
                                             </button>
-                                            <!-- Early Booking Badge -->
-                                            <button v-if="fareTypes.gowild" @click.stop="fareTypes.earlyBooking = !fareTypes.earlyBooking"
-                                                :class="fareTypes.earlyBooking ? 'bg-green-700 text-white' : 'bg-white text-green-700 border border-green-300'"
-                                                class="absolute -top-1.5 -right-1.5 text-[9px] font-bold px-1.5 py-0.5 rounded-full shadow-lg hover:scale-110 transition z-10"
-                                                title="Early Booking: 3+ weeks">
-                                                {{ fareTypes.earlyBooking ? '3wk+' : '2d' }}
+                                            <button @click="exploreView = 'list'"
+                                                :class="exploreView === 'list' ? 'bg-brand-600 text-white shadow-md' : 'text-slate-500 hover:bg-slate-50'"
+                                                class="px-4 rounded-lg text-xs font-bold transition flex items-center gap-2 h-full">
+                                                <i class="ph-bold ph-list-dashes text-sm"></i> List
                                             </button>
                                         </div>
 
-                                        <button @click="fareTypes.standard = !fareTypes.standard"
-                                            :class="fareTypes.standard ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'"
-                                            class="px-3 py-2 rounded-lg border text-xs font-bold transition flex items-center gap-1.5 shadow-sm">
-                                            <i class="ph text-sm" :class="fareTypes.standard ? 'ph-check-circle' : 'ph-circle'"></i>
-                                            Standard
-                                        </button>
+                                        <!-- Fare Type Dropdown -->
+                                        <div class="relative z-[100] flex-1 min-w-[200px]" v-click-outside="() => showFareTypeMenu = false">
+                                            <button @click="showFareTypeMenu = !showFareTypeMenu" 
+                                                class="w-full h-[42px] px-4 bg-white border border-slate-200 hover:border-brand-300 rounded-xl flex items-center justify-between transition-all group gap-3 shadow-sm">
+                                                <div class="flex items-center gap-2">
+                                                    <div class="w-6 h-6 rounded-full bg-brand-50 flex items-center justify-center text-brand-600">
+                                                        <i class="ph-fill ph-funnel text-xs"></i>
+                                                    </div>
+                                                    <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Fares:</span>
+                                                    <span class="text-sm font-bold text-slate-700 truncate">{{ exploreFareSummary }}</span>
+                                                </div>
+                                                <i class="ph-bold ph-caret-down text-slate-400 group-hover:text-brand-500 transition-colors"></i>
+                                            </button>
+                                            
+                                            <div v-if="showFareTypeMenu" class="absolute top-[calc(100%+4px)] left-0 w-full min-w-[240px] bg-white border border-slate-100 rounded-xl shadow-xl p-2 animate-fade-in flex flex-col gap-1 z-[70]">
 
-                                        <button @click="fareTypes.discountDen = !fareTypes.discountDen"
-                                            :class="fareTypes.discountDen ? 'bg-amber-600 text-white border-amber-600' : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'"
-                                            class="px-3 py-2 rounded-lg border text-xs font-bold transition flex items-center gap-1.5 shadow-sm">
-                                            <i class="ph text-sm" :class="fareTypes.discountDen ? 'ph-check-circle' : 'ph-circle'"></i>
-                                            Discount DEN
-                                        </button>
+                                                <!-- GoWild Checkbox -->
+                                                <div @click.stop="fareTypes.gowild = !fareTypes.gowild"
+                                                     class="flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-colors group"
+                                                     :class="fareTypes.gowild ? 'bg-brand-50' : 'hover:bg-slate-50'">
+                                                    <div class="w-4 h-4 rounded border flex items-center justify-center transition-colors"
+                                                         :class="fareTypes.gowild ? 'bg-brand-600 border-brand-600' : 'bg-white border-slate-300'">
+                                                        <i v-if="fareTypes.gowild" class="ph-bold ph-check text-white text-[10px]"></i>
+                                                    </div>
+                                                    <div class="flex-1 text-xs font-bold text-slate-800">GoWild Pass</div>
+                                                </div>
+
+                                                <!-- GoWild Sub-options (only shown when GoWild is checked) -->
+                                                <div v-if="fareTypes.gowild" class="ml-7 flex flex-col gap-1 border-l-2 border-brand-200 pl-3">
+                                                    <div @click.stop="fareTypes.earlyBooking = false"
+                                                         class="flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-colors group"
+                                                         :class="!fareTypes.earlyBooking ? 'bg-brand-50' : 'hover:bg-slate-50'">
+                                                        <div class="w-4 h-4 rounded-full border flex items-center justify-center transition-colors"
+                                                             :class="!fareTypes.earlyBooking ? 'border-brand-600' : 'border-slate-300'">
+                                                             <div v-if="!fareTypes.earlyBooking" class="w-2 h-2 rounded-full bg-brand-600"></div>
+                                                        </div>
+                                                        <div class="flex-1">
+                                                            <div class="text-xs font-bold text-slate-800">Standard</div>
+                                                            <div class="text-[10px] text-slate-500">Last minute travel</div>
+                                                        </div>
+                                                    </div>
+
+                                                    <div @click.stop="fareTypes.earlyBooking = true"
+                                                         class="flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-colors group"
+                                                         :class="fareTypes.earlyBooking ? 'bg-brand-50' : 'hover:bg-slate-50'">
+                                                        <div class="w-4 h-4 rounded-full border flex items-center justify-center transition-colors"
+                                                             :class="fareTypes.earlyBooking ? 'border-brand-600' : 'border-slate-300'">
+                                                             <div v-if="fareTypes.earlyBooking" class="w-2 h-2 rounded-full bg-brand-600"></div>
+                                                        </div>
+                                                        <div class="flex-1">
+                                                            <div class="text-xs font-bold text-slate-800">Early Booking</div>
+                                                            <div class="text-[10px] text-slate-500">Advance planning</div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <!-- Divider -->
+                                                <div class="h-px bg-slate-100 my-1"></div>
+
+                                                <!-- Standard -->
+                                                <div @click.stop="fareTypes.standard = !fareTypes.standard" 
+                                                     class="flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-colors group" 
+                                                     :class="fareTypes.standard ? 'bg-brand-50' : 'hover:bg-slate-50'">
+                                                    <div class="w-4 h-4 rounded border flex items-center justify-center transition-colors" 
+                                                         :class="fareTypes.standard ? 'bg-brand-600 border-brand-600' : 'bg-white border-slate-300'">
+                                                        <i v-if="fareTypes.standard" class="ph-bold ph-check text-white text-[10px]"></i>
+                                                    </div>
+                                                    <div class="flex-1 text-xs font-bold text-slate-800">Standard Fare</div>
+                                                </div>
+
+                                                <!-- Discount DEN -->
+                                                <div @click.stop="fareTypes.discountDen = !fareTypes.discountDen" 
+                                                     class="flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-colors group" 
+                                                     :class="fareTypes.discountDen ? 'bg-brand-50' : 'hover:bg-slate-50'">
+                                                    <div class="w-4 h-4 rounded border flex items-center justify-center transition-colors" 
+                                                         :class="fareTypes.discountDen ? 'bg-brand-600 border-brand-600' : 'bg-white border-slate-300'">
+                                                        <i v-if="fareTypes.discountDen" class="ph-bold ph-check text-white text-[10px]"></i>
+                                                    </div>
+                                                    <div class="flex-1 text-xs font-bold text-slate-800">Discount Den</div>
+                                                </div>
+
+                                            </div>
+                                        </div>
+
+                                        <!-- Sort Dropdown -->
+                                        <div class="relative z-[100]" v-click-outside="() => showSortDropdown = false">
+                                            <button @click="showSortDropdown = !showSortDropdown" class="h-[42px] px-3 bg-white border border-slate-200 hover:border-brand-300 rounded-xl flex items-center gap-2 transition-all min-w-[120px] justify-between shadow-sm">
+                                                <div class="flex items-center gap-2">
+                                                    <i class="ph-bold ph-sort-ascending text-slate-400"></i>
+                                                    <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Sort</span>
+                                                </div>
+                                                <span class="text-xs font-bold text-slate-800 capitalize">{{ exploreSort }}</span>
+                                            </button>
+                                            <div v-if="showSortDropdown" class="absolute top-[calc(100%+4px)] left-0 w-full bg-white border border-slate-100 rounded-xl shadow-xl overflow-hidden z-[100]">
+                                                <div v-for="opt in ['price', 'duration', 'stops', 'departure']" :key="opt" @click="exploreSort = opt; showSortDropdown = false" class="px-4 py-2 hover:bg-slate-50 cursor-pointer text-xs font-bold text-slate-700 capitalize flex justify-between">
+                                                    <span>{{ opt }}</span>
+                                                    <i v-if="exploreSort === opt" class="ph-bold ph-check text-brand-600"></i>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Filters (No Rain, Warm, Nonstop) -->
+                                         <div class="flex items-center gap-2">
+                                            <button v-if="weatherAvailable" @click="filters.noRain = !filters.noRain"
+                                                :class="filters.noRain ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'"
+                                                class="h-[42px] px-3 rounded-xl border text-xs font-bold transition flex items-center gap-1.5 shadow-sm">
+                                                <i class="ph-fill ph-cloud-slash text-sm"></i> <span class="hidden sm:inline">No Rain</span>
+                                            </button>
+                                            <button v-if="weatherAvailable" @click="filters.warm = !filters.warm"
+                                                :class="filters.warm ? 'bg-orange-50 text-orange-700 border-orange-200' : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'"
+                                                class="h-[42px] px-3 rounded-xl border text-xs font-bold transition flex items-center gap-1.5 shadow-sm">
+                                                <i class="ph-fill ph-sun text-sm"></i> <span class="hidden sm:inline">Warm</span>
+                                            </button>
+                                            <button @click="filters.nonStop = !filters.nonStop"
+                                                :class="filters.nonStop ? 'bg-purple-50 text-purple-700 border-purple-200' : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'"
+                                                class="h-[42px] px-3 rounded-xl border text-xs font-bold transition flex items-center gap-1.5 shadow-sm">
+                                                <i class="ph-fill ph-airplane text-sm"></i> <span class="hidden sm:inline">Nonstop</span>
+                                            </button>
+                                        </div>
+
                                     </div>
-                                </div>
-
-                                <!-- Row 2: Filters -->
-                                <div class="flex flex-wrap items-center gap-2 pt-3 border-t border-slate-300">
-                                    <button v-if="weatherAvailable" @click="filters.noRain = !filters.noRain"
-                                        :class="filters.noRain ? 'bg-blue-600 text-white' : 'bg-white text-slate-700 hover:bg-slate-100'"
-                                        class="px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 border border-slate-300 shadow-sm">
-                                        <i class="ph ph-cloud-slash text-sm"></i> No Rain
-                                    </button>
-                                    <button v-if="weatherAvailable" @click="filters.warm = !filters.warm"
-                                        :class="filters.warm ? 'bg-orange-600 text-white' : 'bg-white text-slate-700 hover:bg-slate-100'"
-                                        class="px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 border border-slate-300 shadow-sm">
-                                        <i class="ph ph-sun text-sm"></i> Warm
-                                    </button>
-                                    <button @click="filters.nonStop = !filters.nonStop"
-                                        :class="filters.nonStop ? 'bg-purple-600 text-white' : 'bg-white text-slate-700 hover:bg-slate-100'"
-                                        class="px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 border border-slate-300 shadow-sm">
-                                        <i class="ph ph-airplane text-sm"></i> Nonstop
-                                    </button>
+                                    
+                                    <!-- Weather Warning -->
                                     <div v-if="!weatherAvailable" class="text-[9px] text-slate-500 italic flex items-center gap-1 px-1">
                                         <i class="ph ph-info"></i> Weather unavailable 16+ days
                                     </div>
@@ -869,7 +1000,7 @@
                     <div class="bg-slate-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
                         <i class="ph ph-magnifying-glass text-3xl text-slate-400"></i>
                     </div>
-                    <h3 class="text-slate-600 font-bold text-xl">No GoWild fares found for this date.</h3>
+                    <h3 class="text-slate-600 font-bold text-xl">No {{ exploreFareSummary }} fares found for this date.</h3>
                     <p class="text-slate-400">Try adjusting your filters or dates.</p>
                 </div>
 
@@ -1135,8 +1266,8 @@
                                         </div>
                                     </div>
 
-                                    <a href="javascript:void(0)" @click="bookFlight(flight)" :class="getFareTypeButtonClass(selectedDest)" class="block w-full text-white text-center font-bold py-3 rounded-xl shadow-lg transition transform active:scale-95">
-                                        {{ getFareTypeLabel(selectedDest) }}
+                                    <a href="javascript:void(0)" @click="bookFlight(flight)" :class="getFareTypeButtonClass(flight)" class="block w-full text-white text-center font-bold py-3 rounded-xl shadow-lg transition transform active:scale-95">
+                                        {{ getFareTypeLabel(flight) }}
                                     </a>
                                 </div>
                             </div>
@@ -1165,7 +1296,7 @@
                                             </div>
                                             <div class="text-lg font-bold text-slate-800 font-display leading-tight pr-2">{{ group.name }}</div>
                                         </div>
-                                        <div v-if="group.weather"
+                                        <div v-if="group.weather && weatherAvailable"
                                              :class="group.weather.desc === 'Rainy' ? 'bg-blue-50 text-blue-600 border-blue-100' : 'bg-orange-50 text-orange-600 border-orange-100'"
                                              class="flex flex-col items-center justify-center px-3 py-2 rounded-xl border shadow-sm min-w-[60px]">
                                             <i :class="['ph text-xl mb-0.5', group.weather.icon]"></i>
@@ -1764,6 +1895,7 @@
                 const dateOptions = ref([]); // Replaces simple dates object
                 const passengers = ref({ adults: 1, kids: [] });
                 const showPassengerMenu = ref(false);
+                const showFareTypeMenu = ref(false);
                 const showSortDropdown = ref(false);
                 const locations = ref([]);
                 const routeMap = ref({});
@@ -1787,8 +1919,9 @@
                     gowild: true,           // GoWild checked by default
                     standard: false,        // Standard unchecked
                     discountDen: false,     // Discount DEN unchecked
-                    earlyBooking: true      // GoWild Early Booking checked by default
+                    earlyBooking: false     // GoWild Standard checked by default
                 });
+                const exploreSort = ref('price');
                 const dayTrip = ref({ minHours: 6 });
                 const dayTripMode = ref('anywhere');
                 const builder = ref({ min: 1, max: 6, maxDuration: 24, maxStops: 3, sortBy: 'price' });
@@ -2007,15 +2140,72 @@
                 const destFlights = computed(() => {
                     if (!selectedDest.value) return [];
                     const isOriginMode = exploreMode.value === 'origin';
-                    return allExploreFlights.value.filter(f => {
-                        // In origin mode, filter by destination; in destination mode, filter by origin
+                    
+                    // Filter and map flights
+                    const filtered = [];
+                    allExploreFlights.value.forEach(f => {
+                        // Check route match
+                        let match = false;
                         if (isOriginMode) {
                             const d = f.destination || (f.segments ? f.segments[f.segments.length-1].destination : null);
-                            return d === selectedDest.value.code;
+                            if (d === selectedDest.value.code) match = true;
                         } else {
-                            return f.origin === selectedDest.value.code;
+                            if (f.origin === selectedDest.value.code) match = true;
                         }
-                    }).sort((a,b) => (a.price||0) - (b.price||0));
+                        if (!match) return;
+
+                        // Apply non-fare filters
+                        if (filters.value.nonStop && f.stops > 0) return;
+
+                        // Determine Best Fare
+                        const fares = f.fares || {};
+                        const availableFares = [];
+                        if (fareTypes.value.gowild && fares.gowild && fares.gowild.price !== null) availableFares.push({t:'gowild', p: fares.gowild.price, pri: 1});
+                        if (fareTypes.value.discountDen && fares.den && fares.den.price !== null) availableFares.push({t:'den', p: fares.den.price, pri: 2});
+                        if (fareTypes.value.standard && fares.standard && fares.standard.price !== null) availableFares.push({t:'standard', p: fares.standard.price, pri: 3});
+
+                        if (availableFares.length === 0) return;
+
+                        availableFares.sort((a, b) => {
+                            if (a.p !== b.p) return a.p - b.p;
+                            return a.pri - b.pri;
+                        });
+
+                        // Clone and attach fare info
+                        const flightWithFare = { ...f, fareType: availableFares[0].t, price: availableFares[0].p };
+                        filtered.push(flightWithFare);
+                    });
+
+                    let sortedFlights = filtered;
+
+                    // Apply sorting based on exploreSort
+                    if (exploreSort.value === 'duration') {
+                        sortedFlights.sort((a,b) => {
+                            const getMinutes = (f) => {
+                                let durH = f.total_duration_hours;
+                                if (!durH && f.duration) {
+                                    const parts = f.duration.split(' ');
+                                    let h = 0, m = 0;
+                                    for(let p of parts) {
+                                        if(p.includes('h')) h = parseInt(p);
+                                        if(p.includes('m')) m = parseInt(p);
+                                    }
+                                    durH = h + (m/60);
+                                }
+                                return durH * 60 || 99999; // Convert to minutes, default high for missing duration
+                            };
+                            return getMinutes(a) - getMinutes(b);
+                        });
+                    } else if (exploreSort.value === 'stops') {
+                        sortedFlights.sort((a,b) => (a.stops || 0) - (b.stops || 0));
+                    } else if (exploreSort.value === 'departure') {
+                        sortedFlights.sort((a,b) => new Date(a.departure).getTime() - new Date(b.departure).getTime());
+                    } else {
+                        // Default to price
+                        sortedFlights.sort((a,b) => (a.price||0) - (b.price||0));
+                    }
+
+                    return sortedFlights;
                 });
 
                 const groupedDayTrips = computed(() => {
@@ -2129,6 +2319,23 @@
                         }
                     });
                     return groups;
+                });
+
+                const exploreFareSummary = computed(() => {
+                    const active = [];
+                    if (fareTypes.value.gowild) {
+                        if (fareTypes.value.earlyBooking) {
+                            active.push('GW (Early)');
+                        } else {
+                            active.push('GW (Std)');
+                        }
+                    }
+                    if (fareTypes.value.standard) active.push('Std');
+                    if (fareTypes.value.discountDen) active.push('Den');
+                    
+                    if (active.length === 0) return 'None';
+                    if (active.length > 2) return `${active[0]} +${active.length - 1}`;
+                    return active.join(', ');
                 });
 
                 // --- Methods ---
@@ -2566,17 +2773,41 @@
                         // Only show weather/temp if within 16 days
                         const showWeather = weatherAvailable.value;
 
+                        // Fare badge
+                        let fareBadge = '';
+                        // Determine best fare for this specific airport code
+                        // (Re-using logic from loop - optimize by just picking best fare here)
+                         const fares = [];
+                         allExploreFlights.value.forEach(f => {
+                            let ac = isOriginMode ? (f.destination || (f.segments ? f.segments[f.segments.length-1].destination : null)) : f.origin;
+                            if (ac === code) {
+                                const fs = f.fares || {};
+                                if (fareTypes.value.gowild && fs.gowild && fs.gowild.price !== null) fares.push({t:'gw', p: fs.gowild.price});
+                                if (fareTypes.value.discountDen && fs.den && fs.den.price !== null) fares.push({t:'den', p: fs.den.price});
+                                if (fareTypes.value.standard && fs.standard && fs.standard.price !== null) fares.push({t:'std', p: fs.standard.price});
+                            }
+                         });
+                         fares.sort((a,b) => a.p - b.p);
+                         if (fares.length > 0) {
+                             const best = fares[0];
+                             if (best.t === 'gw') fareBadge = `<div class="absolute -top-2 -right-2 bg-green-600 text-white text-[8px] font-bold px-1 rounded-full shadow-sm z-10">GW</div>`;
+                             else if (best.t === 'den') fareBadge = `<div class="absolute -top-2 -right-2 bg-amber-500 text-white text-[8px] font-bold px-1 rounded-full shadow-sm z-10">DEN</div>`;
+                             else fareBadge = `<div class="absolute -top-2 -right-2 bg-blue-500 text-white text-[8px] font-bold px-1 rounded-full shadow-sm z-10">STD</div>`;
+                         }
+
                         const html = showWeather
-                            ? `<div class="bg-white/90 backdrop-blur border ${isRain ? 'border-blue-300' : 'border-slate-200'} rounded-lg px-0.5 py-0.5 shadow-md text-center hover:scale-110 transition transform cursor-pointer">
+                            ? `<div class="relative bg-white/90 backdrop-blur border ${isRain ? 'border-blue-300' : 'border-slate-200'} rounded-lg px-0.5 py-0.5 shadow-md text-center hover:scale-110 transition transform cursor-pointer">
+                                ${fareBadge}
                                 <div class="text-[9px] font-bold text-slate-900 leading-tight">${code}</div>
                                 <div class="text-xs leading-none">${emoji}</div>
                                 <div class="text-[8px] font-bold ${isRain ? 'text-blue-500' : 'text-orange-500'} leading-tight">${temp}°</div>
                             </div>`
-                            : `<div class="bg-white/90 backdrop-blur border border-slate-200 rounded-lg px-2 py-1.5 shadow-md text-center hover:scale-110 transition transform cursor-pointer">
+                            : `<div class="relative bg-white/90 backdrop-blur border border-slate-200 rounded-lg px-2 py-1.5 shadow-md text-center hover:scale-110 transition transform cursor-pointer">
+                                ${fareBadge}
                                 <div class="text-[11px] font-bold text-slate-900 leading-tight">${code}</div>
                             </div>`;
 
-                        const icon = L.divIcon({ html, className: 'bg-transparent', iconSize: [38, 38] });
+                        const icon = L.divIcon({ html, className: 'bg-transparent overflow-visible', iconSize: [38, 38] });
                         const m = L.marker([w.lat, w.lon], { icon }).addTo(mapLayerGroup);
                         m.on('click', () => {
                             selectedDest.value = w;
@@ -2645,12 +2876,31 @@
                             map[d].farePriority = bestFare.priority;
                             map[d].departure = f.departure;
                             map[d].arrival = f.arrival;
+                            
+                            // Calculate Duration
+                            let durH = f.total_duration_hours;
+                            if (!durH && f.duration) {
+                                const parts = f.duration.split(' ');
+                                let h = 0, m = 0;
+                                for(let p of parts) {
+                                    if(p.includes('h')) h = parseInt(p);
+                                    if(p.includes('m')) m = parseInt(p);
+                                }
+                                durH = h + (m/60);
+                            }
+                            map[d].duration = durH || 0;
+                            map[d].stops = f.stops;
                         }
 
                         map[d].flightCount++;
                     });
 
-                    return Object.values(map).sort((a,b) => a.price - b.price);
+                    let sorted = Object.values(map);
+                    
+                    // Always sort by price for the grouped destinations
+                    sorted.sort((a,b) => a.price - b.price);
+                    
+                    return sorted;
                 };
 
                 const filterAirports = (type) => {
@@ -2877,9 +3127,11 @@
                     }
                 });
 
-                watch(filters, () => { if (exploreView.value === 'map') renderMap(); else results.value = processExploreList(); }, { deep: true });
+                                watch(filters, () => { if (exploreView.value === 'map') renderMap(); else results.value = processExploreList(); }, { deep: true });
 
-                watch(exploreMode, async () => {
+                                watch(exploreSort, () => { if (exploreView.value === 'list') results.value = processExploreList(); });
+
+                                watch(exploreMode, async () => {
                     if (currentTab.value === 'explore' && hasSearched.value && search.value.origin) {
                         loading.value = true;
                         selectedExploreCode.value = null;
@@ -2996,7 +3248,7 @@
                     currentTab, tabs, search, locations,
                     showOriginDropdown, showDestDropdown, showDateDropdown, filteredOrigins, filteredDests,
                     dayTrip, builder, filters, fareTypes, results, exploreView, exploreMode, selectedDest, destFlights, selectedFlight,
-                    selectedDayTripCity, groupedDayTrips, sortedDayTrips, weatherAvailable, allExploreFlights, selectedExploreCode, groupedExploreDestinations, 
+                    selectedDayTripCity, groupedDayTrips, sortedDayTrips, weatherAvailable, allExploreFlights, selectedExploreCode, groupedExploreDestinations, exploreFareSummary, exploreSort,
                     chunkedExploreDestinations, rowHasSelected, getSelectedGroupInRow, sortedBuilderResults, sortedOneWayResults, oneWay,
                     filterAirports, selectAirport, swapAirports, focusDest, validateInput,
                     getDateLabel, getDateShort,
@@ -3005,7 +3257,7 @@
                     toFahrenheit, getWeatherIcon: (c) => c >= 50 ? 'ph-cloud-rain' : 'ph-sun',
                     getWeather, dayTripMode, destInput,
                     showBookingWarning, bookingWarningItem, openBookingModal, isOvernightLayover, getDateDiffLabel,
-                    passengers, totalPassengers, showPassengerMenu, showSortDropdown, addAdult, removeAdult, addKid, removeKid,
+                    passengers, totalPassengers, showPassengerMenu, showFareTypeMenu, showSortDropdown, addAdult, removeAdult, addKid, removeKid,
                     filteredMapCount, showAnnouncement, announcementHtml, dateOptions,
                     forceDesktop, toggleDesktopMode, appMode, activateAppMode, goHome,
                     isStandalone, showInstallBanner, installApp, dismissInstallBanner,

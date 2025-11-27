@@ -416,20 +416,20 @@ async def explore_advanced(date: str, target: Optional[str] = None, type: str = 
     target: Optional Airport Code (if none, return all)
     """
     query = select(FlightCache).where(FlightCache.travel_date == date)
-    
+
     if target:
         if type == 'from':
             query = query.where(FlightCache.origin == target)
         else:
             query = query.where(FlightCache.destination == target)
-        
+
     res = await db.execute(query)
     entries = res.scalars().all()
-    
+
     results = []
     for e in entries:
         results.extend(decompress_data(e.data))
-        
+
     return results
 
 # --- Job / Bulk Logic ---
@@ -1158,6 +1158,21 @@ async def trigger_specific_scraper(
 
     return {"status": "triggered", "scraper_type": scraper_type, "job_id": job_id}
 
+@app.post("/api/admin/trigger_heartbeat", dependencies=[Depends(verify_admin)])
+async def admin_trigger_heartbeat(background_tasks: BackgroundTasks, db: AsyncSession = Depends(get_db)):
+    """Manually trigger the heartbeat logic to check schedules"""
+    scheduler = SchedulerLogic()
+    # Runs schedule checks synchronously, spawns tasks in background
+    await scheduler.run_heartbeat(background_tasks)
+    
+    # Fetch the log we just created
+    stmt = select(HeartbeatLog).order_by(HeartbeatLog.timestamp.desc()).limit(1)
+    res = await db.execute(stmt)
+    log = res.scalar_one_or_none()
+    
+    triggered = log.scrapers_triggered if log else []
+    return {"status": "ok", "triggered": triggered}
+
 @app.get("/api/admin/cache_stats", dependencies=[Depends(verify_admin)])
 async def get_cache_stats(db: AsyncSession = Depends(get_db)):
     # Count total rows in FlightCache
@@ -1443,6 +1458,41 @@ async def redo_snapshot(snap_id: int, db: AsyncSession = Depends(get_db)):
         
     return {"status": "redone", "origin": origin, "destination": dest, "date": date}
 
+@app.get("/api/admin/snapshots/{snap_id}/details", dependencies=[Depends(verify_admin)])
+async def get_snapshot_details(snap_id: int, db: AsyncSession = Depends(get_db)):
+    """Fetch and decompress the full raw data for a snapshot"""
+    stmt = select(FareSnapshot).where(FareSnapshot.id == snap_id)
+    res = await db.execute(stmt)
+    snap = res.scalar_one_or_none()
+    
+    if not snap:
+        raise HTTPException(status_code=404, detail="Snapshot not found")
+        
+    data = decompress_data(snap.data)
+    return data
+
+@app.delete("/api/admin/snapshots/{snap_id}", dependencies=[Depends(verify_admin)])
+async def delete_snapshot(snap_id: int, db: AsyncSession = Depends(get_db)):
+    """Delete a snapshot without re-scraping"""
+    stmt = select(FareSnapshot).where(FareSnapshot.id == snap_id)
+    res = await db.execute(stmt)
+    snap = res.scalar_one_or_none()
+    
+    if not snap:
+        raise HTTPException(status_code=404, detail="Snapshot not found")
+    
+    await db.delete(snap)
+    await db.commit()
+    
+    return {"status": "deleted", "id": snap_id}
+
+@app.delete("/api/admin/fare_snapshots/{date_str}", dependencies=[Depends(verify_admin)])
+async def delete_snapshot_date(date_str: str, db: AsyncSession = Depends(get_db)):
+    """Delete all snapshots for a specific date"""
+    await db.execute(delete(FareSnapshot).where(FareSnapshot.travel_date == date_str))
+    await db.commit()
+    return {"status": "deleted", "date": date_str}
+
 @app.post("/api/admin/snapshots/redo_date", dependencies=[Depends(verify_admin)])
 async def redo_snapshot_date(request: Request, background_tasks: BackgroundTasks, db: AsyncSession = Depends(get_db)):
     """
@@ -1484,6 +1534,17 @@ async def redo_snapshot_date(request: Request, background_tasks: BackgroundTasks
     background_tasks.add_task(process_bulk_search, job_id, tasks, "3week")
     
     return {"status": "started", "job_id": job_id, "count": len(tasks)}
+
+from app.data_management_logic import get_collection_dates_logic, delete_collection_date_logic
+
+@app.get("/api/admin/collection_dates", dependencies=[Depends(verify_admin)])
+async def get_collection_dates(db: AsyncSession = Depends(get_db)):
+    return await get_collection_dates_logic(db)
+
+@app.delete("/api/admin/collection_dates/{date_str}", dependencies=[Depends(verify_admin)])
+async def delete_collection_date(date_str: str, db: AsyncSession = Depends(get_db)):
+    count = await delete_collection_date_logic(date_str, db)
+    return {"status": "deleted", "date": date_str, "count": count}
 
 @app.get("/api/admin/grouped_snapshots", dependencies=[Depends(verify_admin)])
 async def get_grouped_snapshots(db: AsyncSession = Depends(get_db)):
