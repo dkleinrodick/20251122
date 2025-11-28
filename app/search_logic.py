@@ -116,12 +116,36 @@ def parse_duration_str(dur_str: str) -> float:
         
     return hours + (minutes / 60.0)
 
-async def build_multi_hop_route(session: AsyncSession, origin: str, dest: str, date: str, min_layover_h: float, max_layover_h: float, max_duration: float = 24.0, max_stops: int = 3):
+async def build_multi_hop_route(session: AsyncSession, origin: str, dest: str, date: str, min_layover_h: float, max_layover_h: float, max_duration: float = 24.0, max_stops: int = 3, gowild: bool = True, standard: bool = False, discount_den: bool = False, early_booking: bool = False):
     """
-    Finds Route: Origin -> Hub -> Dest AND Direct Flights
+    Finds Route: Origin -> Hub -> Dest AND Direct Flights, filtered and optimized by fare types.
+
+    When multiple fare types are selected, it can combine different fare types across legs
+    to create the cheapest possible routes.
     """
     routes = []
     existing_signatures = set()
+
+    # Helper function to get best fare for a flight based on selected fare types
+    def get_best_fare(flight_data):
+        """Returns (price, fare_type) for the best available fare based on selections."""
+        fares = flight_data.get('fares', {})
+        available_fares = []
+
+        # Check which selected fare types are available
+        if gowild and fares.get('gowild') and fares['gowild'].get('price') is not None:
+            available_fares.append(('gowild', fares['gowild']['price'], 1))
+        if discount_den and fares.get('den') and fares['den'].get('price') is not None:
+            available_fares.append(('den', fares['den']['price'], 2))
+        if standard and fares.get('standard') and fares['standard'].get('price') is not None:
+            available_fares.append(('standard', fares['standard']['price'], 3))
+
+        if not available_fares:
+            return None, None
+
+        # Sort by price (lowest first), then by priority for ties
+        available_fares.sort(key=lambda x: (x[1], x[2]))
+        return available_fares[0][1], available_fares[0][0]  # (price, fare_type)
 
     # 0. Fetch STANDARD flights (Origin -> Dest) first to avoid duplicates
     stmt_std = select(FlightCache).where(
@@ -138,21 +162,28 @@ async def build_multi_hop_route(session: AsyncSession, origin: str, dest: str, d
             # Create signature: "F9123-F9456"
             sig = "-".join([s.get('flightNumber', '') for s in f.get('segments', [])])
             existing_signatures.add(sig)
-            
+
+            # Get best fare for this flight based on selected fare types
+            price, fare_type = get_best_fare(f)
+            if price is None:
+                continue  # Skip if no selected fare types are available
+
             f_copy = f.copy()
+            f_copy['fare_type'] = fare_type
+            f_copy['price'] = price
+
             dur_str = f.get('duration', '0h')
             try:
                 dur = parse_duration_str(dur_str)
             except:
                 dur = 0
-            
+
             stops = f.get('stops', 0)
-            price = f.get('price') or 0
-            
+
             if dur <= max_duration and stops <= max_stops:
                  routes.append({
                      "segments": [f_copy],
-                     "via": "Standard",
+                     "via": "Direct",
                      "layover_hours": 0,
                      "total_price": price,
                      "total_duration_hours": dur,
@@ -217,25 +248,44 @@ async def build_multi_hop_route(session: AsyncSession, origin: str, dest: str, d
 
         # 3. Match timings
         for f1, arr1_dt in parsed_out:
+            # Get best fare for leg 1
+            price1, fare_type1 = get_best_fare(f1)
+            if price1 is None:
+                continue  # Skip if no selected fare types available for this flight
+
             for f2, dept2_dt in parsed_next:
+                # Get best fare for leg 2
+                price2, fare_type2 = get_best_fare(f2)
+                if price2 is None:
+                    continue  # Skip if no selected fare types available for this flight
+
                 diff = (dept2_dt - arr1_dt).total_seconds() / 3600
-                
+
                 if min_layover_h <= diff <= max_layover_h:
                     # Check signature
                     f1_nums = [s.get('flightNumber') for s in f1.get('segments', [])]
                     f2_nums = [s.get('flightNumber') for s in f2.get('segments', [])]
                     constructed_sig = "-".join(f1_nums + f2_nums)
-                    
-                    if constructed_sig in existing_signatures:
-                        continue 
 
-                    total_price = (f1.get('price') or 0) + (f2.get('price') or 0)
-                    
+                    if constructed_sig in existing_signatures:
+                        continue
+
+                    # Create copies with fare type info
+                    f1_copy = f1.copy()
+                    f1_copy['fare_type'] = fare_type1
+                    f1_copy['price'] = price1
+
+                    f2_copy = f2.copy()
+                    f2_copy['fare_type'] = fare_type2
+                    f2_copy['price'] = price2
+
+                    total_price = price1 + price2
+
                     # Calculate total duration
                     dep_origin = parse_iso_date(f1.get('departure'))
                     arr_final = parse_iso_date(f2.get('arrival'))
                     total_dur = round((arr_final - dep_origin).total_seconds() / 3600, 1)
-                    
+
                     # Calculate total stops
                     stops1 = f1.get('stops', 0)
                     stops2 = f2.get('stops', 0)
@@ -243,13 +293,13 @@ async def build_multi_hop_route(session: AsyncSession, origin: str, dest: str, d
 
                     if total_dur <= max_duration and total_stops <= max_stops:
                         routes.append({
-                            "segments": [f1, f2],
+                            "segments": [f1_copy, f2_copy],
                             "via": hub,
                             "layover_hours": round(diff, 1),
                             "total_price": total_price,
                             "total_duration_hours": total_dur,
                             "total_stops": total_stops,
-                            "departure": f1.get('departure'), 
+                            "departure": f1.get('departure'),
                             "arrival": f2.get('arrival')
                         })
 

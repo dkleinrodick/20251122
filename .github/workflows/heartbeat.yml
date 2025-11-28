@@ -1,0 +1,31 @@
+name: Heartbeat Scheduler
+
+on:
+  schedule:
+    # Run every 15 minutes to check scraper schedules
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+    # Manual trigger available in GitHub Actions UI
+
+jobs:
+  heartbeat:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call Heartbeat Endpoint
+        env:
+          HEARTBEAT_URL: ${{ secrets.HEARTBEAT_URL }}
+        run: |
+          response=$(curl -s -X POST "$HEARTBEAT_URL/api/heartbeat" \
+            -H "Content-Type: application/json" \
+            -w "\n%{http_code}")
+
+          http_code=$(echo "$response" | tail -n1)
+          body=$(echo "$response" | head -n-1)
+
+          echo "Response: $body"
+          echo "HTTP Status: $http_code"
+
+          if [ "$http_code" -ne 200 ]; then
+            echo "Error: Heartbeat endpoint returned status $http_code"
+            exit 1
+          fi

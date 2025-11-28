@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from sqlalchemy.future import select
-from sqlalchemy import delete, update, or_, func
+from sqlalchemy import delete, update, or_, and_, func
 from sqlalchemy.ext.asyncio import AsyncSession
 import asyncio
 import json
@@ -402,8 +402,24 @@ async def search_roundtrip(origin: str, date: str, destination: Optional[str] = 
     return await find_round_trip_same_day(db, origin, destination, date, min_hours)
 
 @app.get("/api/builder")
-async def search_builder(origin: str, destination: str, date: str, min_layover: float = 1.0, max_layover: float = 6.0, max_duration: float = 24.0, max_stops: int = 3, db: AsyncSession = Depends(get_db)):
-    return await build_multi_hop_route(db, origin, destination, date, min_layover, max_layover, max_duration, max_stops)
+async def search_builder(
+    origin: str,
+    destination: str,
+    date: str,
+    min_layover: float = 1.0,
+    max_layover: float = 6.0,
+    max_duration: float = 24.0,
+    max_stops: int = 3,
+    gowild: bool = True,
+    standard: bool = False,
+    discount_den: bool = False,
+    early_booking: bool = False,
+    db: AsyncSession = Depends(get_db)
+):
+    return await build_multi_hop_route(
+        db, origin, destination, date, min_layover, max_layover, max_duration, max_stops,
+        gowild, standard, discount_den, early_booking
+    )
 
 @app.get("/api/map_data")
 async def search_map_data(date: str, db: AsyncSession = Depends(get_db)):

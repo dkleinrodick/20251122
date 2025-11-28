@@ -376,7 +376,7 @@
 
 
                         <!-- ORIGIN INPUT -->
-                        <div :class="currentTab === 'explore' || currentTab === 'daytrip' ? 'md:col-span-4' : 'md:col-span-3'" class="relative z-[100]" v-click-outside="() => showOriginDropdown = false">
+                        <div :class="currentTab === 'explore' || currentTab === 'daytrip' ? 'md:col-span-4' : 'md:col-span-3'" class="relative z-[103]" v-click-outside="() => showOriginDropdown = false">
                             <div class="flex justify-between items-end mb-2 h-6 ml-1">
                                 <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider">
                                     {{ currentTab === 'explore' ? (exploreMode === 'origin' ? 'Departing From' : 'Arriving To') : 'Origin' }}
@@ -416,40 +416,15 @@
                         <!-- SWAP BUTTON (Removed for Equal Width Layout) -->
 
                         <!-- DESTINATION INPUT -->
-                        <div v-if="currentTab === 'oneway' || currentTab === 'builder'" class="md:col-span-3 relative z-[100]">
-                            <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 ml-1 md:ml-5 flex justify-between">
-                                <span>Destination</span>
-                            </label>
-
-                            <!-- Mode: Anywhere (Default Day Trip) -->
-                            <div v-if="currentTab === 'daytrip' && dayTripMode === 'anywhere'" class="relative group">
-                                <div class="absolute -inset-0.5 bg-gradient-to-r from-brand-400 to-cyan-300 rounded-2xl opacity-20 group-hover:opacity-40 transition duration-500 blur-sm"></div>
-                                <div class="relative bg-white border border-slate-100 rounded-2xl flex items-center px-4 py-3.5 w-full shadow-sm">
-                                    <div class="w-8 h-8 rounded-full bg-brand-50 flex items-center justify-center text-brand-600 mr-3">
-                                        <i class="ph ph-globe-hemisphere-west text-lg animate-pulse"></i>
-                                    </div>
-                                    <div class="flex-1">
-                                        <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Destination</div>
-                                        <div class="font-bold text-slate-800 text-sm">Everywhere</div>
-                                    </div>
-                                    <button @click="dayTripMode = 'specific'" class="ml-2 px-3 py-1.5 rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-500 text-xs font-bold transition flex items-center gap-1">
-                                        <i class="ph ph-pencil-simple"></i> Edit
-                                    </button>
-                                </div>
+                        <div v-if="currentTab === 'oneway' || currentTab === 'builder'" class="md:col-span-3 relative z-[102]">
+                            <div class="flex justify-between items-end mb-2 h-6 ml-1 md:ml-5">
+                                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider">Destination</label>
                             </div>
 
                             <!-- Mode: Specific (Input) -->
-                            <div v-else class="relative z-[100]" v-click-outside="() => showDestDropdown = false">
-                                <!-- Explore Static Box (Tab=Explore) -->
-                                <div v-if="currentTab === 'explore' && !search.dest" 
-                                     @click="focusDest"
-                                     class="bg-slate-50 border border-slate-200 border-dashed rounded-2xl flex items-center px-4 py-3.5 text-slate-400 cursor-pointer hover:bg-slate-100 hover:border-slate-300 transition">
-                                    <i class="ph ph-globe-hemisphere-west text-xl mr-3"></i>
-                                    <span class="font-medium italic">Anywhere in the network</span>
-                                </div>
-
+                            <div class="relative z-[100]" v-click-outside="() => showDestDropdown = false">
                                 <!-- Standard Input -->
-                                <div v-else class="group bg-white border border-slate-200 focus-within:border-brand-500 focus-within:ring-4 focus-within:ring-brand-500/10 rounded-2xl flex items-center px-4 py-3.5 transition-all md:ml-4">
+                                <div class="group bg-white border border-slate-200 focus-within:border-brand-500 focus-within:ring-4 focus-within:ring-brand-500/10 rounded-2xl flex items-center px-4 py-3.5 transition-all md:ml-4 h-[3.5rem]">
                                     <i class="ph ph-airplane-landing text-slate-400 text-xl mr-3 group-focus-within:text-brand-500"></i>
                                     <input ref="destInput" type="text" v-model="search.dest" @input="filterAirports('dest')" @focus="showDestDropdown = true" @blur="validateInput('dest')"
                                         placeholder="City or Code"
@@ -458,7 +433,7 @@
                                 </div>
 
                                 <!-- Dropdown -->
-                                <div v-if="showDestDropdown && filteredDests.length" class="absolute top-full left-0 w-full bg-white border border-slate-100 rounded-xl shadow-xl mt-2 max-h-64 overflow-y-auto z-[100] py-2 animate-fade-in">
+                                <div v-if="showDestDropdown && filteredDests.length" class="absolute top-full left-0 w-full bg-white border border-slate-100 rounded-xl shadow-xl mt-2 max-h-64 overflow-y-auto z-[100] py-2 animate-fade-in md:ml-4">
                                     <div v-for="ap in filteredDests" :key="ap.code" @click="selectAirport('dest', ap)" 
                                          class="px-4 py-3 hover:bg-brand-50 cursor-pointer flex justify-between items-center border-b border-slate-50 last:border-0 group">
                                         <div>
@@ -468,18 +443,11 @@
                                         <span class="font-mono font-bold text-xs bg-slate-100 text-slate-500 px-2 py-1 rounded group-hover:bg-brand-200 group-hover:text-brand-800">{{ ap.code }}</span>
                                     </div>
                                 </div>
-
-                                <!-- Back to Anywhere Link (DayTrip Specific Only) -->
-                                <div v-if="currentTab === 'daytrip' && dayTripMode === 'specific'" class="mt-2 text-right">
-                                    <button @click="dayTripMode = 'anywhere'" class="text-xs font-bold text-slate-400 hover:text-brand-600 transition">
-                                        Switch back to Explore Anywhere
-                                    </button>
-                                </div>
                             </div>
                         </div>
 
                         <!-- DATE INPUT -->
-                        <div :class="currentTab === 'explore' || currentTab === 'daytrip' ? 'md:col-span-4' : 'md:col-span-3'" class="relative z-[100]" v-click-outside="() => showDateDropdown = false">
+                        <div :class="currentTab === 'explore' || currentTab === 'daytrip' ? 'md:col-span-4' : 'md:col-span-3'" class="relative z-[101]" v-click-outside="() => showDateDropdown = false">
                             <div class="flex justify-between items-end mb-2 h-6">
                                 <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider">Departing</label>
                             </div>
@@ -509,12 +477,12 @@
                         </div>
                         
                         <!-- TRAVELERS INPUT -->
-                        <div :class="currentTab === 'explore' || currentTab === 'daytrip' ? 'md:col-span-4' : 'md:col-span-3'" class="relative z-[100]" v-click-outside="() => showPassengerMenu = false">
+                        <div :class="currentTab === 'explore' || currentTab === 'daytrip' ? 'md:col-span-4' : 'md:col-span-3'" class="relative z-[110]" v-click-outside="() => showPassengerMenu = false">
                             <div class="flex justify-between items-end mb-2 h-6">
                                 <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider">Travelers</label>
                                 <!-- Set Destination Removed -->
                             </div>
-                            <div @click="showPassengerMenu = !showPassengerMenu" 
+                            <div @click="showPassengerMenu = !showPassengerMenu"
                                  class="bg-white border border-slate-200 hover:border-brand-300 rounded-2xl flex items-center px-4 py-3.5 relative cursor-pointer transition-all shadow-sm group h-[3.5rem]">
                                 <i class="ph ph-users text-slate-400 text-xl mr-3 group-hover:text-brand-500"></i>
                                 <div class="font-bold text-slate-800 flex-1 truncate">
@@ -523,7 +491,7 @@
                                 <i class="ph ph-caret-down text-slate-400 transition-transform duration-300" :class="showPassengerMenu ? 'rotate-180' : ''"></i>
                             </div>
                             <!-- Dropdown -->
-                            <div v-if="showPassengerMenu" class="absolute top-full right-0 w-72 bg-white border border-slate-100 rounded-xl shadow-xl mt-2 z-[100] p-4 animate-fade-in">
+                            <div v-if="showPassengerMenu" class="absolute top-full right-0 w-72 bg-white border border-slate-100 rounded-xl shadow-xl mt-2 z-[110] p-4 animate-fade-in">
                                 <div class="flex justify-between items-center mb-4">
                                     <div><div class="font-bold text-slate-800">Adults</div><div class="text-xs text-slate-400">Age 15+</div></div>
                                     <div class="flex items-center gap-3">
@@ -565,194 +533,411 @@
                         <!-- Filters Area -->
                         <div class="flex flex-wrap justify-center lg:justify-start gap-4 items-end w-full lg:w-auto">
                             
-                            <!-- ONE WAY: New 2-Line Layout -->
-                            <div v-if="currentTab === 'oneway'" class="w-full">
-                                <div class="flex flex-col gap-3">
-                                    
-                                    <!-- Line 1: Fare Types -->
-                                    <div class="relative z-30" v-click-outside="() => showFareTypeMenu = false">
-                                        <button @click="showFareTypeMenu = !showFareTypeMenu" 
-                                            class="w-full md:w-auto h-[42px] px-4 bg-white border border-slate-200 hover:border-brand-300 rounded-xl flex items-center justify-between transition-all group gap-3">
+                            <!-- ONE WAY: Modern Controls -->
+                            <div v-if="currentTab === 'oneway'" class="w-full relative z-[60]">
+                                <div class="flex flex-wrap items-center gap-2">
+
+                                    <!-- Fare Type Dropdown -->
+                                    <div class="relative z-[100] min-w-[180px] flex flex-col gap-1" v-click-outside="() => showFareTypeMenu = false">
+                                        <div class="flex justify-between items-center opacity-0">
+                                            <label class="text-[10px] font-bold">.</label>
+                                        </div>
+                                        <button @click="showFareTypeMenu = !showFareTypeMenu"
+                                            class="w-full h-[42px] px-4 bg-white border border-slate-200 hover:border-brand-300 rounded-xl flex items-center justify-between transition-all group gap-3 shadow-sm">
                                             <div class="flex items-center gap-2">
-                                                <i class="ph-fill ph-funnel text-brand-500"></i>
-                                                <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Fare Type:</span>
-                                                <span class="text-sm font-bold text-slate-700 truncate">{{ fareTypeSummary }}</span>
+                                                <div class="w-6 h-6 rounded-full bg-brand-50 flex items-center justify-center text-brand-600">
+                                                    <i class="ph-fill ph-funnel text-xs"></i>
+                                                </div>
+                                                <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Fares:</span>
+                                                <span class="text-sm font-bold text-slate-700 truncate">{{ oneWayFareSummary }}</span>
                                             </div>
                                             <i class="ph-bold ph-caret-down text-slate-400 group-hover:text-brand-500 transition-colors"></i>
                                         </button>
-                                        
-                                        <div v-if="showFareTypeMenu" class="absolute top-[calc(100%+4px)] left-0 w-72 bg-white border border-slate-100 rounded-xl shadow-xl p-2 animate-fade-in flex flex-col gap-1 z-50">
-                                            <div v-for="ft in fareTypesList" :key="ft.id" 
-                                                 @click.stop="toggleFareType(ft.id)" 
-                                                 class="flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer transition-colors group" 
-                                                 :class="selectedFareTypes.includes(ft.id) ? 'bg-brand-50' : 'hover:bg-slate-50'">
-                                                <div class="w-5 h-5 rounded border flex items-center justify-center transition-colors" 
-                                                     :class="selectedFareTypes.includes(ft.id) ? 'bg-brand-600 border-brand-600' : 'bg-white border-slate-300 group-hover:border-brand-300'">
-                                                    <i v-if="selectedFareTypes.includes(ft.id)" class="ph-bold ph-check text-white text-xs"></i>
+
+                                        <div v-if="showFareTypeMenu" class="absolute top-[calc(100%+4px)] left-0 w-full min-w-[240px] bg-white border border-slate-100 rounded-xl shadow-xl p-2 animate-fade-in flex flex-col gap-1 z-[70]">
+
+                                            <!-- GoWild Checkbox -->
+                                            <div @click.stop="oneWayFareTypes.gowild = !oneWayFareTypes.gowild; calculateDateOptions()"
+                                                 class="flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-colors group"
+                                                 :class="oneWayFareTypes.gowild ? 'bg-brand-50' : 'hover:bg-slate-50'">
+                                                <div class="w-4 h-4 rounded border flex items-center justify-center transition-colors"
+                                                     :class="oneWayFareTypes.gowild ? 'bg-brand-600 border-brand-600' : 'bg-white border-slate-300'">
+                                                    <i v-if="oneWayFareTypes.gowild" class="ph-bold ph-check text-white text-[10px]"></i>
                                                 </div>
-                                                <div class="flex-1 text-sm font-bold text-slate-800">{{ ft.label }}</div>
+                                                <div class="flex-1 text-xs font-bold text-slate-800">GoWild Pass</div>
+                                            </div>
+
+                                            <!-- GoWild Sub-options (only shown when GoWild is checked) -->
+                                            <div v-if="oneWayFareTypes.gowild" class="ml-7 flex flex-col gap-1 border-l-2 border-brand-200 pl-3">
+                                                <div @click.stop="oneWayFareTypes.earlyBooking = false; calculateDateOptions()"
+                                                     class="flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-colors group"
+                                                     :class="!oneWayFareTypes.earlyBooking ? 'bg-brand-50' : 'hover:bg-slate-50'">
+                                                    <div class="w-4 h-4 rounded-full border flex items-center justify-center transition-colors"
+                                                         :class="!oneWayFareTypes.earlyBooking ? 'border-brand-600' : 'border-slate-300'">
+                                                         <div v-if="!oneWayFareTypes.earlyBooking" class="w-2 h-2 rounded-full bg-brand-600"></div>
+                                                    </div>
+                                                    <div class="flex-1">
+                                                        <div class="text-xs font-bold text-slate-800">Standard</div>
+                                                        <div class="text-[10px] text-slate-500">Last minute travel</div>
+                                                    </div>
+                                                </div>
+
+                                                <div @click.stop="oneWayFareTypes.earlyBooking = true; calculateDateOptions()"
+                                                     class="flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-colors group"
+                                                     :class="oneWayFareTypes.earlyBooking ? 'bg-brand-50' : 'hover:bg-slate-50'">
+                                                    <div class="w-4 h-4 rounded-full border flex items-center justify-center transition-colors"
+                                                         :class="oneWayFareTypes.earlyBooking ? 'border-brand-600' : 'border-slate-300'">
+                                                         <div v-if="oneWayFareTypes.earlyBooking" class="w-2 h-2 rounded-full bg-brand-600"></div>
+                                                    </div>
+                                                    <div class="flex-1">
+                                                        <div class="text-xs font-bold text-slate-800">Early Booking</div>
+                                                        <div class="text-[10px] text-slate-500">Advance planning</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <!-- Divider -->
+                                            <div class="h-px bg-slate-100 my-1"></div>
+
+                                            <!-- Standard -->
+                                            <div @click.stop="oneWayFareTypes.standard = !oneWayFareTypes.standard; calculateDateOptions()"
+                                                 class="flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-colors group"
+                                                 :class="oneWayFareTypes.standard ? 'bg-brand-50' : 'hover:bg-slate-50'">
+                                                <div class="w-4 h-4 rounded border flex items-center justify-center transition-colors"
+                                                     :class="oneWayFareTypes.standard ? 'bg-brand-600 border-brand-600' : 'bg-white border-slate-300'">
+                                                    <i v-if="oneWayFareTypes.standard" class="ph-bold ph-check text-white text-[10px]"></i>
+                                                </div>
+                                                <div class="flex-1 text-xs font-bold text-slate-800">Standard Fare</div>
+                                            </div>
+
+                                            <!-- Discount DEN -->
+                                            <div @click.stop="oneWayFareTypes.discountDen = !oneWayFareTypes.discountDen; calculateDateOptions()"
+                                                 class="flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-colors group"
+                                                 :class="oneWayFareTypes.discountDen ? 'bg-brand-50' : 'hover:bg-slate-50'">
+                                                <div class="w-4 h-4 rounded border flex items-center justify-center transition-colors"
+                                                     :class="oneWayFareTypes.discountDen ? 'bg-brand-600 border-brand-600' : 'bg-white border-slate-300'">
+                                                    <i v-if="oneWayFareTypes.discountDen" class="ph-bold ph-check text-white text-[10px]"></i>
+                                                </div>
+                                                <div class="flex-1 text-xs font-bold text-slate-800">Discount Den</div>
+                                            </div>
+
+                                        </div>
+                                    </div>
+
+                                    <!-- Sort Dropdown -->
+                                    <div class="relative z-[100] flex flex-col gap-1" v-click-outside="() => showSortDropdown = false">
+                                        <div class="flex justify-between items-center opacity-0">
+                                            <label class="text-[10px] font-bold">.</label>
+                                        </div>
+                                        <button @click="showSortDropdown = !showSortDropdown" class="h-[42px] px-3 bg-white border border-slate-200 hover:border-brand-300 rounded-xl flex items-center gap-2 transition-all min-w-[120px] justify-between shadow-sm">
+                                            <div class="flex items-center gap-2">
+                                                <i class="ph-bold ph-sort-ascending text-slate-400"></i>
+                                                <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Sort</span>
+                                            </div>
+                                            <span class="text-xs font-bold text-slate-800 capitalize">{{ oneWay.sortBy }}</span>
+                                        </button>
+                                        <div v-if="showSortDropdown" class="absolute top-[calc(100%+4px)] left-0 w-full bg-white border border-slate-100 rounded-xl shadow-xl overflow-hidden z-[100]">
+                                            <div v-for="opt in ['price', 'duration', 'stops', 'departure']" :key="opt" @click="oneWay.sortBy = opt; showSortDropdown = false" class="px-4 py-2 hover:bg-slate-50 cursor-pointer text-xs font-bold text-slate-700 capitalize flex justify-between">
+                                                <span>{{ opt }}</span>
+                                                <i v-if="oneWay.sortBy === opt" class="ph-bold ph-check text-brand-600"></i>
                                             </div>
                                         </div>
                                     </div>
 
-                                    <!-- Line 2: Filters & Sort -->
-                                    <div class="flex flex-wrap items-center gap-2">
-                                        <!-- Sort Dropdown -->
-                                        <div class="relative z-[100]" v-click-outside="() => showSortDropdown = false">
-                                            <button @click="showSortDropdown = !showSortDropdown" class="h-[42px] px-3 bg-white border border-slate-200 hover:border-brand-300 rounded-xl flex items-center gap-2 transition-all min-w-[140px] justify-between">
-                                                <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Sort</span>
-                                            </button>
-                                            <div v-if="showSortDropdown" class="absolute top-[calc(100%+4px)] left-0 w-full bg-white border border-slate-100 rounded-xl shadow-xl overflow-hidden z-[100]">
-                                                <div v-for="opt in ['price', 'duration', 'stops']" :key="opt" @click="oneWay.sortBy = opt; showSortDropdown = false" class="px-4 py-2 hover:bg-slate-50 cursor-pointer text-sm font-bold text-slate-700 capitalize flex justify-between">
-                                                    <span>{{ opt }}</span>
-                                                    <i v-if="oneWay.sortBy === opt" class="ph-bold ph-check text-brand-600"></i>
-                                                </div>
+                                    <!-- Dep Time -->
+                                    <div class="flex flex-col gap-1 w-36">
+                                        <div class="flex justify-between items-center">
+                                            <label class="text-[10px] font-bold text-slate-500 uppercase">Dep</label>
+                                            <span class="text-[10px] font-bold text-brand-600">{{ formatSliderTime(filters.depTime.min) }} - {{ formatSliderTime(filters.depTime.max) }}</span>
+                                        </div>
+                                        <div class="bg-white px-2 py-2 rounded-xl border border-slate-200 h-[42px] flex items-center relative shadow-sm">
+                                            <div class="range-slider w-full">
+                                                <div class="absolute top-1/2 left-0 right-0 h-1 bg-slate-200 rounded -translate-y-1/2"></div>
+                                                <div class="absolute top-1/2 h-1 bg-brand-500 rounded -translate-y-1/2" :style="{ left: (filters.depTime.min/24)*100 + '%', right: (100 - (filters.depTime.max/24)*100) + '%' }"></div>
+                                                <input type="range" min="0" max="24" step="1" v-model.number="filters.depTime.min" @input="filters.depTime.min = Math.min(filters.depTime.min, filters.depTime.max)">
+                                                <input type="range" min="0" max="24" step="1" v-model.number="filters.depTime.max" @input="filters.depTime.max = Math.max(filters.depTime.max, filters.depTime.min)">
                                             </div>
                                         </div>
+                                    </div>
+                                    <!-- Arr Time -->
+                                    <div class="flex flex-col gap-1 w-36">
+                                        <div class="flex justify-between items-center">
+                                            <label class="text-[10px] font-bold text-slate-500 uppercase">Arr</label>
+                                            <span class="text-[10px] font-bold text-brand-600">{{ formatSliderTime(filters.arrTime.min) }} - {{ formatSliderTime(filters.arrTime.max) }}</span>
+                                        </div>
+                                        <div class="bg-white px-2 py-2 rounded-xl border border-slate-200 h-[42px] flex items-center relative shadow-sm">
+                                            <div class="range-slider w-full">
+                                                <div class="absolute top-1/2 left-0 right-0 h-1 bg-slate-200 rounded -translate-y-1/2"></div>
+                                                <div class="absolute top-1/2 h-1 bg-brand-500 rounded -translate-y-1/2" :style="{ left: (filters.arrTime.min/24)*100 + '%', right: (100 - (filters.arrTime.max/24)*100) + '%' }"></div>
+                                                <input type="range" min="0" max="24" step="1" v-model.number="filters.arrTime.min" @input="filters.arrTime.min = Math.min(filters.arrTime.min, filters.arrTime.max)">
+                                                <input type="range" min="0" max="24" step="1" v-model.number="filters.arrTime.max" @input="filters.arrTime.max = Math.max(filters.arrTime.max, filters.arrTime.min)">
+                                            </div>
+                                        </div>
+                                    </div>
 
-                                        <!-- Nonstop Toggle -->
-                                        <button @click="filters.nonStop = !filters.nonStop" 
-                                            class="h-[42px] px-3 rounded-xl border flex items-center gap-2 transition-all" 
+                                    <!-- Max Duration -->
+                                    <div class="flex flex-col gap-1 w-28">
+                                        <div class="flex justify-between items-center">
+                                            <label class="text-[10px] font-bold text-slate-500 uppercase">Duration</label>
+                                            <span class="text-[10px] font-bold text-brand-600">{{ filters.maxDuration }}h</span>
+                                        </div>
+                                        <div class="bg-white px-2 py-2 rounded-xl border border-slate-200 h-[42px] flex items-center relative shadow-sm">
+                                            <input type="range" v-model="filters.maxDuration" min="2" max="24" class="w-full h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-brand-600">
+                                        </div>
+                                    </div>
+
+                                    <!-- Nonstop Toggle -->
+                                    <div class="flex flex-col gap-1">
+                                        <div class="flex justify-between items-center opacity-0">
+                                            <label class="text-[10px] font-bold">.</label>
+                                        </div>
+                                        <button @click="filters.nonStop = !filters.nonStop"
+                                            class="h-[42px] px-3 rounded-xl border flex items-center gap-2 transition-all shadow-sm"
                                             :class="filters.nonStop ? 'bg-purple-50 border-purple-200 text-purple-700' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'">
                                             <i class="ph-fill ph-airplane"></i>
                                             <span class="text-xs font-bold">Nonstop</span>
                                         </button>
-
-                                        <!-- Max Duration -->
-                                        <div class="h-[42px] px-3 bg-white border border-slate-200 rounded-xl flex items-center gap-2 min-w-[140px]">
-                                            <span class="text-[10px] font-bold text-slate-400 uppercase whitespace-nowrap">Max {{ filters.maxDuration }}h</span>
-                                            <input type="range" v-model="filters.maxDuration" min="2" max="24" class="w-16 h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-brand-600">
-                                        </div>
                                     </div>
 
                                 </div>
                             </div>
                             
-                            <!-- DAY TRIP: New 2-Line Layout -->
+                            <!-- DAY TRIP: New Inline Layout -->
                             <div v-if="currentTab === 'daytrip'" class="w-full">
-                                <div class="flex flex-col gap-3">
+                                <div class="flex flex-wrap items-center gap-2 relative z-30">
                                     
-                                    <!-- Line 1: Fare Types -->
-                                    <div class="relative z-30" v-click-outside="() => showFareTypeMenu = false">
+                                    <!-- Fare Types Dropdown -->
+                                    <div class="relative" v-click-outside="() => showFareTypeMenu = false">
                                         <button @click="showFareTypeMenu = !showFareTypeMenu" 
-                                            class="w-full md:w-auto h-[42px] px-4 bg-white border border-slate-200 hover:border-brand-300 rounded-xl flex items-center justify-between transition-all group gap-3">
+                                            class="h-[42px] px-4 bg-white border border-slate-200 hover:border-brand-300 rounded-xl flex items-center justify-between transition-all group gap-3 shadow-sm min-w-[200px]">
                                             <div class="flex items-center gap-2">
-                                                <i class="ph-fill ph-funnel text-brand-500"></i>
-                                                <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Fare Type:</span>
+                                                <div class="w-6 h-6 rounded-full bg-brand-50 flex items-center justify-center text-brand-600">
+                                                    <i class="ph-fill ph-funnel text-xs"></i>
+                                                </div>
+                                                <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Fares:</span>
                                                 <span class="text-sm font-bold text-slate-700 truncate">{{ fareTypeSummary }}</span>
                                             </div>
                                             <i class="ph-bold ph-caret-down text-slate-400 group-hover:text-brand-500 transition-colors"></i>
                                         </button>
                                         
-                                        <div v-if="showFareTypeMenu" class="absolute top-[calc(100%+4px)] left-0 w-72 bg-white border border-slate-100 rounded-xl shadow-xl p-2 animate-fade-in flex flex-col gap-1 z-50">
-                                            <div v-for="ft in fareTypesList" :key="ft.id" 
-                                                 @click.stop="toggleFareType(ft.id)" 
-                                                 class="flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer transition-colors group" 
-                                                 :class="selectedFareTypes.includes(ft.id) ? 'bg-brand-50' : 'hover:bg-slate-50'">
-                                                <div class="w-5 h-5 rounded border flex items-center justify-center transition-colors" 
-                                                     :class="selectedFareTypes.includes(ft.id) ? 'bg-brand-600 border-brand-600' : 'bg-white border-slate-300 group-hover:border-brand-300'">
-                                                    <i v-if="selectedFareTypes.includes(ft.id)" class="ph-bold ph-check text-white text-xs"></i>
+                                        <div v-if="showFareTypeMenu" class="absolute top-[calc(100%+4px)] left-0 w-72 bg-white border border-slate-100 rounded-xl shadow-xl p-2 animate-fade-in flex flex-col gap-1 z-[60]">
+
+                                            <!-- GoWild Checkbox -->
+                                            <div @click.stop="dayTripFareTypes.gowild = !dayTripFareTypes.gowild; calculateDateOptions()"
+                                                 class="flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-colors group"
+                                                 :class="dayTripFareTypes.gowild ? 'bg-brand-50' : 'hover:bg-slate-50'">
+                                                <div class="w-4 h-4 rounded border flex items-center justify-center transition-colors"
+                                                     :class="dayTripFareTypes.gowild ? 'bg-brand-600 border-brand-600' : 'bg-white border-slate-300'">
+                                                    <i v-if="dayTripFareTypes.gowild" class="ph-bold ph-check text-white text-[10px]"></i>
                                                 </div>
-                                                <div class="flex-1 text-sm font-bold text-slate-800">{{ ft.label }}</div>
+                                                <div class="flex-1 text-xs font-bold text-slate-800">GoWild Pass</div>
                                             </div>
+
+                                            <!-- GoWild Sub-options -->
+                                            <div v-if="dayTripFareTypes.gowild" class="ml-7 flex flex-col gap-1 border-l-2 border-brand-200 pl-3">
+                                                <div @click.stop="dayTripFareTypes.earlyBooking = false; calculateDateOptions()"
+                                                     class="flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-colors group"
+                                                     :class="!dayTripFareTypes.earlyBooking ? 'bg-brand-50' : 'hover:bg-slate-50'">
+                                                    <div class="w-4 h-4 rounded-full border flex items-center justify-center transition-colors"
+                                                         :class="!dayTripFareTypes.earlyBooking ? 'border-brand-600' : 'border-slate-300'">
+                                                         <div v-if="!dayTripFareTypes.earlyBooking" class="w-2 h-2 rounded-full bg-brand-600"></div>
+                                                    </div>
+                                                    <div class="flex-1">
+                                                        <div class="text-xs font-bold text-slate-800">Standard</div>
+                                                        <div class="text-[10px] text-slate-500">Last minute</div>
+                                                    </div>
+                                                </div>
+
+                                                <div @click.stop="dayTripFareTypes.earlyBooking = true; calculateDateOptions()"
+                                                     class="flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-colors group"
+                                                     :class="dayTripFareTypes.earlyBooking ? 'bg-brand-50' : 'hover:bg-slate-50'">
+                                                    <div class="w-4 h-4 rounded-full border flex items-center justify-center transition-colors"
+                                                         :class="dayTripFareTypes.earlyBooking ? 'border-brand-600' : 'border-slate-300'">
+                                                         <div v-if="dayTripFareTypes.earlyBooking" class="w-2 h-2 rounded-full bg-brand-600"></div>
+                                                    </div>
+                                                    <div class="flex-1">
+                                                        <div class="text-xs font-bold text-slate-800">Early Booking</div>
+                                                        <div class="text-[10px] text-slate-500">Advance planning</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <!-- Divider -->
+                                            <div class="h-px bg-slate-100 my-1"></div>
+
+                                            <!-- Standard -->
+                                            <div @click.stop="dayTripFareTypes.standard = !dayTripFareTypes.standard; calculateDateOptions()" 
+                                                 class="flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-colors group" 
+                                                 :class="dayTripFareTypes.standard ? 'bg-brand-50' : 'hover:bg-slate-50'">
+                                                <div class="w-4 h-4 rounded border flex items-center justify-center transition-colors" 
+                                                     :class="dayTripFareTypes.standard ? 'bg-brand-600 border-brand-600' : 'bg-white border-slate-300'">
+                                                    <i v-if="dayTripFareTypes.standard" class="ph-bold ph-check text-white text-[10px]"></i>
+                                                </div>
+                                                <div class="flex-1 text-xs font-bold text-slate-800">Standard Fare</div>
+                                            </div>
+
+                                            <!-- Discount DEN -->
+                                            <div @click.stop="dayTripFareTypes.discountDen = !dayTripFareTypes.discountDen; calculateDateOptions()" 
+                                                 class="flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-colors group" 
+                                                 :class="dayTripFareTypes.discountDen ? 'bg-brand-50' : 'hover:bg-slate-50'">
+                                                <div class="w-4 h-4 rounded border flex items-center justify-center transition-colors" 
+                                                     :class="dayTripFareTypes.discountDen ? 'bg-brand-600 border-brand-600' : 'bg-white border-slate-300'">
+                                                    <i v-if="dayTripFareTypes.discountDen" class="ph-bold ph-check text-white text-[10px]"></i>
+                                                </div>
+                                                <div class="flex-1 text-xs font-bold text-slate-800">Discount Den</div>
+                                            </div>
+
                                         </div>
                                     </div>
 
-                                    <!-- Line 2: Filters & Slider -->
-                                    <div class="flex flex-wrap items-center gap-2">
-                                        <!-- Min Hours Slider -->
-                                        <div class="h-[42px] px-3 bg-white border border-slate-200 rounded-xl flex items-center gap-2 min-w-[180px]">
-                                            <span class="text-[10px] font-bold text-slate-400 uppercase whitespace-nowrap">Dest Time: {{ dayTrip.minHours }}h+</span>
-                                            <input type="range" v-model="dayTrip.minHours" min="1" max="12" class="w-20 h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-brand-600">
-                                        </div>
-
-                                        <!-- Quick Filters -->
-                                        <button v-if="weatherAvailable" @click="filters.noRain = !filters.noRain" 
-                                            class="h-[42px] px-3 rounded-xl border flex items-center gap-2 transition-all" 
-                                            :class="filters.noRain ? 'bg-blue-50 border-blue-200 text-blue-600' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'">
-                                            <i class="ph-fill ph-cloud-slash"></i> <span class="text-xs font-bold">No Rain</span>
-                                        </button>
-                                        <button v-if="weatherAvailable" @click="filters.warm = !filters.warm" 
-                                            class="h-[42px] px-3 rounded-xl border flex items-center gap-2 transition-all" 
-                                            :class="filters.warm ? 'bg-orange-50 border-orange-200 text-orange-600' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'">
-                                            <i class="ph-fill ph-sun"></i> <span class="text-xs font-bold">Warm</span>
-                                        </button>
-                                        <button @click="filters.nonStop = !filters.nonStop" 
-                                            class="h-[42px] px-3 rounded-xl border flex items-center gap-2 transition-all" 
-                                            :class="filters.nonStop ? 'bg-purple-50 border-purple-200 text-purple-700' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'">
-                                            <i class="ph-fill ph-airplane"></i> <span class="text-xs font-bold">Nonstop</span>
-                                        </button>
+                                    <!-- Min Hours Slider -->
+                                    <div class="h-[42px] px-3 bg-white border border-slate-200 rounded-xl flex items-center gap-2 min-w-[180px]">
+                                        <span class="text-[10px] font-bold text-slate-400 uppercase whitespace-nowrap">Dest Time: {{ dayTrip.minHours }}h+</span>
+                                        <input type="range" v-model="dayTrip.minHours" min="1" max="12" class="w-20 h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-brand-600">
                                     </div>
+
+                                    <!-- Quick Filters -->
+                                    <button v-if="weatherAvailable" @click="filters.noRain = !filters.noRain" 
+                                        class="h-[42px] px-3 rounded-xl border flex items-center gap-2 transition-all" 
+                                        :class="filters.noRain ? 'bg-blue-50 border-blue-200 text-blue-600' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'">
+                                        <i class="ph-fill ph-cloud-slash"></i> <span class="text-xs font-bold">No Rain</span>
+                                    </button>
+                                    <button v-if="weatherAvailable" @click="filters.warm = !filters.warm" 
+                                        class="h-[42px] px-3 rounded-xl border flex items-center gap-2 transition-all" 
+                                        :class="filters.warm ? 'bg-orange-50 border-orange-200 text-orange-600' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'">
+                                        <i class="ph-fill ph-sun"></i> <span class="text-xs font-bold">Warm</span>
+                                    </button>
+                                    <button @click="filters.nonStop = !filters.nonStop" 
+                                        class="h-[42px] px-3 rounded-xl border flex items-center gap-2 transition-all" 
+                                        :class="filters.nonStop ? 'bg-purple-50 border-purple-200 text-purple-700' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'">
+                                        <i class="ph-fill ph-airplane"></i> <span class="text-xs font-bold">Nonstop</span>
+                                    </button>
 
                                 </div>
                             </div>
 
-                            <!-- BUILDER: New 2-Line Layout -->
+                            <!-- BUILDER: Controls Layout -->
                             <div v-if="currentTab === 'builder'" class="w-full">
-                                <div class="flex flex-col gap-3">
-                                    
-                                    <!-- Line 1: Fare Types -->
-                                    <div class="relative z-30" v-click-outside="() => showFareTypeMenu = false">
-                                        <button @click="showFareTypeMenu = !showFareTypeMenu" 
-                                            class="w-full md:w-auto h-[42px] px-4 bg-white border border-slate-200 hover:border-brand-300 rounded-xl flex items-center justify-between transition-all group gap-3">
-                                            <div class="flex items-center gap-2">
-                                                <i class="ph-fill ph-funnel text-brand-500"></i>
-                                                <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Fare Type:</span>
-                                                <span class="text-sm font-bold text-slate-700 truncate">{{ fareTypeSummary }}</span>
-                                            </div>
-                                            <i class="ph-bold ph-caret-down text-slate-400 group-hover:text-brand-500 transition-colors"></i>
-                                        </button>
-                                        <!-- Shared Dropdown -->
-                                        <div v-if="showFareTypeMenu" class="absolute top-[calc(100%+4px)] left-0 w-72 bg-white border border-slate-100 rounded-xl shadow-xl p-2 animate-fade-in flex flex-col gap-1 z-50">
-                                            <div v-for="ft in fareTypesList" :key="ft.id" 
-                                                 @click.stop="toggleFareType(ft.id)" 
-                                                 class="flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer transition-colors group" 
-                                                 :class="selectedFareTypes.includes(ft.id) ? 'bg-brand-50' : 'hover:bg-slate-50'">
-                                                <div class="w-5 h-5 rounded border flex items-center justify-center transition-colors" 
-                                                     :class="selectedFareTypes.includes(ft.id) ? 'bg-brand-600 border-brand-600' : 'bg-white border-slate-300 group-hover:border-brand-300'">
-                                                    <i v-if="selectedFareTypes.includes(ft.id)" class="ph-bold ph-check text-white text-xs"></i>
+                                <div class="flex flex-wrap items-center gap-3">
+
+                                    <!-- Fare Type Dropdown -->
+                                    <div class="relative z-[100] flex-1 min-w-[200px]" v-click-outside="() => showFareTypeMenu = false">
+                                            <button @click="showFareTypeMenu = !showFareTypeMenu"
+                                                class="w-full h-[42px] px-4 bg-white border border-slate-200 hover:border-brand-300 rounded-xl flex items-center justify-between transition-all group gap-3 shadow-sm">
+                                                <div class="flex items-center gap-2">
+                                                    <div class="w-6 h-6 rounded-full bg-brand-50 flex items-center justify-center text-brand-600">
+                                                        <i class="ph-fill ph-funnel text-xs"></i>
+                                                    </div>
+                                                    <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Fares:</span>
+                                                    <span class="text-sm font-bold text-slate-700 truncate">{{ builderFareSummary }}</span>
                                                 </div>
-                                                <div class="flex-1 text-sm font-bold text-slate-800">{{ ft.label }}</div>
+                                                <i class="ph-bold ph-caret-down text-slate-400 group-hover:text-brand-500 transition-colors"></i>
+                                            </button>
+
+                                            <div v-if="showFareTypeMenu" class="absolute top-[calc(100%+4px)] left-0 w-full min-w-[240px] bg-white border border-slate-100 rounded-xl shadow-xl p-2 animate-fade-in flex flex-col gap-1 z-[70]">
+
+                                                <!-- GoWild Checkbox -->
+                                                <div @click.stop="builderFareTypes.gowild = !builderFareTypes.gowild; calculateDateOptions()"
+                                                     class="flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-colors group"
+                                                     :class="builderFareTypes.gowild ? 'bg-brand-50' : 'hover:bg-slate-50'">
+                                                    <div class="w-4 h-4 rounded border flex items-center justify-center transition-colors"
+                                                         :class="builderFareTypes.gowild ? 'bg-brand-600 border-brand-600' : 'bg-white border-slate-300'">
+                                                        <i v-if="builderFareTypes.gowild" class="ph-bold ph-check text-white text-[10px]"></i>
+                                                    </div>
+                                                    <div class="flex-1 text-xs font-bold text-slate-800">GoWild Pass</div>
+                                                </div>
+
+                                                <!-- GoWild Sub-options (only shown when GoWild is checked) -->
+                                                <div v-if="builderFareTypes.gowild" class="ml-7 flex flex-col gap-1 border-l-2 border-brand-200 pl-3">
+                                                    <div @click.stop="builderFareTypes.earlyBooking = false; calculateDateOptions()"
+                                                         class="flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-colors group"
+                                                         :class="!builderFareTypes.earlyBooking ? 'bg-brand-50' : 'hover:bg-slate-50'">
+                                                        <div class="w-4 h-4 rounded-full border flex items-center justify-center transition-colors"
+                                                             :class="!builderFareTypes.earlyBooking ? 'border-brand-600' : 'border-slate-300'">
+                                                             <div v-if="!builderFareTypes.earlyBooking" class="w-2 h-2 rounded-full bg-brand-600"></div>
+                                                        </div>
+                                                        <div class="flex-1">
+                                                            <div class="text-xs font-bold text-slate-800">Standard</div>
+                                                            <div class="text-[10px] text-slate-500">Last minute travel</div>
+                                                        </div>
+                                                    </div>
+
+                                                    <div @click.stop="builderFareTypes.earlyBooking = true; calculateDateOptions()"
+                                                         class="flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-colors group"
+                                                         :class="builderFareTypes.earlyBooking ? 'bg-brand-50' : 'hover:bg-slate-50'">
+                                                        <div class="w-4 h-4 rounded-full border flex items-center justify-center transition-colors"
+                                                             :class="builderFareTypes.earlyBooking ? 'border-brand-600' : 'border-slate-300'">
+                                                             <div v-if="builderFareTypes.earlyBooking" class="w-2 h-2 rounded-full bg-brand-600"></div>
+                                                        </div>
+                                                        <div class="flex-1">
+                                                            <div class="text-xs font-bold text-slate-800">Early Booking</div>
+                                                            <div class="text-[10px] text-slate-500">Advance planning</div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <!-- Divider -->
+                                                <div class="h-px bg-slate-100 my-1"></div>
+
+                                                <!-- Standard -->
+                                                <div @click.stop="builderFareTypes.standard = !builderFareTypes.standard; calculateDateOptions()"
+                                                     class="flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-colors group"
+                                                     :class="builderFareTypes.standard ? 'bg-brand-50' : 'hover:bg-slate-50'">
+                                                    <div class="w-4 h-4 rounded border flex items-center justify-center transition-colors"
+                                                         :class="builderFareTypes.standard ? 'bg-brand-600 border-brand-600' : 'bg-white border-slate-300'">
+                                                        <i v-if="builderFareTypes.standard" class="ph-bold ph-check text-white text-[10px]"></i>
+                                                    </div>
+                                                    <div class="flex-1 text-xs font-bold text-slate-800">Standard Fare</div>
+                                                </div>
+
+                                                <!-- Discount DEN -->
+                                                <div @click.stop="builderFareTypes.discountDen = !builderFareTypes.discountDen; calculateDateOptions()"
+                                                     class="flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-colors group"
+                                                     :class="builderFareTypes.discountDen ? 'bg-brand-50' : 'hover:bg-slate-50'">
+                                                    <div class="w-4 h-4 rounded border flex items-center justify-center transition-colors"
+                                                         :class="builderFareTypes.discountDen ? 'bg-brand-600 border-brand-600' : 'bg-white border-slate-300'">
+                                                        <i v-if="builderFareTypes.discountDen" class="ph-bold ph-check text-white text-[10px]"></i>
+                                                    </div>
+                                                    <div class="flex-1 text-xs font-bold text-slate-800">Discount Den</div>
+                                                </div>
+
                                             </div>
                                         </div>
-                                    </div>
 
-                                    <!-- Line 2: Filters & Sort -->
-                                    <div class="flex flex-wrap items-center gap-2">
                                         <!-- Sort Dropdown -->
                                         <div class="relative z-[100]" v-click-outside="() => showSortDropdown = false">
-                                            <button @click="showSortDropdown = !showSortDropdown" class="h-[42px] px-3 bg-white border border-slate-200 hover:border-brand-300 rounded-xl flex items-center gap-2 transition-all min-w-[140px] justify-between">
-                                                <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Sort</span>
-                                                <span class="text-sm font-bold text-slate-800 capitalize">{{ builder.sortBy }}</span>
-                                                <i class="ph-bold ph-caret-down text-slate-400"></i>
+                                            <button @click="showSortDropdown = !showSortDropdown" class="h-[42px] px-3 bg-white border border-slate-200 hover:border-brand-300 rounded-xl flex items-center gap-2 transition-all min-w-[120px] justify-between shadow-sm">
+                                                <div class="flex items-center gap-2">
+                                                    <i class="ph-bold ph-sort-ascending text-slate-400"></i>
+                                                    <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Sort</span>
+                                                </div>
+                                                <span class="text-xs font-bold text-slate-800 capitalize">{{ builder.sortBy }}</span>
                                             </button>
                                             <div v-if="showSortDropdown" class="absolute top-[calc(100%+4px)] left-0 w-full bg-white border border-slate-100 rounded-xl shadow-xl overflow-hidden z-[100]">
-                                                <div v-for="opt in ['price', 'duration', 'stops']" :key="'rb-' + opt" @click="builder.sortBy = opt; showSortDropdown = false" class="px-4 py-2 hover:bg-slate-50 cursor-pointer text-sm font-bold text-slate-700 capitalize flex justify-between">
+                                                <div v-for="opt in ['price', 'duration', 'stops']" :key="'rb-' + opt" @click="builder.sortBy = opt; showSortDropdown = false" class="px-4 py-2 hover:bg-slate-50 cursor-pointer text-xs font-bold text-slate-700 capitalize flex justify-between">
                                                     <span>{{ opt }}</span>
                                                     <i v-if="builder.sortBy === opt" class="ph-bold ph-check text-brand-600"></i>
                                                 </div>
                                             </div>
                                         </div>
 
-                                        <!-- Sliders Group -->
-                                        <div class="flex items-center gap-2 flex-wrap">
-                                            <!-- Min Connect -->
-                                            <div class="h-[42px] px-3 bg-white border border-slate-200 rounded-xl flex items-center gap-2 min-w-[140px]" title="Min Connection Time">
-                                                <span class="text-[10px] font-bold text-slate-400 uppercase whitespace-nowrap">Conn {{ builder.min }}h</span>
-                                                <input type="range" v-model="builder.min" min="0.5" max="5" step="0.5" class="w-16 h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-brand-600">
-                                            </div>
-                                            <!-- Max Duration -->
-                                            <div class="h-[42px] px-3 bg-white border border-slate-200 rounded-xl flex items-center gap-2 min-w-[140px]">
-                                                <span class="text-[10px] font-bold text-slate-400 uppercase whitespace-nowrap">Dur {{ builder.maxDuration }}h</span>
-                                                <input type="range" v-model="builder.maxDuration" min="4" max="48" class="w-16 h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-brand-600">
-                                            </div>
-                                            <!-- Max Stops -->
-                                            <div class="h-[42px] px-3 bg-white border border-slate-200 rounded-xl flex items-center gap-2 min-w-[120px]">
-                                                <span class="text-[10px] font-bold text-slate-400 uppercase whitespace-nowrap">Stops {{ builder.maxStops }}</span>
-                                                <input type="range" v-model="builder.maxStops" min="1" max="3" class="w-12 h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-brand-600">
-                                            </div>
+                                        <!-- Min Connect -->
+                                        <div class="h-[42px] px-3 bg-white border border-slate-200 rounded-xl flex items-center gap-2 shadow-sm" title="Min Connection Time">
+                                            <span class="text-[10px] font-bold text-slate-400 uppercase whitespace-nowrap">Conn {{ builder.min }}h</span>
+                                            <input type="range" v-model="builder.min" min="0.5" max="5" step="0.5" class="w-16 h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-brand-600">
                                         </div>
-                                    </div>
+
+                                        <!-- Max Duration -->
+                                        <div class="h-[42px] px-3 bg-white border border-slate-200 rounded-xl flex items-center gap-2 shadow-sm">
+                                            <span class="text-[10px] font-bold text-slate-400 uppercase whitespace-nowrap">Dur {{ builder.maxDuration }}h</span>
+                                            <input type="range" v-model="builder.maxDuration" min="4" max="48" class="w-16 h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-brand-600">
+                                        </div>
+
+                                        <!-- Max Stops -->
+                                        <div class="h-[42px] px-3 bg-white border border-slate-200 rounded-xl flex items-center gap-2 shadow-sm">
+                                            <span class="text-[10px] font-bold text-slate-400 uppercase whitespace-nowrap">Stops {{ builder.maxStops }}</span>
+                                            <input type="range" v-model="builder.maxStops" min="1" max="3" class="w-12 h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-brand-600">
+                                        </div>
 
                                 </div>
                             </div>
@@ -906,24 +1091,7 @@
                                 </div>
                             </div>
 
-                            <!-- Day Trip Filters (when in anywhere mode) -->
-                            <div v-if="currentTab === 'daytrip' && dayTripMode === 'anywhere'" class="flex flex-wrap gap-2">
-                                <button v-if="weatherAvailable" @click="filters.noRain = !filters.noRain"
-                                    :class="filters.noRain ? 'bg-blue-500 text-white border-blue-500' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'"
-                                    class="px-3 py-1.5 rounded-lg border text-xs font-bold transition flex items-center gap-1.5 shadow-sm">
-                                    <i class="ph ph-cloud-slash text-sm"></i> No Rain
-                                </button>
-                                <button v-if="weatherAvailable" @click="filters.warm = !filters.warm"
-                                    :class="filters.warm ? 'bg-orange-500 text-white border-orange-500' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'"
-                                    class="px-3 py-1.5 rounded-lg border text-xs font-bold transition flex items-center gap-1.5 shadow-sm">
-                                    <i class="ph ph-sun text-sm"></i> Warm
-                                </button>
-                                <button @click="filters.nonStop = !filters.nonStop"
-                                    :class="filters.nonStop ? 'bg-purple-500 text-white border-purple-500' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'"
-                                    class="px-3 py-1.5 rounded-lg border text-xs font-bold transition flex items-center gap-1.5 shadow-sm">
-                                    <i class="ph ph-airplane text-sm"></i> Nonstop
-                                </button>
-                            </div>
+
                         </div>
 
                         <!-- ACTION BUTTON -->
@@ -952,19 +1120,19 @@
                     
                     <div class="bg-white p-8 rounded-3xl shadow-xl shadow-slate-200/50 border border-slate-100 max-w-md w-full text-center relative overflow-hidden">
                         <!-- Decorative Background Blob -->
-                        <div class="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-orange-300 to-red-300"></div>
+                        <div class="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-brand-300 to-blue-300"></div>
                         
                         <div class="mb-6 relative inline-block">
-                            <div class="absolute inset-0 bg-orange-100 rounded-full blur-lg opacity-50 scale-150"></div>
-                            <div class="bg-gradient-to-br from-orange-50 to-white w-20 h-20 rounded-2xl flex items-center justify-center border border-orange-100 shadow-sm relative z-10 rotate-3">
-                                <i class="ph ph-airplane-tilt text-4xl text-orange-400/80"></i>
-                                <div class="absolute -bottom-2 -right-2 bg-red-100 text-red-500 rounded-full p-1.5 border-2 border-white">
+                            <div class="absolute inset-0 bg-brand-100 rounded-full blur-lg opacity-50 scale-150"></div>
+                            <div class="bg-gradient-to-br from-brand-50 to-white w-20 h-20 rounded-2xl flex items-center justify-center border border-brand-100 shadow-sm relative z-10 rotate-3">
+                                <i class="ph-fill ph-magnifying-glass text-4xl text-brand-400/80"></i>
+                                <div class="absolute -bottom-2 -right-2 bg-slate-100 text-slate-500 rounded-full p-1.5 border-2 border-white">
                                     <i class="ph ph-x text-sm font-bold"></i>
                                 </div>
                             </div>
                         </div>
 
-                        <h3 class="text-slate-800 font-display font-bold text-2xl mb-2">No Routes Found</h3>
+                        <h3 class="text-slate-800 font-display font-bold text-2xl mb-2">No Day Trips Found</h3>
                         <p class="text-slate-500 text-sm mb-8 leading-relaxed">
                             We couldn't find any same-day round trips from <span class="font-bold text-slate-700">{{ search.origin }}</span> that match your current filters.
                         </p>
@@ -995,6 +1163,23 @@
                     </div>
                 </div>
 
+                <!-- No Results (One Way Specific: Flights exist but filtered by fare type) -->
+                <div v-else-if="currentTab === 'oneway' && results.length > 0 && sortedOneWayResults.length === 0" class="text-center py-12 animate-slide-up">
+                    <div class="bg-blue-50 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 border border-blue-100">
+                        <i class="ph-fill ph-funnel text-3xl text-blue-500"></i>
+                    </div>
+                    <h3 class="text-slate-700 font-bold text-xl mb-2">No {{ oneWayFareSummary }} fares found</h3>
+                    <p class="text-slate-500 max-w-md mx-auto mb-6">
+                        Flights are available for this date, but they don't match your selected fare types.
+                    </p>
+                    <div class="inline-flex flex-col gap-2">
+                        <button @click="oneWayFareTypes.standard = true; oneWayFareTypes.discountDen = true; oneWayFareTypes.gowild = true" 
+                                class="px-6 py-2.5 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl transition shadow-lg shadow-brand-500/20 active:scale-95 flex items-center gap-2 justify-center">
+                            <i class="ph-bold ph-squares-four"></i> Show All Fare Types
+                        </button>
+                    </div>
+                </div>
+
                 <!-- No Results (Generic - One Way / Builder) -->
                 <div v-else-if="results.length === 0 && searchExecuted && currentTab !== 'daytrip' && !(currentTab === 'explore' && exploreView === 'map')" class="text-center py-12">
                     <div class="bg-slate-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -1019,7 +1204,7 @@
                                     </div>
                                     <div class="text-lg font-bold text-slate-800 font-display leading-tight pr-2">{{ group.name }}</div>
                                 </div>
-                                <div v-if="group.weather" 
+                                <div v-if="group.weather && weatherAvailable" 
                                      :class="group.weather.desc === 'Rainy' ? 'bg-blue-50 text-blue-600 border-blue-100' : 'bg-orange-50 text-orange-600 border-orange-100'"
                                      class="flex flex-col items-center justify-center px-3 py-2 rounded-xl border shadow-sm min-w-[60px]">
                                     <i :class="['ph text-xl mb-0.5', group.weather.icon]"></i>
@@ -1031,8 +1216,14 @@
                                     <span class="w-2 h-2 rounded-full bg-brand-500 animate-pulse"></span>
                                     {{ group.flights.length }} Option{{ group.flights.length > 1 ? 's' : '' }}
                                 </div>
-                                <div class="w-8 h-8 rounded-full bg-slate-50 group-hover:bg-brand-600 group-hover:text-white flex items-center justify-center transition text-slate-400">
-                                    <i class="ph ph-arrow-right"></i>
+                                <div class="text-right">
+                                    <div class="flex items-center gap-2 justify-end mb-1">
+                                        <span v-if="group.fareType === 'gowild'" class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-green-100 text-green-700 border border-green-200">GoWild</span>
+                                        <span v-else-if="group.fareType === 'den'" class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 border border-blue-200">Den</span>
+                                        <span v-else class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 border border-slate-200">Standard</span>
+                                        <div class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">From</div>
+                                    </div>
+                                    <div class="text-xl font-bold text-slate-900 tracking-tight">${{ Number(group.minPrice).toFixed(0) }}</div>
                                 </div>
                             </div>
                         </div>
@@ -1053,7 +1244,7 @@
                                     </div>
                                     <div class="text-sm text-slate-500 font-medium">Found {{ selectedDayTripCity.flights.length }} flight options matching your criteria</div>
                                 </div>
-                                <div v-if="selectedDayTripCity.weather" class="hidden md:flex items-center gap-3 bg-white px-4 py-2 rounded-xl border border-slate-200 shadow-sm">
+                                <div v-if="selectedDayTripCity.weather && weatherAvailable" class="hidden md:flex items-center gap-3 bg-white px-4 py-2 rounded-xl border border-slate-200 shadow-sm">
                                     <div class="text-right">
                                         <div class="text-xs font-bold text-slate-400 uppercase">Forecast</div>
                                         <div class="text-sm font-bold text-slate-700">{{ selectedDayTripCity.weather.desc }}</div>
@@ -1067,86 +1258,150 @@
                         </div>
 
                         <div class="space-y-6">
-                            <div v-for="(trip, idx) in selectedDayTripCity.flights" :key="idx" class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden hover:shadow-md transition duration-300">
-                                <!-- Header -->
-                                <div class="bg-slate-50/50 px-6 py-4 border-b border-slate-100 flex justify-between items-center">
-                                    <div class="flex items-center gap-3">
-                                        <div class="bg-brand-600 text-white px-3 py-1 rounded-lg text-xs font-bold shadow-sm shadow-brand-500/30">Option {{ idx + 1 }}</div>
-                                        <div class="w-px h-4 bg-slate-300 mx-1"></div>
-                                        <div class="bg-orange-100 text-orange-700 px-3 py-1 rounded-lg text-sm font-bold border border-orange-200 shadow-sm flex items-center gap-1.5">
-                                            <i class="ph ph-hourglass text-lg"></i> {{ trip.hours_at_dest }} Hours in City
-                                        </div>
+                            <div v-for="(trip, idx) in selectedDayTripCity.flights" :key="idx" class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden hover:shadow-md transition duration-300 group">
+                                <!-- Mobile Header -->
+                                <div class="md:hidden bg-slate-50/50 px-3 py-2 border-b border-slate-100 flex justify-between items-center">
+                                    <div class="flex items-center gap-2">
+                                        <span class="bg-brand-600 text-white px-2 py-0.5 rounded text-[10px] font-bold">Option {{ idx + 1 }}</span>
+                                        <span class="text-xs text-slate-500 font-medium">{{ trip.hours_at_dest }}h in {{ trip.destination }}</span>
                                     </div>
-                                    <div class="text-right">
-                                        <div class="text-2xl font-bold text-slate-900 tracking-tight">${{ trip.total_price }}</div>
-                                        <a href="javascript:void(0)" @click.stop="bookFlight(trip, true)" class="inline-block mt-1 px-4 py-1.5 bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold rounded-lg transition shadow-sm">Book Trip</a>
-                                    </div>
+                                    <div class="text-xl font-bold text-slate-900">${{ Number(trip.total_price).toFixed(0) }}</div>
                                 </div>
 
-                                <!-- Flights (Redesigned Flow Layout) -->
-                                <div class="p-6">
-                                    <div class="flex flex-col lg:flex-row gap-6 items-stretch relative">
-                                        
-                                        <!-- Connecting Line (Desktop) -->
-                                        <div class="hidden lg:block absolute top-1/2 left-0 right-0 h-px bg-slate-200 -translate-y-1/2 z-0"></div>
-
-                                        <!-- Outbound Leg -->
-                                        <div class="flex-1 bg-slate-50 rounded-xl p-4 border border-slate-200 relative z-10 hover:border-brand-300 transition">
-                                            <div class="flex justify-between items-start mb-3">
-                                                <div class="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
-                                                    <span class="w-2 h-2 rounded-full bg-brand-500"></span> Outbound
+                                <!-- Desktop Header / Layout -->
+                                <div class="flex flex-col md:flex-row items-stretch">
+                                    
+                                    <!-- Flights Column (Redesigned: Side-by-Side) -->
+                                    <div class="flex-1 p-3 md:p-6">
+                                        <div class="flex flex-col lg:flex-row items-center gap-3 lg:gap-4 h-full">
+                                            
+                                            <!-- Outbound Flight -->
+                                            <div class="flex-1 w-full flex flex-col gap-1 md:gap-2">
+                                                <div class="flex justify-between items-center">
+                                                    <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Outbound</div>
+                                                    <span v-if="trip.outboundFare.type === 'gowild'" class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-green-100 text-green-700 border border-green-200">GoWild!</span>
+                                                    <span v-else-if="trip.outboundFare.type === 'den'" class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 border border-blue-200">Den</span>
+                                                    <span v-else class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 border border-slate-200">Standard</span>
                                                 </div>
-                                                <div class="text-xs font-bold text-slate-700 bg-white px-2 py-1 rounded border border-slate-200 shadow-sm">${{ trip.outbound.price }}</div>
-                                            </div>
-                                            <div class="flex justify-between items-center mb-1">
-                                                <div class="font-bold text-slate-800 text-sm">{{ trip.outbound.origin }} <i class="ph ph-arrow-right text-[10px] text-slate-400 mx-1"></i> {{ trip.outbound.destination }}</div>
-                                                <div class="font-mono text-xs text-slate-500">{{ trip.outbound.duration }}</div>
-                                            </div>
-                                            <div class="flex justify-between items-center text-xs text-slate-500">
-                                                <span class="font-mono">{{ formatTime(trip.outbound.departure) }} - {{ formatTime(trip.outbound.arrival) }}</span>
-                                                <span class="font-mono">{{ trip.outbound.flightNumber }}</span>
-                                            </div>
-                                            <div class="mt-2 pt-2 border-t border-slate-200/50 flex justify-between items-center">
-                                                <span v-if="trip.outbound.stops === 0" class="text-brand-600 font-bold text-[10px]">Nonstop</span>
-                                                <span v-else class="text-orange-600 font-bold text-[10px]">{{ trip.outbound.stops }} Stop(s)</span>
-                                                <a href="javascript:void(0)" @click.stop="bookFlight(trip.outbound)" class="text-xs font-bold text-brand-600 hover:text-brand-800 underline">Book</a>
-                                            </div>
-                                        </div>
-
-                                        <!-- Destination Node -->
-                                        <div class="lg:w-auto flex flex-col items-center justify-center relative z-10">
-                                            <div class="bg-white border-2 border-brand-100 rounded-xl p-3 shadow-sm text-center min-w-[140px] hover:border-brand-300 transition cursor-help" title="Time available at destination">
-                                                <div class="text-brand-500 text-xl mb-1"><i class="ph ph-clock-countdown"></i></div>
-                                                <div class="text-[10px] font-bold text-brand-800 uppercase tracking-tight">Time in City</div>
-                                                <div class="text-xs font-bold text-slate-800 my-0.5">{{ trip.outbound.destination }}</div>
-                                                <div class="text-lg font-bold text-brand-600">{{ trip.hours_at_dest }}h</div>
-                                            </div>
-                                        </div>
-
-                                        <!-- Return Leg -->
-                                        <div class="flex-1 bg-slate-50 rounded-xl p-4 border border-slate-200 relative z-10 hover:border-brand-300 transition">
-                                            <div class="flex justify-between items-start mb-3">
-                                                <div class="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
-                                                    <span class="w-2 h-2 rounded-full bg-orange-500"></span> Return
+                                                
+                                                <div class="bg-slate-50/50 rounded-xl p-2 md:p-3 border border-slate-100 flex flex-col gap-1 md:gap-2">
+                                                    <div class="flex justify-between items-end">
+                                                        <div class="text-lg md:text-xl font-bold text-slate-800 leading-none">{{ formatTime(trip.outbound.departure) }}</div>
+                                                        <div class="text-[10px] md:text-xs font-bold text-slate-400">{{ trip.outbound.origin }}</div>
+                                                    </div>
+                                                    <div class="w-full h-px bg-slate-200 relative my-0.5 md:my-1">
+                                                        <div class="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-slate-300"></div>
+                                                        <div class="absolute right-0 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-slate-300"></div>
+                                                    </div>
+                                                    <div class="flex justify-between items-start">
+                                                        <div class="text-lg md:text-xl font-bold text-slate-800 leading-none">{{ formatTime(trip.outbound.arrival) }}</div>
+                                                        <div class="text-[10px] md:text-xs font-bold text-slate-400">{{ trip.outbound.destination }}</div>
+                                                    </div>
+                                                    <div class="flex justify-between items-center pt-1 mt-0.5 md:mt-1 border-t border-slate-200/50">
+                                                        <div class="text-[10px] text-slate-500 font-medium">{{ formatDurationClean(trip.outbound.duration) }}</div>
+                                                        <div class="text-[10px] font-bold uppercase" :class="trip.outbound.stops === 0 ? 'text-brand-600' : 'text-orange-600'">
+                                                            {{ trip.outbound.stops === 0 ? 'Nonstop' : trip.outbound.stops + ' Stop' }}
+                                                        </div>
+                                                    </div>
                                                 </div>
-                                                <div class="text-xs font-bold text-slate-700 bg-white px-2 py-1 rounded border border-slate-200 shadow-sm">${{ trip.return.price }}</div>
                                             </div>
-                                            <div class="flex justify-between items-center mb-1">
-                                                <div class="font-bold text-slate-800 text-sm">{{ trip.return.origin }} <i class="ph ph-arrow-right text-[10px] text-slate-400 mx-1"></i> {{ trip.return.destination }}</div>
-                                                <div class="font-mono text-xs text-slate-500">{{ trip.return.duration }}</div>
-                                            </div>
-                                            <div class="flex justify-between items-center text-xs text-slate-500">
-                                                <span class="font-mono">{{ formatTime(trip.return.departure) }} - {{ formatTime(trip.return.arrival) }}</span>
-                                                <span class="font-mono">{{ trip.return.flightNumber }}</span>
-                                            </div>
-                                            <div class="mt-2 pt-2 border-t border-slate-200/50 flex justify-between items-center">
-                                                <span v-if="trip.return.stops === 0" class="text-brand-600 font-bold text-[10px]">Nonstop</span>
-                                                <span v-else class="text-orange-600 font-bold text-[10px]">{{ trip.return.stops }} Stop(s)</span>
-                                                <a href="javascript:void(0)" @click.stop="bookFlight(trip.return)" class="text-xs font-bold text-brand-600 hover:text-brand-800 underline">Book</a>
-                                            </div>
-                                        </div>
 
+                                            <!-- Middle: Time in City (Mobile Line) -->
+                                            <div class="md:hidden w-full flex items-center gap-2 px-1 py-1">
+                                                <div class="h-px bg-slate-100 flex-1"></div>
+                                                <div class="text-[10px] font-bold text-orange-600 flex items-center gap-1 bg-orange-50/50 px-2 py-0.5 rounded-full border border-orange-100">
+                                                    <i class="ph-fill ph-clock-countdown"></i> {{ trip.hours_at_dest }}h in City
+                                                </div>
+                                                <div class="h-px bg-slate-100 flex-1"></div>
+                                            </div>
+
+                                            <!-- Middle: Time in City (Desktop Box) -->
+                                            <div class="hidden md:flex shrink-0 flex-col items-center justify-center px-2 py-4">
+                                                <div class="bg-white border-2 border-orange-100 rounded-2xl p-3 shadow-sm text-center min-w-[100px] flex flex-col items-center gap-1">
+                                                    <i class="ph-fill ph-clock-countdown text-orange-400 text-xl"></i>
+                                                    <div>
+                                                        <div class="text-lg font-bold text-slate-800 leading-none">{{ trip.hours_at_dest }}h</div>
+                                                        <div class="text-[9px] font-bold text-slate-400 uppercase tracking-wide mt-0.5">In City</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <!-- Return Flight -->
+                                            <div class="flex-1 w-full flex flex-col gap-1 md:gap-2">
+                                                <div class="flex justify-between items-center">
+                                                    <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Return</div>
+                                                    <span v-if="trip.returnFare.type === 'gowild'" class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-green-100 text-green-700 border border-green-200">GoWild!</span>
+                                                    <span v-else-if="trip.returnFare.type === 'den'" class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 border border-blue-200">Den</span>
+                                                    <span v-else class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 border border-slate-200">Standard</span>
+                                                </div>
+                                                
+                                                <div class="bg-slate-50/50 rounded-xl p-2 md:p-3 border border-slate-100 flex flex-col gap-1 md:gap-2">
+                                                    <div class="flex justify-between items-end">
+                                                        <div class="text-lg md:text-xl font-bold text-slate-800 leading-none">{{ formatTime(trip.return.departure) }}</div>
+                                                        <div class="text-[10px] md:text-xs font-bold text-slate-400">{{ trip.return.origin }}</div>
+                                                    </div>
+                                                    <div class="w-full h-px bg-slate-200 relative my-0.5 md:my-1">
+                                                        <div class="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-slate-300"></div>
+                                                        <div class="absolute right-0 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-slate-300"></div>
+                                                    </div>
+                                                    <div class="flex justify-between items-start">
+                                                        <div class="text-lg md:text-xl font-bold text-slate-800 leading-none">{{ formatTime(trip.return.arrival) }}</div>
+                                                        <div class="text-[10px] md:text-xs font-bold text-slate-400">{{ trip.return.destination }}</div>
+                                                    </div>
+                                                    <div class="flex justify-between items-center pt-1 mt-0.5 md:mt-1 border-t border-slate-200/50">
+                                                        <div class="text-[10px] text-slate-500 font-medium">{{ formatDurationClean(trip.return.duration) }}</div>
+                                                        <div class="text-[10px] font-bold uppercase" :class="trip.return.stops === 0 ? 'text-brand-600' : 'text-orange-600'">
+                                                            {{ trip.return.stops === 0 ? 'Nonstop' : trip.return.stops + ' Stop' }}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                        </div>
                                     </div>
+
+                                    <!-- Action Column (Desktop) -->
+                                    <div class="hidden md:flex w-56 bg-slate-50/50 border-l border-slate-100 p-6 flex-col justify-center items-center gap-4 text-center">
+                                        <div>
+                                            <div class="text-xs font-bold text-slate-400 uppercase mb-1">Total Trip</div>
+                                            <div class="text-3xl font-bold text-slate-900 tracking-tight">${{ Number(trip.total_price).toFixed(0) }}</div>
+                                            <div class="text-[10px] font-bold text-orange-600 bg-orange-50 px-2 py-0.5 rounded-full inline-block mt-1">
+                                                {{ trip.hours_at_dest }}h in City
+                                            </div>
+                                        </div>
+
+                                        <div v-if="trip.isMixedFare" class="w-full space-y-2">
+                                            <div class="text-[10px] text-slate-400 italic mb-1">Mixed fares - book separately</div>
+                                            <a href="javascript:void(0)" @click.stop="bookFlight(trip.outbound)" class="w-full block px-4 py-2 rounded-lg bg-white border border-slate-200 text-slate-700 font-bold text-xs hover:border-brand-300 hover:text-brand-600 transition shadow-sm">
+                                                Book Outbound
+                                            </a>
+                                            <a href="javascript:void(0)" @click.stop="bookFlight(trip.return)" class="w-full block px-4 py-2 rounded-lg bg-white border border-slate-200 text-slate-700 font-bold text-xs hover:border-brand-300 hover:text-brand-600 transition shadow-sm">
+                                                Book Return
+                                            </a>
+                                        </div>
+                                        <a v-else href="javascript:void(0)" @click.stop="bookFlight(trip, true)" class="w-full px-4 py-3 rounded-xl bg-slate-800 hover:bg-slate-900 text-white font-bold text-sm shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2">
+                                            Book Trip <i class="ph-bold ph-caret-right"></i>
+                                        </a>
+                                    </div>
+
+                                    <!-- Action Row (Mobile) -->
+                                    <div class="md:hidden p-3 border-t border-slate-100 bg-slate-50/30">
+                                        <div v-if="trip.isMixedFare" class="space-y-2">
+                                            <div class="text-center text-[10px] text-slate-400 italic">Mixed fare types - please book legs separately</div>
+                                            <div class="flex gap-2">
+                                                <a href="javascript:void(0)" @click.stop="bookFlight(trip.outbound)" class="flex-1 py-3 rounded-xl bg-white border border-slate-200 text-slate-700 font-bold text-xs text-center shadow-sm">
+                                                    Book Outbound
+                                                </a>
+                                                <a href="javascript:void(0)" @click.stop="bookFlight(trip.return)" class="flex-1 py-3 rounded-xl bg-white border border-slate-200 text-slate-700 font-bold text-xs text-center shadow-sm">
+                                                    Book Return
+                                                </a>
+                                            </div>
+                                        </div>
+                                        <a v-else href="javascript:void(0)" @click.stop="bookFlight(trip, true)" class="block w-full py-3 rounded-xl bg-slate-800 text-white font-bold text-center text-sm shadow-md">
+                                            Book Round Trip for ${{ Number(trip.total_price).toFixed(0) }}
+                                        </a>
+                                    </div>
+
                                 </div>
                             </div>
                         </div>
@@ -1444,13 +1699,18 @@
                                             <!-- Connecting Line (Desktop) -->
                                             <div class="hidden lg:block absolute top-1/2 left-0 right-0 h-px bg-slate-200 -translate-y-1/2 z-0"></div>
 
-                                            <!-- Leg 1 -->
+                                            <!-- Ticket 1 -->
                                             <div class="flex-1 bg-white rounded-xl p-4 border border-slate-200 relative z-10 shadow-sm hover:border-brand-300 transition group/leg">
                                                 <div class="flex justify-between items-start mb-3">
                                                     <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
-                                                        <span class="w-2 h-2 rounded-full bg-brand-500"></span> Leg 1
+                                                        <span class="w-2 h-2 rounded-full bg-brand-500"></span> Ticket 1
                                                     </div>
-                                                    <div class="text-xs font-bold text-slate-700 bg-slate-50 px-2 py-1 rounded border border-slate-100 shadow-sm">${{ item.segments[0].price }}</div>
+                                                    <div class="flex flex-col items-end gap-1">
+                                                        <div class="text-xs font-bold text-slate-700 bg-slate-50 px-2 py-1 rounded border border-slate-100 shadow-sm">${{ item.segments[0].price }}</div>
+                                                        <div v-if="item.segments[0].fare_type" class="text-[9px] font-bold px-1.5 py-0.5 rounded" :class="item.segments[0].fare_type === 'gowild' ? 'bg-brand-100 text-brand-700' : (item.segments[0].fare_type === 'den' ? 'bg-purple-100 text-purple-700' : 'bg-slate-100 text-slate-600')">
+                                                            {{ item.segments[0].fare_type === 'gowild' ? 'GoWild' : (item.segments[0].fare_type === 'den' ? 'Disc Den' : 'Standard') }}
+                                                        </div>
+                                                    </div>
                                                 </div>
                                                 
                                                 <!-- Standard Flight Info (Mini) -->
@@ -1492,13 +1752,18 @@
                                                 </div>
                                             </div>
 
-                                            <!-- Leg 2 -->
+                                            <!-- Ticket 2 -->
                                             <div class="flex-1 bg-white rounded-xl p-4 border border-slate-200 relative z-10 shadow-sm hover:border-brand-300 transition group/leg">
                                                 <div class="flex justify-between items-start mb-3">
                                                     <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
-                                                        <span class="w-2 h-2 rounded-full bg-orange-500"></span> Leg 2
+                                                        <span class="w-2 h-2 rounded-full bg-orange-500"></span> Ticket 2
                                                     </div>
-                                                    <div class="text-xs font-bold text-slate-700 bg-slate-50 px-2 py-1 rounded border border-slate-100 shadow-sm">${{ item.segments[1].price }}</div>
+                                                    <div class="flex flex-col items-end gap-1">
+                                                        <div class="text-xs font-bold text-slate-700 bg-slate-50 px-2 py-1 rounded border border-slate-100 shadow-sm">${{ item.segments[1].price }}</div>
+                                                        <div v-if="item.segments[1].fare_type" class="text-[9px] font-bold px-1.5 py-0.5 rounded" :class="item.segments[1].fare_type === 'gowild' ? 'bg-brand-100 text-brand-700' : (item.segments[1].fare_type === 'den' ? 'bg-purple-100 text-purple-700' : 'bg-slate-100 text-slate-600')">
+                                                            {{ item.segments[1].fare_type === 'gowild' ? 'GoWild' : (item.segments[1].fare_type === 'den' ? 'Disc Den' : 'Standard') }}
+                                                        </div>
+                                                    </div>
                                                 </div>
 
                                                 <!-- Standard Flight Info (Mini) -->
@@ -1599,60 +1864,97 @@
                                 </div>
                             </div>
 
-                            <!-- 2. ONE WAY (New Standard Layout) -->
+                            <!-- 2. ONE WAY (Redesigned) -->
                             <div v-else-if="currentTab === 'oneway'" class="p-0">
-                                <div class="flex flex-row items-stretch">
+                                <div class="flex flex-col md:flex-row items-stretch group">
                                     
-
-
-                                    <!-- Times & Route -->
-                                    <div class="flex-1 flex items-center justify-between gap-8 p-5">
-                                        <!-- Departure -->
-                                        <div class="text-center min-w-[80px]">
-                                            <div class="text-xl font-bold text-slate-800">{{ formatTime(item.departure) }}</div>
-                                            <div class="text-xs font-bold text-slate-500">{{ item.origin }}</div>
+                                    <!-- Mobile Header (Fare Type & Price) -->
+                                    <div class="md:hidden px-3 pt-3 flex justify-between items-center">
+                                        <div>
+                                            <span v-if="item.fareType === 'gowild'" class="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded bg-green-100 text-green-700 border border-green-200">
+                                                <i class="ph-bold ph-ticket"></i> GoWild!
+                                            </span>
+                                            <span v-else-if="item.fareType === 'discount_den'" class="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded bg-blue-100 text-blue-700 border border-blue-200">
+                                                <i class="ph-bold ph-star"></i> Discount Den
+                                            </span>
+                                            <span v-else class="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded bg-slate-100 text-slate-600 border border-slate-200">
+                                                <i class="ph-bold ph-airplane"></i> Standard
+                                            </span>
                                         </div>
+                                        <div class="text-xl font-bold text-slate-900">${{ Number(item.price).toFixed(0) }}</div>
+                                    </div>
 
-                                        <!-- Duration / Stops Graphic -->
-                                        <div class="flex-1 flex flex-col items-center px-2">
-                                            <div class="text-[10px] font-bold text-slate-400 mb-1 flex items-center gap-1">
-                                                {{ item.duration }}
+                                    <!-- Main Flight Info -->
+                                    <div class="flex-1 p-3 md:p-6 flex flex-col justify-center">
+                                        <div class="flex items-center gap-2 md:gap-8">
+                                            
+                                            <!-- Departure -->
+                                            <div class="text-center min-w-[60px] md:min-w-[80px]">
+                                                <div class="text-lg md:text-2xl font-bold text-slate-800 leading-none">{{ formatTime(item.departure) }}</div>
+                                                <div class="text-xs font-bold text-slate-400 mt-1">{{ item.origin }}</div>
                                             </div>
-                                            <div class="w-full h-px bg-slate-300 relative flex items-center justify-between">
-                                                <div class="w-1.5 h-1.5 rounded-full bg-slate-400"></div>
-                                                <!-- Stops Dots -->
-                                                <div v-if="item.stops > 0" class="flex gap-1 bg-white px-1 relative z-10">
-                                                    <div v-for="n in item.stops" :key="n" class="w-1 h-1 rounded-full bg-orange-400 border border-white ring-1 ring-orange-100"></div>
+
+                                            <!-- Graphic -->
+                                            <div class="flex-1 flex flex-col items-center px-2">
+                                                <div class="text-[10px] font-bold text-slate-400 mb-1 flex items-center gap-1">
+                                                    {{ formatDurationClean(item.duration) }}
                                                 </div>
-                                                <div class="w-1.5 h-1.5 rounded-full bg-slate-400"></div>
+                                                <div class="w-full h-px bg-slate-200 relative flex items-center justify-between">
+                                                    <div class="w-1.5 h-1.5 rounded-full bg-slate-300"></div>
+                                                    <div v-if="item.stops > 0" class="flex gap-1 bg-white px-1 relative z-10">
+                                                        <div v-for="n in item.stops" :key="n" class="w-1.5 h-1.5 rounded-full bg-orange-400 ring-2 ring-white"></div>
+                                                    </div>
+                                                    <div class="w-1.5 h-1.5 rounded-full bg-slate-300"></div>
+                                                </div>
+                                                <div class="mt-1 text-center">
+                                                    <span v-if="item.stops === 0" class="text-[10px] font-bold text-brand-600 uppercase tracking-wide">Nonstop</span>
+                                                    <span v-else class="text-[10px] font-bold text-orange-600 uppercase tracking-wide">
+                                                        {{ item.stops }} Stop{{ item.stops > 1 ? 's' : '' }}
+                                                    </span>
+                                                    <span v-if="item.layover_airports && item.layover_airports.length" class="block text-[9px] text-slate-400 mt-0.5">
+                                                        {{ item.layover_airports.join(', ') }}
+                                                    </span>
+                                                </div>
                                             </div>
-                                            <div class="text-[10px] font-bold uppercase mt-1 text-center">
-                                                <span v-if="item.stops === 0" class="text-brand-600">Nonstop</span>
-                                                <span v-else class="text-orange-600">
-                                                    {{ item.stops }} Stop{{ item.stops > 1 ? 's' : '' }}
-                                                    <span v-if="item.layover_airports" class="normal-case text-slate-400 block text-[9px] truncate max-w-[100px]" :title="item.layover_airports.join(', ')">{{ item.layover_airports.join(', ') }}</span>
-                                                </span>
-                                            </div>
-                                        </div>
 
-                                        <!-- Arrival -->
-                                        <div class="text-center min-w-[80px]">
-                                            <div class="text-xl font-bold text-slate-800">{{ formatTime(item.arrival) }}</div>
-                                            <div class="text-xs font-bold text-slate-500">{{ item.destination }}</div>
-                                            <div v-if="getDateDiffLabel(item.departure, item.arrival)" class="text-[10px] text-red-500 font-bold mt-0.5">
-                                                {{ getDateDiffLabel(item.departure, item.arrival) }}
+                                            <!-- Arrival -->
+                                            <div class="text-center min-w-[60px] md:min-w-[80px]">
+                                                <div class="text-lg md:text-2xl font-bold text-slate-800 leading-none">{{ formatTime(item.arrival) }}</div>
+                                                <div class="text-xs font-bold text-slate-400 mt-1">{{ item.destination }}</div>
+                                                <div v-if="getDateDiffLabel(item.departure, item.arrival)" class="text-[9px] font-bold text-red-500 mt-0.5 bg-red-50 px-1.5 py-0.5 rounded-full inline-block">
+                                                    {{ getDateDiffLabel(item.departure, item.arrival) }}
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
 
-                                    <!-- Right: Price & Action -->
-                                    <div class="border-l border-slate-100 bg-slate-50/50 p-5 flex flex-col items-center justify-center gap-4 w-48">
-                                        <div class="text-center">
-                                            <div class="text-xs font-bold text-slate-400 uppercase mb-0.5">Total</div>
-                                            <div class="text-2xl font-bold text-slate-900 tracking-tight">${{ Number(item.price).toFixed(0) }}</div>
+                                    <!-- Desktop Right Panel (Price & Action) -->
+                                    <div class="hidden md:flex w-48 bg-slate-50/50 border-l border-slate-100 p-4 flex-col justify-center items-center gap-3">
+                                        <div class="mb-1">
+                                            <span v-if="item.fareType === 'gowild'" class="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded bg-green-100 text-green-700 border border-green-200">
+                                                <i class="ph-bold ph-ticket"></i> GoWild!
+                                            </span>
+                                            <span v-else-if="item.fareType === 'discount_den'" class="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded bg-blue-100 text-blue-700 border border-blue-200">
+                                                <i class="ph-bold ph-star"></i> Discount Den
+                                            </span>
+                                            <span v-else class="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded bg-slate-100 text-slate-600 border border-slate-200">
+                                                <i class="ph-bold ph-airplane"></i> Standard
+                                            </span>
                                         </div>
-                                        <a href="javascript:void(0)" @click.stop="bookFlight(item)" class="w-full px-6 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-bold text-center text-sm transition shadow-lg shadow-brand-600/20 active:scale-95 whitespace-nowrap flex items-center justify-center gap-2">
+                                        <div class="text-3xl font-bold text-slate-900 tracking-tight">${{ Number(item.price).toFixed(0) }}</div>
+                                        <a href="javascript:void(0)" @click.stop="bookFlight(item)" 
+                                           class="w-full px-4 py-2.5 rounded-xl text-white font-bold text-sm shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2 group-hover:scale-105"
+                                           :class="item.fareType === 'gowild' ? 'bg-green-600 hover:bg-green-700 shadow-green-500/20' : item.fareType === 'discount_den' ? 'bg-blue-600 hover:bg-blue-700 shadow-blue-500/20' : 'bg-brand-600 hover:bg-brand-700 shadow-brand-500/20'">
                                             Select <i class="ph-bold ph-caret-right"></i>
+                                        </a>
+                                    </div>
+
+                                    <!-- Mobile Bottom Action -->
+                                    <div class="md:hidden p-3 pt-0">
+                                        <a href="javascript:void(0)" @click.stop="bookFlight(item)" 
+                                           class="w-full py-3 rounded-xl text-white font-bold text-sm shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2"
+                                           :class="item.fareType === 'gowild' ? 'bg-green-600 hover:bg-green-700 shadow-green-500/20' : item.fareType === 'discount_den' ? 'bg-blue-600 hover:bg-blue-700 shadow-blue-500/20' : 'bg-brand-600 hover:bg-brand-700 shadow-brand-500/20'">
+                                            Select Flight <i class="ph-bold ph-caret-right"></i>
                                         </a>
                                     </div>
 
@@ -1727,10 +2029,9 @@
                         </button>
                     </div>
                 </div>
-                                            </div>
-                                        </div>
-                            
-                                        <!-- Page Footer (Desktop / Results) -->
+            </div>
+
+            <!-- Page Footer (Desktop / Results) -->
             <div v-if="forceDesktop || hasSearched" class="text-center py-8 px-6">
                 <p class="text-[10px] text-slate-400 leading-relaxed max-w-2xl mx-auto font-medium">
                     WildFares is an independent project and is not affiliated with, endorsed by, or connected to Frontier Airlines, Inc. or the GoWild!™ Pass program. All trademarks are property of their respective owners. Use at your own risk.
@@ -1921,6 +2222,49 @@
                     discountDen: false,     // Discount DEN unchecked
                     earlyBooking: false     // GoWild Standard checked by default
                 });
+
+                // Fare Type Filters for One Way tab (independent state)
+                const oneWayFareTypes = ref({
+                    gowild: true,           // GoWild checked by default
+                    standard: false,        // Standard unchecked
+                    discountDen: false,     // Discount DEN unchecked
+                    earlyBooking: false     // GoWild Standard checked by default
+                });
+
+                // Day Trip Fare Filters
+                const dayTripFareTypes = ref({
+                    gowild: true,           // GoWild checked by default
+                    standard: false,        // Standard unchecked
+                    discountDen: false,     // Discount DEN unchecked
+                    earlyBooking: false     // GoWild Standard checked by default
+                });
+
+                // Route Builder Fare Filters
+                const builderFareTypes = ref({
+                    gowild: true,           // GoWild checked by default
+                    standard: false,        // Standard unchecked
+                    discountDen: false,     // Discount DEN unchecked
+                    earlyBooking: false     // GoWild Standard checked by default
+                });
+
+                const fareTypeSummary = computed(() => {
+                    // Logic for Day Trip summary (reuses same style as One Way)
+                    const active = [];
+                    if (dayTripFareTypes.value.gowild) {
+                        if (dayTripFareTypes.value.earlyBooking) {
+                            active.push('GW (Early)');
+                        } else {
+                            active.push('GW (Std)');
+                        }
+                    }
+                    if (dayTripFareTypes.value.standard) active.push('Std');
+                    if (dayTripFareTypes.value.discountDen) active.push('Den');
+
+                    if (active.length === 0) return 'None';
+                    if (active.length > 2) return `${active[0]} +${active.length - 1}`;
+                    return active.join(', ');
+                });
+
                 const exploreSort = ref('price');
                 const dayTrip = ref({ minHours: 6 });
                 const dayTripMode = ref('anywhere');
@@ -2090,8 +2434,45 @@
 
                 const sortedOneWayResults = computed(() => {
                     if (currentTab.value !== 'oneway') return results.value;
-                    const list = [...results.value];
-                    
+
+                    // Filter AND Map to add fareType
+                    let list = results.value.reduce((acc, originalItem) => {
+                        const item = { ...originalItem }; // Shallow copy
+                        const fares = item.fares || {};
+                        
+                        let bestFare = null;
+                        
+                        // Check GoWild
+                        if (oneWayFareTypes.value.gowild && fares.gowild && fares.gowild.price !== null) {
+                             if (!bestFare || fares.gowild.price < bestFare.price) {
+                                 bestFare = { type: 'gowild', price: fares.gowild.price };
+                             }
+                        }
+                        
+                        // Check Discount DEN (Backend key is 'den')
+                        if (oneWayFareTypes.value.discountDen && fares.den && fares.den.price !== null) {
+                             if (!bestFare || fares.den.price < bestFare.price) {
+                                 bestFare = { type: 'discount_den', price: fares.den.price };
+                             }
+                        }
+                        
+                        // Check Standard
+                        if (oneWayFareTypes.value.standard && fares.standard && fares.standard.price !== null) {
+                             if (!bestFare || fares.standard.price < bestFare.price) {
+                                 bestFare = { type: 'standard', price: fares.standard.price };
+                             }
+                        }
+
+                        if (bestFare) {
+                            item.fareType = bestFare.type;
+                            item.price = bestFare.price; 
+                            acc.push(item);
+                        }
+                        
+                        return acc;
+                    }, []);
+
+                    // Sort
                     list.sort((a, b) => {
                         if (oneWay.value.sortBy === 'price') {
                             return (a.price || 0) - (b.price || 0);
@@ -2109,6 +2490,19 @@
                             return getMinutes(a.duration) - getMinutes(b.duration);
                         } else if (oneWay.value.sortBy === 'stops') {
                             return (a.stops || 0) - (b.stops || 0);
+                        } else if (oneWay.value.sortBy === 'departure') {
+                            // Sort by departure time
+                            const getDepartureTime = (item) => {
+                                if (!item.segments || item.segments.length === 0) return '99:99';
+                                const firstSeg = item.segments[0];
+                                if (!firstSeg.departure) return '99:99';
+                                // Extract time from ISO string (e.g., "2024-01-15T14:30:00" -> "14:30")
+                                const timePart = firstSeg.departure.split('T')[1];
+                                return timePart || '99:99';
+                            };
+                            const timeA = getDepartureTime(a);
+                            const timeB = getDepartureTime(b);
+                            return timeA.localeCompare(timeB);
                         }
                         return 0;
                     });
@@ -2211,7 +2605,10 @@
                 const groupedDayTrips = computed(() => {
                     if (currentTab.value !== 'daytrip') return {};
                     const groups = {};
-                    results.value.forEach(item => {
+                    
+                    results.value.forEach(originalItem => {
+                        // Create a shallow copy to modify without mutating original results
+                        const item = { ...originalItem };
                         const d = item.destination; 
                         const w = weatherData.value[d];
                         
@@ -2224,16 +2621,70 @@
                             if (item.outbound.stops > 0 || item.return.stops > 0) return;
                         }
 
+                        // --- FARE PROCESSING LOGIC ---
+                        // Helper to find best fare for a leg
+                        const findBestFare = (flight) => {
+                            const fares = flight.fares || {};
+                            let best = null;
+                            
+                            // Priority 1: GoWild (if selected)
+                            // Note: Day Trips logic usually implies short notice, so "Early Booking" vs "Standard" 
+                            // distinction is less critical unless we are booking > 24h out.
+                            // We will simply check if the checkbox is checked and if a fare exists.
+                            if (dayTripFareTypes.value.gowild && fares.gowild && fares.gowild.price !== null) {
+                                if (!best || fares.gowild.price < best.price) best = { type: 'gowild', price: fares.gowild.price };
+                            }
+                            // Priority 2: Discount Den (if selected)
+                            if (dayTripFareTypes.value.discountDen && fares.den && fares.den.price !== null) {
+                                if (!best || fares.den.price < best.price) best = { type: 'den', price: fares.den.price };
+                            }
+                            // Priority 3: Standard (if selected)
+                            if (dayTripFareTypes.value.standard && fares.standard && fares.standard.price !== null) {
+                                if (!best || fares.standard.price < best.price) best = { type: 'standard', price: fares.standard.price };
+                            }
+                            return best;
+                        };
+
+                        const bestOutbound = findBestFare(item.outbound);
+                        const bestReturn = findBestFare(item.return);
+
+                        // If either leg has no valid fare matching criteria, skip this trip
+                        if (!bestOutbound || !bestReturn) return;
+
+                        // Attach fare info to the item for display
+                        item.outboundFare = bestOutbound;
+                        item.returnFare = bestReturn;
+                        item.total_price = bestOutbound.price + bestReturn.price;
+                        item.isMixedFare = bestOutbound.type !== bestReturn.type;
+                        
+                        // Inject fare type into leg objects for getLink consumption
+                        if (item.outbound) item.outbound.fareType = bestOutbound.type;
+                        if (item.return) item.return.fareType = bestReturn.type;
+
                         if (!groups[d]) {
                             groups[d] = {
                                 code: d,
                                 name: getDestName(item), 
                                 weather: getWeather(d),
-                                flights: []
+                                flights: [],
+                                minPrice: Infinity,
+                                fareType: null
                             };
                         }
                         groups[d].flights.push(item);
+                        
+                        // Update Group Min Price
+                        if (item.total_price < groups[d].minPrice) {
+                            groups[d].minPrice = item.total_price;
+                            groups[d].fareType = item.outboundFare.type; // Representative fare type
+                        }
                     });
+                    
+                    // Sort flights within each city group by total price
+                    Object.values(groups).forEach(g => {
+                        g.flights.sort((a, b) => a.total_price - b.total_price);
+                    });
+                    
                     return groups;
                 });
 
@@ -2332,13 +2783,54 @@
                     }
                     if (fareTypes.value.standard) active.push('Std');
                     if (fareTypes.value.discountDen) active.push('Den');
-                    
+
+                    if (active.length === 0) return 'None';
+                    if (active.length > 2) return `${active[0]} +${active.length - 1}`;
+                    return active.join(', ');
+                });
+
+                const builderFareSummary = computed(() => {
+                    const active = [];
+                    if (builderFareTypes.value.gowild) {
+                        if (builderFareTypes.value.earlyBooking) {
+                            active.push('GW (Early)');
+                        } else {
+                            active.push('GW (Std)');
+                        }
+                    }
+                    if (builderFareTypes.value.standard) active.push('Std');
+                    if (builderFareTypes.value.discountDen) active.push('Den');
+
+                    if (active.length === 0) return 'None';
+                    if (active.length > 2) return `${active[0]} +${active.length - 1}`;
+                    return active.join(', ');
+                });
+
+                const oneWayFareSummary = computed(() => {
+                    const active = [];
+                    if (oneWayFareTypes.value.gowild) {
+                        if (oneWayFareTypes.value.earlyBooking) {
+                            active.push('GW (Early)');
+                        } else {
+                            active.push('GW (Std)');
+                        }
+                    }
+                    if (oneWayFareTypes.value.standard) active.push('Std');
+                    if (oneWayFareTypes.value.discountDen) active.push('Den');
+
                     if (active.length === 0) return 'None';
                     if (active.length > 2) return `${active[0]} +${active.length - 1}`;
                     return active.join(', ');
                 });
 
                 // --- Methods ---
+
+                const switchToSpecificDestination = () => {
+                    dayTripMode.value = 'specific';
+                    nextTick(() => {
+                        if (destInput.value) destInput.value.focus();
+                    });
+                };
 
                 const calculateDateOptions = () => {
                     let timeZone = undefined; // Default to browser
@@ -2378,8 +2870,70 @@
                             }
                             windowSize = isIntl ? 10 : 2;
                         }
-                    } else if (currentTab.value !== 'daytrip') {
-                        // Other tabs: original logic
+                    } else if (currentTab.value === 'oneway') {
+                        // One Way tab with fare type logic
+                        
+                        // Check if ANY "extended window" fare type is selected
+                        // Extended Window = Standard Fare OR Discount Den OR GoWild Early Booking
+                        const useExtendedWindow = 
+                            oneWayFareTypes.value.standard || 
+                            oneWayFareTypes.value.discountDen || 
+                            (oneWayFareTypes.value.gowild && oneWayFareTypes.value.earlyBooking);
+
+                        if (useExtendedWindow) {
+                            windowSize = 21;
+                        } else {
+                            // Default / GoWild Standard logic (2 days domestic, 10 days international)
+                            let isIntl = false;
+                            if (search.value.origin) {
+                                const o = locations.value.find(l => l.code === search.value.origin);
+                                if (o && o.is_international) isIntl = true;
+                            }
+                            if (search.value.dest) {
+                                const d = locations.value.find(l => l.code === search.value.dest);
+                                if (d && d.is_international) isIntl = true;
+                            }
+                            windowSize = isIntl ? 10 : 2;
+                        }
+                    } else if (currentTab.value === 'daytrip') {
+                        // Day Trip tab with fare type logic
+                        const useExtendedWindow = 
+                            dayTripFareTypes.value.standard || 
+                            dayTripFareTypes.value.discountDen || 
+                            (dayTripFareTypes.value.gowild && dayTripFareTypes.value.earlyBooking);
+
+                        if (useExtendedWindow) {
+                            windowSize = 21;
+                        } else {
+                            // Default Day Trip logic: Always 2 days (Today/Tomorrow) for quick trips
+                            // regardless of International status usually, but we can respect it if desired.
+                            // Original logic was just "2" effectively.
+                            windowSize = 2;
+                        }
+                    } else if (currentTab.value === 'builder') {
+                        // Builder tab with fare type logic
+                        const useExtendedWindow =
+                            builderFareTypes.value.standard ||
+                            builderFareTypes.value.discountDen ||
+                            (builderFareTypes.value.gowild && builderFareTypes.value.earlyBooking);
+
+                        if (useExtendedWindow) {
+                            windowSize = 21;
+                        } else {
+                            // Default / GoWild Standard logic (2 days domestic, 10 days international)
+                            let isIntl = false;
+                            if (search.value.origin) {
+                                const o = locations.value.find(l => l.code === search.value.origin);
+                                if (o && o.is_international) isIntl = true;
+                            }
+                            if (search.value.dest) {
+                                const d = locations.value.find(l => l.code === search.value.dest);
+                                if (d && d.is_international) isIntl = true;
+                            }
+                            windowSize = isIntl ? 10 : 2;
+                        }
+                    } else {
+                        // Other tabs: Default logic
                         let isIntl = false;
 
                         // Check Origin
@@ -2438,10 +2992,8 @@
                 };
 
                 const fetchConfig = async () => {
-                    // Default fallback first
-                    try {
-                        blackoutDates.value = new Set(fallbackBlackout);
-                    } catch (e) { console.error("Fallback init error", e); }
+                    // Default to no blackout dates as requested
+                    blackoutDates.value = new Set();
 
                     try {
                         const config = await axios.get('/api/public_config');
@@ -2454,7 +3006,7 @@
                             if (config.data.blackout_dates) {
                                 try {
                                     const dates = JSON.parse(config.data.blackout_dates);
-                                    if (Array.isArray(dates)) {
+                                    if (Array.isArray(dates) && dates.length > 0) {
                                         blackoutDates.value = new Set(dates);
                                     }
                                 } catch(jsonErr) {
@@ -2467,7 +3019,7 @@
                         }
                     } catch (e) { 
                         console.error("Config Load Failed (Network)", e); 
-                        // Don't throw, just continue with defaults/fallbacks
+                        // Fallback: Defaulting to no blackout dates (empty set)
                     }
                 };
 
@@ -2540,9 +3092,14 @@
                             endpoint = '/api/builder';
                             params.destination = params.dest;
                             params.min_layover = builder.value.min;
-                            params.max_layover = 9; 
+                            params.max_layover = 9;
                             params.max_duration = builder.value.maxDuration;
                             params.max_stops = builder.value.maxStops;
+                            // Add fare type parameters
+                            params.gowild = builderFareTypes.value.gowild;
+                            params.standard = builderFareTypes.value.standard;
+                            params.discount_den = builderFareTypes.value.discountDen;
+                            params.early_booking = builderFareTypes.value.earlyBooking;
                         }
                         else {
                              // One Way
@@ -2969,16 +3526,31 @@
                     }
 
                     // Determine fare type parameter
-                    // GoWild = GW, Standard or Discount DEN = DD
                     let ftype = 'GW'; // Default to GoWild
-                    if (item.fareType) {
-                        // If the item has a fareType set (from processExploreList)
-                        ftype = item.fareType === 'gowild' ? 'GW' : 'DD';
-                    } else if (currentTab.value === 'explore') {
-                        // For explore tab, use the first selected fare type
-                        if (fareTypes.value.standard || fareTypes.value.discountDen) {
-                            ftype = 'DD';
-                        }
+                    let typeCode = item.fareType || item.fare_type;
+
+                    // Fallback for Day Trip Round Trip wrapper
+                    if (!typeCode && item.outboundFare && item.outboundFare.type) {
+                        typeCode = item.outboundFare.type;
+                    }
+
+                    // For route builder multi-hop, check segments
+                    if (!typeCode && item.segments && item.segments.length > 0) {
+                        // Use the first segment's fare type
+                        typeCode = item.segments[0].fare_type;
+                    }
+
+                    // Fallback for Explore if missing
+                    if (!typeCode && currentTab.value === 'explore') {
+                        if (fareTypes.value.standard || fareTypes.value.discountDen) typeCode = 'den';
+                    }
+
+                    // Map to URL Param
+                    // GoWild (standard or early booking) -> GW
+                    // Standard Fare -> DD
+                    // Discount Den -> DD
+                    if (typeCode === 'den' || typeCode === 'discount_den' || typeCode === 'standard') {
+                        ftype = 'DD';
                     }
 
                     url += `&umnr=false&loy=false&mon=true&ftype=${ftype}&promo=`;
@@ -3039,6 +3611,19 @@
                     const parts = dateStr.split('-');
                     if (parts.length < 3) return dateStr;
                     return `${parts[1]}/${parts[2]}`;
+                };
+
+                const formatDurationClean = (s) => {
+                    if (!s) return '';
+                    // Remove "00s" or "0s" suffix
+                    let cleaned = s.replace(/\s*\d+s\s*$/, '');
+                    // Remove ":00" suffix if it looks like HH:MM:SS
+                    if (cleaned.match(/:\d{2}:\d{2}$/)) {
+                        cleaned = cleaned.replace(/:\d{2}$/, '');
+                    } else if (cleaned.match(/^\d+:\d{2}:\d{2}$/)) { // 21:51:00
+                         cleaned = cleaned.replace(/:\d{2}$/, '');
+                    }
+                    return cleaned;
                 };
 
                 const formatDurationMain = (s) => s ? s.split('(')[0].trim() : '';
@@ -3105,6 +3690,27 @@
                         } else if (hasSearched.value && exploreView.value === 'map') {
                             renderMap();
                         }
+                    }
+                }, { deep: true });
+
+                // Watch One Way fare type changes
+                watch(oneWayFareTypes, () => {
+                    if (currentTab.value === 'oneway') {
+                        calculateDateOptions();
+                    }
+                }, { deep: true });
+
+                // Watch Day Trip fare type changes
+                watch(dayTripFareTypes, () => {
+                    if (currentTab.value === 'daytrip') {
+                        calculateDateOptions();
+                    }
+                }, { deep: true });
+
+                // Watch Builder fare type changes
+                watch(builderFareTypes, () => {
+                    if (currentTab.value === 'builder') {
+                        calculateDateOptions();
                     }
                 }, { deep: true });
 
@@ -3247,17 +3853,18 @@
                     loading, error, hasSearched, searchExecuted, mobileMenuOpen, scrolled,
                     currentTab, tabs, search, locations,
                     showOriginDropdown, showDestDropdown, showDateDropdown, filteredOrigins, filteredDests,
-                    dayTrip, builder, filters, fareTypes, results, exploreView, exploreMode, selectedDest, destFlights, selectedFlight,
-                    selectedDayTripCity, groupedDayTrips, sortedDayTrips, weatherAvailable, allExploreFlights, selectedExploreCode, groupedExploreDestinations, exploreFareSummary, exploreSort,
+                    dayTrip, builder, filters, fareTypes, oneWayFareTypes, builderFareTypes, results, exploreView, exploreMode, selectedDest, destFlights, selectedFlight,
+                    selectedDayTripCity, groupedDayTrips, sortedDayTrips, weatherAvailable, allExploreFlights, selectedExploreCode, groupedExploreDestinations, exploreFareSummary, oneWayFareSummary, builderFareSummary, exploreSort,
                     chunkedExploreDestinations, rowHasSelected, getSelectedGroupInRow, sortedBuilderResults, sortedOneWayResults, oneWay,
                     filterAirports, selectAirport, swapAirports, focusDest, validateInput,
                     getDateLabel, getDateShort,
                     performSearch, performExplore, getLink, formatTime, getDestCode, getDestName,
-                    formatDateShort, formatDurationMain, formatDurationSub, bookFlight, getFareTypeLabel, getFareTypeButtonClass, getLayoverSummary, formatDecimalHours, formatSliderTime,
+                    formatDateShort, formatDurationMain, formatDurationSub, formatDurationClean, bookFlight, getFareTypeLabel, getFareTypeButtonClass, getLayoverSummary, formatDecimalHours, formatSliderTime,
                     toFahrenheit, getWeatherIcon: (c) => c >= 50 ? 'ph-cloud-rain' : 'ph-sun',
-                    getWeather, dayTripMode, destInput,
+                    getWeather, dayTripMode, destInput, switchToSpecificDestination,
                     showBookingWarning, bookingWarningItem, openBookingModal, isOvernightLayover, getDateDiffLabel,
                     passengers, totalPassengers, showPassengerMenu, showFareTypeMenu, showSortDropdown, addAdult, removeAdult, addKid, removeKid,
+                    dayTripFareTypes, fareTypeSummary,
                     filteredMapCount, showAnnouncement, announcementHtml, dateOptions,
                     forceDesktop, toggleDesktopMode, appMode, activateAppMode, goHome,
                     isStandalone, showInstallBanner, installApp, dismissInstallBanner,
