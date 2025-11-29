@@ -30,7 +30,7 @@ elif "postgresql" in DATABASE_URL:
         "ssl": ssl_context,
         "server_settings": {
             "jit": "off",
-            "statement_cache_size": 0
+            "statement_cache_size": "0"
         }
     }
 else:
