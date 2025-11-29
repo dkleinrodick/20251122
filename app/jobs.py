@@ -524,9 +524,9 @@ class ThreeWeekScraper(BaseJob):
 
             for i in range(0, len(scrape_tasks), BATCH_SIZE):
                 # Check for global timeout (e.g. 5 min limit on serverless)
-                # We stop at 4.5 mins (270s) to allow safe exit
+                # We stop at 4 mins (240s) to allow safe exit
                 elapsed = (datetime.now(pytz.UTC) - start_time).total_seconds()
-                if elapsed > 270:
+                if elapsed > 240:
                     logger.info(f"Time limit reached ({elapsed:.1f}s). Pausing job to resume later...")
                     update_job(self.job_id, message=f"Pausing (Time Limit). Scraped: {total_scraped}")
                     self.final_status = "running" # Keep status as 'running' so it resumes next time
