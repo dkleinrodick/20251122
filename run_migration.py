@@ -4,6 +4,11 @@ Run this to apply the monitoring features migration
 """
 import asyncio
 import os
+from dotenv import load_dotenv
+
+# Load environment variables BEFORE importing app.database
+load_dotenv()
+
 from sqlalchemy import text
 from app.database import engine
 
