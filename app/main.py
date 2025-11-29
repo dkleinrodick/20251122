@@ -158,6 +158,25 @@ async def verify_admin(
         logger.error(f"Verify Admin DB Error: {e}")
         raise HTTPException(status_code=500, detail=f"Database Auth Error: {str(e)}")
 
+@app.get("/api/admin/debug_pass", dependencies=[Depends(verify_admin)])
+async def debug_pass(db: AsyncSession = Depends(get_db)):
+    """Temporarily debug which password source is being used."""
+    res = await db.execute(select(SystemSetting).where(SystemSetting.key == "admin_password"))
+    setting = res.scalar_one_or_none()
+    
+    source = "database"
+    stored_pass = setting.value if setting else os.environ.get("ADMIN_PASSWORD")
+    if not setting:
+        source = "environment"
+
+    if not stored_pass or len(stored_pass) < 8:
+        return {"source": source, "pass_preview": "Not set or too short"}
+
+    return {
+        "source": source,
+        "pass_preview": f"{stored_pass[:4]}...{stored_pass[-4:]}"
+    }
+
 @app.get("/", response_class=HTMLResponse)
 async def read_root(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
