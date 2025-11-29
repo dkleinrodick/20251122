@@ -15,17 +15,23 @@ jobs:
     steps:
       - name: Call Heartbeat Endpoint
         run: |
-          response=$(curl -s -X POST "https://wildfares.com/api/heartbeat" \
+          echo "Calling https://wildfares.com/api/heartbeat..."
+          
+          # Use temp file for response body to separate it from status code
+          curl -v -X POST "https://wildfares.com/api/heartbeat" \
             -H "Content-Type: application/json" \
-            -w "\n%{http_code}")
-
-          http_code=$(echo "$response" | tail -n1)
-          body=$(echo "$response" | head -n-1)
-
-          echo "Response: $body"
-          echo "HTTP Status: $http_code"
-
-          if [ "$http_code" -ne 200 ]; then
-            echo "Error: Heartbeat endpoint returned status $http_code"
+            -o response.txt \
+            -w "%{http_code}" > status_code.txt
+            
+          HTTP_CODE=$(cat status_code.txt)
+          RESPONSE_BODY=$(cat response.txt)
+          
+          echo "HTTP Status: $HTTP_CODE"
+          echo "Response Body: $RESPONSE_BODY"
+          
+          if [ "$HTTP_CODE" -ne 200 ]; then
+            echo "::error::Heartbeat failed with status $HTTP_CODE"
             exit 1
           fi
+          
+          echo "Heartbeat successful."
