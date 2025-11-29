@@ -183,9 +183,17 @@ async def heartbeat(background_tasks: BackgroundTasks):
     """
     Heartbeat endpoint called by GitHub Actions to trigger scraper checks.
     """
-    scheduler = SchedulerLogic()
-    await scheduler.run_heartbeat(background_tasks)
-    return {"status": "ok", "timestamp": datetime.utcnow().isoformat()}
+    try:
+        scheduler = SchedulerLogic()
+        await scheduler.run_heartbeat(background_tasks)
+        return {"status": "ok", "timestamp": datetime.utcnow().isoformat()}
+    except Exception as e:
+        logger.error(f"Heartbeat Error: {e}")
+        traceback.print_exc()
+        return JSONResponse(
+            status_code=500,
+            content={"status": "error", "message": str(e), "traceback": traceback.format_exc()}
+        )
 
 @app.get("/sitemap.xml", response_class=HTMLResponse)
 async def get_sitemap():
