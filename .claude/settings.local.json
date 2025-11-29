@@ -31,7 +31,9 @@
       "Bash(if not exist backupspre_v4_20251127 mkdir backupspre_v4_20251127)",
       "Bash(dir:*)",
       "Bash(git checkout:*)",
-      "Bash(del nul)"
+      "Bash(del nul)",
+      "Bash(gh workflow:*)",
+      "Bash(vercel logs:*)"
     ],
     "deny": [],
     "ask": []
