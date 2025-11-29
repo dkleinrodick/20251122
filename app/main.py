@@ -216,19 +216,7 @@ async def get_sitemap():
 @app.get("/api/ping")
 async def ping():
     """Simple health check endpoint without database dependency"""
-    db_url = os.environ.get("DATABASE_URL", "NOT_SET")
-    port = "N/A"
-    if ":" in db_url:
-        try:
-            port = db_url.split(":")[-1].split("/")[0]
-        except:
-            port = "PARSE_ERROR"
-            
-    return {
-        "status": "ok", 
-        "timestamp": datetime.utcnow().isoformat(),
-        "db_port": port
-    }
+    return {"status": "ok", "timestamp": datetime.utcnow().isoformat()}
 
 @app.get("/api/debug")
 async def debug_db():

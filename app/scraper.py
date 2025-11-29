@@ -243,7 +243,7 @@ class AsyncScraperEngine:
         if not self.settings:
             await self.load_settings()
 
-        val = await self._get_setting("scraper_worker_count", 20, int)
+        val = await self._get_setting("scraper_worker_count", 10, int)
         worker_count = max(1, min(val, 200)) # Increased cap from 50 to 200
 
         # Check if jitter is enabled in admin settings
