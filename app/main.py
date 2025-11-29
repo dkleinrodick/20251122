@@ -1197,6 +1197,36 @@ async def admin_trigger_heartbeat(background_tasks: BackgroundTasks, db: AsyncSe
     triggered = log.scrapers_triggered if log else []
     return {"status": "ok", "triggered": triggered}
 
+@app.post("/api/admin/reset_last_runs", dependencies=[Depends(verify_admin)])
+async def reset_last_runs(db: AsyncSession = Depends(get_db)):
+    """
+    Clears the 'last run' timestamps for all daily scrapers and stops/clears any
+    in-progress 'running' 3WeekScraper job to allow a clean re-do.
+    """
+    # Delete last run timestamps from system_settings
+    stmt_settings = delete(SystemSetting).where(SystemSetting.key.like('last_run_%'))
+    settings_res = await db.execute(stmt_settings)
+
+    # Delete 'running' 3WeekScraper runs from today to prevent resume
+    today_utc = datetime.now(pytz.UTC).date()
+    stmt_runs = delete(ScraperRun).where(
+        and_(
+            ScraperRun.job_type == "3WeekScraper",
+            ScraperRun.status == "running",
+            func.date(ScraperRun.started_at) == today_utc
+        )
+    )
+    runs_res = await db.execute(stmt_runs)
+
+    await db.commit()
+
+    return {
+        "status": "ok",
+        "settings_cleared": settings_res.rowcount,
+        "running_jobs_cleared": runs_res.rowcount
+    }
+
+
 @app.get("/api/admin/cache_stats", dependencies=[Depends(verify_admin)])
 async def get_cache_stats(db: AsyncSession = Depends(get_db)):
     # Count total rows in FlightCache
