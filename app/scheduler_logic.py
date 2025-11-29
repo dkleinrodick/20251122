@@ -2,9 +2,9 @@ import asyncio
 import logging
 from datetime import datetime, timedelta
 import pytz
-from sqlalchemy import select
+from sqlalchemy import select, and_, func
 from app.database import SessionLocal
-from app.models import SystemSetting, HeartbeatLog
+from app.models import SystemSetting, HeartbeatLog, ScraperRun
 from app.jobs import AutoScraper, MidnightScraper, ThreeWeekScraper
 from app.route_scraper import RouteScraper
 from app.weather_scraper import WeatherScraper
@@ -120,15 +120,33 @@ class SchedulerLogic:
         }
 
         target_time_str = await self._get_setting(session, f"schedule_{job_key}_time", defaults.get(job_key, "00:00"))
-        last_run_str = await self._get_setting(session, f"last_run_{job_key}", "")
 
         now = datetime.utcnow()
+        today_utc = datetime.now(pytz.UTC).date()
 
-        # Check if run today already
-        if last_run_str:
-            last_run = datetime.fromisoformat(last_run_str)
-            if last_run.date() == now.date():
-                return False # Already ran today
+        # For 3-week scraper, check ScraperRun table for completed run today
+        # This allows it to resume across multiple heartbeats
+        if job_key == "3week":
+            stmt = select(ScraperRun).where(
+                and_(
+                    ScraperRun.job_type == "3WeekScraper",
+                    func.date(ScraperRun.started_at) == today_utc,
+                    ScraperRun.status == "completed"
+                )
+            )
+            result = await session.execute(stmt)
+            completed_run = result.scalars().first()
+
+            if completed_run:
+                logger.info(f"3WeekScraper already completed today (run #{completed_run.id})")
+                return False
+        else:
+            # For other jobs, use the old logic
+            last_run_str = await self._get_setting(session, f"last_run_{job_key}", "")
+            if last_run_str:
+                last_run = datetime.fromisoformat(last_run_str)
+                if last_run.date() == now.date():
+                    return False # Already ran today
 
         # Check if time is reached
         try:
@@ -137,7 +155,10 @@ class SchedulerLogic:
                 logger.info(f"Heartbeat: Triggering {job_key}")
                 job = job_class()
                 background_tasks.add_task(job.run, heartbeat_id=heartbeat_id, mode="scheduled")
-                await self._set_setting(session, f"last_run_{job_key}", now.isoformat())
+
+                # Don't set last_run for 3week - it manages its own completion
+                if job_key != "3week":
+                    await self._set_setting(session, f"last_run_{job_key}", now.isoformat())
                 return True
         except Exception as e:
             logger.error(f"Scheduler error for {job_key}: {e}")

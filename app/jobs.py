@@ -52,19 +52,28 @@ class BaseJob:
         run_id = None
         start_time = datetime.now(pytz.UTC)
 
-        async with SessionLocal() as session:
-            # Create 'Running' log
-            run_log = ScraperRun(
-                job_type=self.job_name,
-                heartbeat_id=self.heartbeat_id,
-                mode=self.mode,
-                status="running",
-                started_at=start_time
-            )
-            session.add(run_log)
-            await session.commit()
-            await session.refresh(run_log)
-            run_id = run_log.id
+        # Check if subclass already identified a run to resume (e.g., ThreeWeekScraper)
+        if hasattr(self, 'current_run_id') and self.current_run_id:
+            run_id = self.current_run_id
+            logger.info(f"Resuming existing run #{run_id}")
+        else:
+            # Create new 'Running' log
+            async with SessionLocal() as session:
+                run_log = ScraperRun(
+                    job_type=self.job_name,
+                    heartbeat_id=self.heartbeat_id,
+                    mode=self.mode,
+                    status="running",
+                    started_at=start_time
+                )
+                session.add(run_log)
+                await session.commit()
+                await session.refresh(run_log)
+                run_id = run_log.id
+
+                # Store run_id in subclass if it has the attribute
+                if hasattr(self, 'current_run_id'):
+                    self.current_run_id = run_id
 
         stats = {"scraped": 0, "skipped": 0, "errors": 0, "total": 0, "details": []}
         status = "completed"
@@ -305,14 +314,67 @@ class ThreeWeekScraper(BaseJob):
     def __init__(self):
         super().__init__()
         self.job_name = "3WeekScraper"
+        self.current_run_id = None
+
+    async def save_progress(self, completed_routes_set):
+        """Save progress to database for resume capability"""
+        if not self.current_run_id:
+            return
+
+        async with SessionLocal() as session:
+            stmt = select(ScraperRun).where(ScraperRun.id == self.current_run_id)
+            result = await session.execute(stmt)
+            run = result.scalar_one_or_none()
+
+            if run:
+                # Convert set to list for JSON serialization
+                completed_list = [list(r) for r in completed_routes_set]
+                run.details = {
+                    "completed_routes": completed_list,
+                    "total_completed": len(completed_list),
+                    "last_updated": datetime.now(pytz.UTC).isoformat(),
+                    "status": "in_progress"  # Mark as actively being worked on
+                }
+                # Update the completed_at to track when we last made progress
+                # This acts as a heartbeat to detect timeouts
+                run.completed_at = datetime.now(pytz.UTC)
+                await session.commit()
+                logger.info(f"Progress saved: {len(completed_list)} routes completed")
 
     async def _execute_job(self, stop_check=None):
         logger.info("Starting ThreeWeekScraper Job...")
         stats = {"scraped": 0, "skipped": 0, "errors": 0, "total": 0}
-        
+
         scrape_tasks = []
         cached_snapshots = []
-        
+        completed_routes = set()  # Track completed routes for resume logic
+
+        # Step 0: Check for incomplete run from today and resume if needed
+        async with SessionLocal() as session:
+            today_utc = datetime.now(pytz.UTC).date()
+
+            # Look for running or incomplete jobs from today
+            stmt = select(ScraperRun).where(
+                and_(
+                    ScraperRun.job_type == "3WeekScraper",
+                    func.date(ScraperRun.started_at) == today_utc,
+                    ScraperRun.status == "running"
+                )
+            ).order_by(ScraperRun.started_at.desc())
+
+            result = await session.execute(stmt)
+            existing_run = result.scalars().first()
+
+            if existing_run:
+                logger.info(f"Found incomplete 3WeekScraper run #{existing_run.id} from today. Resuming...")
+                self.current_run_id = existing_run.id
+
+                # Load completed routes from previous attempt
+                if existing_run.details and "completed_routes" in existing_run.details:
+                    completed_routes = set(tuple(r) for r in existing_run.details["completed_routes"])
+                    logger.info(f"Resuming: {len(completed_routes)} routes already completed")
+                    stats["skipped"] = len(completed_routes)
+
         # Step 1: Gather Data & Check Cache
         async with SessionLocal() as session:
             # Load stale minutes (default to 60 mins for "fresh enough")
@@ -372,12 +434,17 @@ class ThreeWeekScraper(BaseJob):
             # Classify Tasks
             for task in all_potential_tasks:
                 key = (task["origin"], task["destination"], task["date"])
-                
+
+                # Skip if already completed in a previous attempt today (resume logic)
+                if key in completed_routes:
+                    stats["skipped"] += 1
+                    continue
+
                 # 2. Skip if we already snapshotted this route for its travel_date today
                 if key in existing_snapshots_today:
                     stats["skipped"] += 1
                     continue
-                
+
                 cache_entry = cache_lookup.get(key)
                 
                 is_fresh = False
@@ -419,25 +486,71 @@ class ThreeWeekScraper(BaseJob):
             # Save Cached Snapshots Immediately
             if cached_snapshots:
                 logger.info(f"ThreeWeekScraper: Found {len(cached_snapshots)} fresh cached items. Creating snapshots directly.")
-                
+
                 # Bulk insert in chunks to avoid massive query size
                 CHUNK_SIZE = 500
                 for i in range(0, len(cached_snapshots), CHUNK_SIZE):
                     chunk = cached_snapshots[i:i + CHUNK_SIZE]
                     session.add_all(chunk)
                     await session.commit()
-                
+
+                    # Mark these routes as completed for resume tracking
+                    for snap in chunk:
+                        completed_routes.add((snap.origin, snap.destination, snap.travel_date))
+
                 update_job(self.job_id, message=f"Created {len(cached_snapshots)} snapshots from cache...")
 
-        # Step 2: Scrape Remaining Tasks
+                # Save progress after processing cached snapshots
+                await self.save_progress(completed_routes)
+
+        # Step 2: Scrape Remaining Tasks in Batches
         if scrape_tasks:
             logger.info(f"ThreeWeekScraper: Queuing {len(scrape_tasks)} stale/missing tasks for scraping.")
             update_job(self.job_id, message=f"Scraping {len(scrape_tasks)} routes...")
-            
+
+            # Process in smaller batches to allow progress saving
+            BATCH_SIZE = 50  # Scrape 50 routes at a time
+            total_scraped = 0
+            total_errors = 0
+
             engine = AsyncScraperEngine(session=None)
-            res = await engine.process_queue(scrape_tasks, mode="3week")
-            
-            stats["scraped"] = res["scraped"]
-            stats["errors"] = res["errors"]
-                
+
+            for i in range(0, len(scrape_tasks), BATCH_SIZE):
+                batch = scrape_tasks[i:i + BATCH_SIZE]
+                batch_num = (i // BATCH_SIZE) + 1
+                total_batches = (len(scrape_tasks) + BATCH_SIZE - 1) // BATCH_SIZE
+
+                logger.info(f"Processing batch {batch_num}/{total_batches} ({len(batch)} routes)")
+                update_job(self.job_id, message=f"Batch {batch_num}/{total_batches}: Scraping {len(batch)} routes...")
+
+                try:
+                    res = await engine.process_queue(batch, mode="3week")
+                    total_scraped += res.get("scraped", 0)
+                    total_errors += res.get("errors", 0)
+
+                    # Mark this batch as completed
+                    for task in batch:
+                        key = (task["origin"], task["destination"], task["date"])
+                        completed_routes.add(key)
+
+                    # Save progress after each batch
+                    await self.save_progress(completed_routes)
+
+                    logger.info(f"Batch {batch_num}/{total_batches} complete. Scraped: {res.get('scraped', 0)}, Errors: {res.get('errors', 0)}")
+
+                except Exception as e:
+                    logger.error(f"Error processing batch {batch_num}: {e}")
+                    total_errors += len(batch)
+                    # Still save progress even if batch failed
+                    await self.save_progress(completed_routes)
+
+                # Check if we should stop
+                if stop_check and stop_check():
+                    logger.info("Stop signal received, saving progress and exiting")
+                    await self.save_progress(completed_routes)
+                    break
+
+            stats["scraped"] = total_scraped
+            stats["errors"] = total_errors
+
         return stats

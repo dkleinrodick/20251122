@@ -1,6 +1,8 @@
 name: Heartbeat Scheduler
 
 on:
+  push:
+    branches: [ "master" ]
   schedule:
     # Run every 15 minutes to check scraper schedules
     - cron: '*/15 * * * *'
