@@ -141,15 +141,12 @@ async def verify_admin(
         res = await db.execute(select(SystemSetting).where(SystemSetting.key == "admin_password"))
         setting = res.scalar_one_or_none()
 
-        # Secure fallback: Use ENV var or fail closed (no access)
-        stored_pass = setting.value if setting else os.environ.get("ADMIN_PASSWORD")
-
-        if not stored_pass:
-            logger.warning("Admin password not configured!")
+        if not setting or not setting.value:
+            logger.warning("Admin password not configured in database!")
             raise HTTPException(status_code=403, detail="Admin access not configured")
 
-        if x_admin_pass != stored_pass:
-            logger.warning(f"Verify Admin: Failed. Provided: '{x_admin_pass}' vs Stored: '{stored_pass}'")
+        if x_admin_pass != setting.value:
+            logger.warning(f"Verify Admin: Failed login attempt.")
             raise HTTPException(status_code=401, detail="Invalid Admin Password")
         return True
     except HTTPException:
@@ -625,12 +622,11 @@ async def admin_login(request: Request, db: AsyncSession = Depends(get_db)):
     try:
         res = await db.execute(select(SystemSetting).where(SystemSetting.key == "admin_password"))
         setting = res.scalar_one_or_none()
-        stored_pass = setting.value if setting else os.environ.get("ADMIN_PASSWORD")
 
-        if not stored_pass:
+        if not setting or not setting.value:
             raise HTTPException(status_code=403, detail="Admin access not configured")
 
-        if password != stored_pass:
+        if password != setting.value:
             raise HTTPException(status_code=401, detail="Invalid password")
 
         # Generate JWT token

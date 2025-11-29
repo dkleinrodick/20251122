@@ -14,16 +14,9 @@ if DATABASE_URL.startswith("postgres://"):
 elif DATABASE_URL.startswith("postgresql://"):
     DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://")
 
-# Remove sslmode and add statement_cache_size=0 for pgbouncer compatibility
-if "postgresql" in DATABASE_URL:
-    if "?sslmode=" in DATABASE_URL:
-        DATABASE_URL = DATABASE_URL.split("?")[0]
-    
-    # Append statement_cache_size=0
-    if "?" in DATABASE_URL:
-        DATABASE_URL += "&statement_cache_size=0"
-    else:
-        DATABASE_URL += "?statement_cache_size=0"
+# Remove sslmode parameter if present (asyncpg doesn't support it in URL)
+if "?sslmode=" in DATABASE_URL:
+    DATABASE_URL = DATABASE_URL.split("?")[0]
 
 # Configure connection args
 if "sqlite" in DATABASE_URL:
@@ -33,7 +26,13 @@ elif "postgresql" in DATABASE_URL:
     ssl_context = ssl.create_default_context()
     ssl_context.check_hostname = False
     ssl_context.verify_mode = ssl.CERT_NONE
-    connect_args = {"ssl": ssl_context}
+    connect_args = {
+        "ssl": ssl_context,
+        "server_settings": {
+            "jit": "off",
+            "statement_cache_size": "0"
+        }
+    }
 else:
     connect_args = {}
 
@@ -43,8 +42,7 @@ if "postgresql" in DATABASE_URL:
         DATABASE_URL,
         echo=False,
         connect_args=connect_args,
-        poolclass=NullPool,
-        execution_options={"server_settings": {"jit": "off", "statement_cache_size": "0"}}
+        poolclass=NullPool
     )
 else:
     engine = create_async_engine(DATABASE_URL, echo=False, connect_args=connect_args)
