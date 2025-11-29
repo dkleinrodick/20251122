@@ -14,10 +14,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Call Heartbeat Endpoint
-        env:
-          HEARTBEAT_URL: ${{ secrets.HEARTBEAT_URL }}
         run: |
-          response=$(curl -s -X POST "$HEARTBEAT_URL/api/heartbeat" \
+          response=$(curl -s -X POST "https://wildfares.com/api/heartbeat" \
             -H "Content-Type: application/json" \
             -w "\n%{http_code}")
 
