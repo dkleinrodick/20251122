@@ -26,23 +26,18 @@ elif "postgresql" in DATABASE_URL:
     ssl_context = ssl.create_default_context()
     ssl_context.check_hostname = False
     ssl_context.verify_mode = ssl.CERT_NONE
-    connect_args = {
-        "ssl": ssl_context,
-        "server_settings": {
-            "jit": "off",
-            "statement_cache_size": "0"
-        }
-    }
+    connect_args = {"ssl": ssl_context}
 else:
     connect_args = {}
 
-# Create engine with NullPool for transaction pooler compatibility (no connection reuse = no prepared statement cache issues)
+# Create engine with NullPool for transaction pooler compatibility
 if "postgresql" in DATABASE_URL:
     engine = create_async_engine(
         DATABASE_URL,
         echo=False,
         connect_args=connect_args,
-        poolclass=NullPool  # Use NullPool to avoid prepared statement issues with transaction pooler
+        poolclass=NullPool,
+        execution_options={"server_settings": {"jit": "off", "statement_cache_size": "0"}}
     )
 else:
     engine = create_async_engine(DATABASE_URL, echo=False, connect_args=connect_args)
