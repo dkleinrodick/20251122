@@ -15,10 +15,10 @@ jobs:
     steps:
       - name: Call Heartbeat Endpoint
         run: |
-          echo "Calling https://wildfares.com/api/heartbeat..."
+          echo "Calling https://www.wildfares.com/api/heartbeat..."
           
           # Use temp file for response body to separate it from status code
-          curl -v -X POST "https://wildfares.com/api/heartbeat" \
+          curl -v -X POST "https://www.wildfares.com/api/heartbeat" \
             -H "Content-Type: application/json" \
             -o response.txt \
             -w "%{http_code}" > status_code.txt
