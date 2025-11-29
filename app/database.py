@@ -29,7 +29,8 @@ elif "postgresql" in DATABASE_URL:
     connect_args = {
         "ssl": ssl_context,
         "server_settings": {
-            "jit": "off"
+            "jit": "off",
+            "statement_cache_size": 0
         }
     }
 else:
