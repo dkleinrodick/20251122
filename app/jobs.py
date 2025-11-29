@@ -22,6 +22,7 @@ class BaseJob:
         self.heartbeat_id = None
         self.mode = "manual"
         self.job_id = None
+        self.final_status = None
 
     async def get_engine(self, session):
         if not self.engine:
@@ -94,6 +95,9 @@ class BaseJob:
                 if check_stop(self.job_id):
                     status = "cancelled"
                     update_job(self.job_id, status="cancelled", message="Cancelled during execution")
+                elif self.final_status:
+                    status = self.final_status
+                    update_job(self.job_id, status=status, message=f"Job paused ({status}). Scraped: {stats.get('scraped',0)}")
                 else:
                     complete_job(self.job_id, message=f"Completed. Scraped: {stats.get('scraped',0)}")
 
@@ -343,6 +347,7 @@ class ThreeWeekScraper(BaseJob):
 
     async def _execute_job(self, stop_check=None):
         logger.info("Starting ThreeWeekScraper Job...")
+        start_time = datetime.now(pytz.UTC)
         stats = {"scraped": 0, "skipped": 0, "errors": 0, "total": 0}
 
         scrape_tasks = []
@@ -509,13 +514,23 @@ class ThreeWeekScraper(BaseJob):
             update_job(self.job_id, message=f"Scraping {len(scrape_tasks)} routes...")
 
             # Process in smaller batches to allow progress saving
-            BATCH_SIZE = 50  # Scrape 50 routes at a time
+            BATCH_SIZE = 10  # Reduced from 50 to 10 for more frequent updates
             total_scraped = 0
             total_errors = 0
 
             engine = AsyncScraperEngine(session=None)
 
             for i in range(0, len(scrape_tasks), BATCH_SIZE):
+                # Check for global timeout (e.g. 5 min limit on serverless)
+                # We stop at 4.5 mins (270s) to allow safe exit
+                elapsed = (datetime.now(pytz.UTC) - start_time).total_seconds()
+                if elapsed > 270:
+                    logger.info(f"Time limit reached ({elapsed:.1f}s). Pausing job to resume later...")
+                    update_job(self.job_id, message=f"Pausing (Time Limit). Scraped: {total_scraped}")
+                    self.final_status = "running" # Keep status as 'running' so it resumes next time
+                    await self.save_progress(completed_routes)
+                    break
+
                 batch = scrape_tasks[i:i + BATCH_SIZE]
                 batch_num = (i // BATCH_SIZE) + 1
                 total_batches = (len(scrape_tasks) + BATCH_SIZE - 1) // BATCH_SIZE
