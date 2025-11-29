@@ -447,7 +447,7 @@
                         </div>
 
                         <!-- DATE INPUT -->
-                        <div :class="currentTab === 'explore' || currentTab === 'daytrip' ? 'md:col-span-4' : 'md:col-span-3'" class="relative z-[101]" v-click-outside="() => showDateDropdown = false">
+                        <div :class="currentTab === 'explore' || currentTab === 'daytrip' ? 'md:col-span-4' : 'md:col-span-3'" class="relative z-[110]" v-click-outside="() => showDateDropdown = false">
                             <div class="flex justify-between items-end mb-2 h-6">
                                 <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider">Departing</label>
                             </div>
@@ -477,7 +477,7 @@
                         </div>
                         
                         <!-- TRAVELERS INPUT -->
-                        <div :class="currentTab === 'explore' || currentTab === 'daytrip' ? 'md:col-span-4' : 'md:col-span-3'" class="relative z-[110]" v-click-outside="() => showPassengerMenu = false">
+                        <div :class="currentTab === 'explore' || currentTab === 'daytrip' ? 'md:col-span-4' : 'md:col-span-3'" class="relative z-[101]" v-click-outside="() => showPassengerMenu = false">
                             <div class="flex justify-between items-end mb-2 h-6">
                                 <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider">Travelers</label>
                                 <!-- Set Destination Removed -->
