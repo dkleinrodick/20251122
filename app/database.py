@@ -14,9 +14,16 @@ if DATABASE_URL.startswith("postgres://"):
 elif DATABASE_URL.startswith("postgresql://"):
     DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://")
 
-# Remove sslmode parameter if present (asyncpg doesn't support it in URL)
-if "?sslmode=" in DATABASE_URL:
-    DATABASE_URL = DATABASE_URL.split("?")[0]
+# Remove sslmode and add statement_cache_size=0 for pgbouncer compatibility
+if "postgresql" in DATABASE_URL:
+    if "?sslmode=" in DATABASE_URL:
+        DATABASE_URL = DATABASE_URL.split("?")[0]
+    
+    # Append statement_cache_size=0
+    if "?" in DATABASE_URL:
+        DATABASE_URL += "&statement_cache_size=0"
+    else:
+        DATABASE_URL += "?statement_cache_size=0"
 
 # Configure connection args
 if "sqlite" in DATABASE_URL:
