@@ -513,8 +513,10 @@ class ThreeWeekScraper(BaseJob):
             logger.info(f"ThreeWeekScraper: Queuing {len(scrape_tasks)} stale/missing tasks for scraping.")
             update_job(self.job_id, message=f"Scraping {len(scrape_tasks)} routes...")
 
-            # Process in smaller batches to allow progress saving
-            BATCH_SIZE = 10  # Reduced from 50 to 10 for more frequent updates
+            # Process in larger batches (user requested maximize throughput until timeout)
+            # Data is saved incrementally by the engine's DB writer every 100 items,
+            # so even if a batch is cut off, progress is preserved in FareSnapshot table.
+            BATCH_SIZE = 2000  
             total_scraped = 0
             total_errors = 0
 
