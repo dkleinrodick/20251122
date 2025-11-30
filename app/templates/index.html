@@ -376,7 +376,7 @@
 
 
                         <!-- ORIGIN INPUT -->
-                        <div :class="currentTab === 'explore' || currentTab === 'daytrip' ? 'md:col-span-4' : 'md:col-span-3'" class="relative z-40" v-click-outside="() => showOriginDropdown = false">
+                        <div :class="currentTab === 'explore' || currentTab === 'daytrip' ? 'md:col-span-4' : 'md:col-span-3'" class="relative z-50" v-click-outside="() => showOriginDropdown = false">
                             <div class="flex justify-between items-end mb-2 h-6 ml-1">
                                 <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider">
                                     {{ currentTab === 'explore' ? (exploreMode === 'origin' ? 'Departing From' : 'Arriving To') : 'Origin' }}
@@ -416,7 +416,7 @@
                         <!-- SWAP BUTTON (Removed for Equal Width Layout) -->
 
                         <!-- DESTINATION INPUT -->
-                        <div v-if="currentTab === 'oneway' || currentTab === 'builder'" class="md:col-span-3 relative z-30">
+                        <div v-if="currentTab === 'oneway' || currentTab === 'builder'" class="md:col-span-3 relative z-49">
                             <div class="flex justify-between items-end mb-2 h-6 ml-1 md:ml-5">
                                 <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider">Destination</label>
                             </div>
@@ -447,7 +447,7 @@
                         </div>
 
                         <!-- DATE INPUT -->
-                        <div :class="currentTab === 'explore' || currentTab === 'daytrip' ? 'md:col-span-4' : 'md:col-span-3'" class="relative z-20" v-click-outside="() => showDateDropdown = false">
+                        <div :class="currentTab === 'explore' || currentTab === 'daytrip' ? 'md:col-span-4' : 'md:col-span-3'" class="relative z-48" v-click-outside="() => showDateDropdown = false">
                             <div class="flex justify-between items-end mb-2 h-6">
                                 <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider">Departing</label>
                             </div>
@@ -477,7 +477,7 @@
                         </div>
                         
                         <!-- TRAVELERS INPUT -->
-                        <div :class="currentTab === 'explore' || currentTab === 'daytrip' ? 'md:col-span-4' : 'md:col-span-3'" class="relative z-10" v-click-outside="() => showPassengerMenu = false">
+                        <div :class="currentTab === 'explore' || currentTab === 'daytrip' ? 'md:col-span-4' : 'md:col-span-3'" class="relative z-47" v-click-outside="() => showPassengerMenu = false">
                             <div class="flex justify-between items-end mb-2 h-6">
                                 <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider">Travelers</label>
                                 <!-- Set Destination Removed -->
@@ -534,7 +534,7 @@
                         <div class="flex flex-wrap justify-center lg:justify-start gap-4 items-end w-full lg:w-auto">
                             
                             <!-- ONE WAY: Modern Controls -->
-                            <div v-if="currentTab === 'oneway'" class="w-full relative z-5">
+                            <div v-if="currentTab === 'oneway'" class="w-full relative z-20">
                                 <div class="flex flex-wrap items-center gap-2">
 
                                     <!-- Fare Type Dropdown -->
@@ -704,7 +704,7 @@
                             
                             <!-- DAY TRIP: New Inline Layout -->
                             <div v-if="currentTab === 'daytrip'" class="w-full">
-                                <div class="flex flex-wrap items-center gap-2 relative z-5">
+                                <div class="flex flex-wrap items-center gap-2 relative z-20">
                                     
                                     <!-- Fare Types Dropdown -->
                                     <div class="relative" v-click-outside="() => showFareTypeMenu = false">
@@ -817,7 +817,7 @@
                             </div>
 
                             <!-- BUILDER: Controls Layout -->
-                            <div v-if="currentTab === 'builder'" class="w-full">
+                            <div v-if="currentTab === 'builder'" class="w-full relative z-20">
                                 <div class="flex flex-wrap items-center gap-3">
 
                                     <!-- Fare Type Dropdown -->
@@ -943,7 +943,7 @@
                             </div>
 
                             <!-- Explore Tab Controls -->
-                            <div v-if="currentTab === 'explore'" class="w-full relative z-5">
+                            <div v-if="currentTab === 'explore'" class="w-full relative z-20">
                                 <div class="flex flex-col gap-3">
                                     <!-- Line 1: Controls Row -->
                                     <div class="flex flex-wrap items-center gap-3">
